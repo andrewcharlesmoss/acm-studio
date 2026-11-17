@@ -23,7 +23,7 @@ function resolveCssVariable(expression, variables) {
     if (inner[index] === ',' && depth === 0) { comma = index; break; }
   }
   const name = (comma < 0 ? inner : inner.slice(0, comma)).trim();
-  return variables[name] ?? resolveCssVariable(inner.slice(comma + 1).trim(), variables);
+  return variables[name] !== undefined && variables[name] !== 'initial' ? variables[name] : resolveCssVariable(inner.slice(comma + 1).trim(), variables);
 }
 
 // Real canvas markup/context is checked below. Node has no layout engine, so
@@ -97,7 +97,7 @@ test('actual fixture canvas consumes inherited website settings in Edit and Prev
 
 test('Preview flow Groups use the same website rhythm fallback as Edit and retain explicit zero gaps', () => {
   const selector = ':is(.studio-nested-group, .content-group, .template-group).has-layout-options.layout-flow > * + *';
-  const fallback = 'var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 0px)))';
+  const fallback = 'var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-group-default-gap, var(--studio-block-gap, 0px))))';
   for (const file of ['studio.css', 'templates.css']) {
     const source = file === 'templates.css' && process.env.STUDIO_FIXTURE_TEMPLATES_CSS || new URL(`../app/studio/${file}`, import.meta.url);
     const sheet = postcss.parse(readFileSync(source, 'utf8'));
@@ -109,8 +109,9 @@ test('Preview flow Groups use the same website rhythm fallback as Edit and retai
   }
   const resolveGap = options => {
     const css = layoutStyleProperties({ type: 'group', layout: 'flow', ...options });
-    return css['--block-layout-row-gap'] ?? css['--block-layout-gap'] ?? '31px';
+    return [css['--block-layout-row-gap'], css['--block-layout-gap'], '31px'].find(value => value !== undefined && value !== 'initial');
   };
+  assert.equal(resolveCssVariable(fallback, { '--block-layout-row-gap': 'initial', '--block-layout-gap': 'initial', '--studio-group-default-gap': '19px', '--studio-block-gap': '31px' }), '19px');
   assert.equal(resolveGap({}), '31px');
   assert.equal(resolveGap({ gap: 0 }), '0px');
   assert.equal(resolveGap({ gap: 9 }), '9px');

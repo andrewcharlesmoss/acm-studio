@@ -35,8 +35,8 @@ for (const type of ["group", "section", "column"]) {
   for (const writable of [true, false]) {
     for (const callbackAvailable of [true, false]) test(`${type} appender advertises writable=${writable}, callback=${callbackAvailable}`, () => {
       const block = { id: "parent", type, layout: "stack", children: [{ id: "child", type: "paragraph", text: "Existing child" }] };
-      const html = renderToStaticMarkup(createElement(BlockField, { block, writable, onOpenNestedInserter: callbackAvailable ? () => {} : undefined, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
-      const button = html.match(/<button\b[^>]*class="(?:nested-add-block|between-blocks nested-end-inserter)"[^>]*>/)?.[0];
+      const html = renderToStaticMarkup(createElement(BlockField, { block, writable, selectedBlockId: "parent", onOpenNestedInserter: callbackAvailable ? () => {} : undefined, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
+      const button = html.match(/<button\b[^>]*class="(?:nested-add-block|between-blocks nested-end-inserter|canvas-appender-button group-empty-add)"[^>]*>/)?.[0];
       assert.ok(button);
       if (writable && callbackAvailable) assert.doesNotMatch(button, /disabled/);
       else assert.match(button, /disabled=""/);
@@ -55,8 +55,10 @@ test("shared appender guards activation and retains the intended parent", () => 
 
 test("move and removal locks do not disable permitted child insertion", () => {
   const block = { id: "parent", type: "group", layout: "stack", children: [], editorial: { lock: { move: true, remove: true } } };
-  const html = renderToStaticMarkup(createElement(BlockField, { block, writable: true, onOpenNestedInserter() {}, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
-  assert.doesNotMatch(html.match(/<button\b[^>]*class="(?:nested-add-block|between-blocks nested-end-inserter)"[^>]*>/)?.[0] ?? "missing", /disabled/);
+  const html = renderToStaticMarkup(createElement(BlockField, { block, writable: true, selectedBlockId: "parent", onOpenNestedInserter() {}, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
+  const button = html.match(/<button\b[^>]*class="(?:nested-add-block|between-blocks nested-end-inserter|canvas-appender-button group-empty-add)"[^>]*>/)?.[0];
+  assert.ok(button);
+  assert.doesNotMatch(button, /disabled/);
 });
 
 for (const writable of [true, false]) test(`open Library retains browsing with writable=${writable}`, () => {

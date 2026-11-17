@@ -1,4 +1,4 @@
-import { createIsolatedModuleLoader } from "./production-module.mjs";
+import { createHostModuleEvaluator, createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readStudioSource } from "./studio-module-source.mjs";
 import { readFileSync } from "node:fs";
@@ -60,10 +60,10 @@ test("rich Button labels survive versioned workspace, publication, template and 
   const workspace = plain(editor.initialStudioWorkspace);
   const post = workspace.documents.find(document => document.kind === "post");
   post.blocks = [button];
-  assert.equal(workspace.version, 65);
+  assert.equal(workspace.version, 66);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 65);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 65, 'supported older content is upgraded even when a newer workspace version exists');
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 66);
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 66, 'supported older content is upgraded even when a newer workspace version exists');
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
@@ -542,7 +542,7 @@ test("template schemas v0.1.0 through v0.6.0 migrate styles without changing the
     assert.equal(migrated.typography.h1.weight, 600);
     assert.equal(migrated.typography.button.size.desktop.value, 13);
     assert.equal(migrated.buttons.base.borderWidth, 0);
-    assert.deepEqual(plain(migrated.layout), { spacing: 30, contentWidth: 1200, radius: 10, borderWidth: 2 });
+    assert.deepEqual(plain(migrated.layout), { spacing: { value: 30, unit: "px" }, contentWidth: { value: 1200, unit: "px" }, radius: { value: 10, unit: "px" }, borderWidth: { value: 2, unit: "px" } });
     const legacySnapshot = m.validateTemplateSnapshot({ version, set, templateId: set.templates[0].id });
     assert.equal(legacySnapshot.version, m.TEMPLATE_VERSION);
     assert.equal(legacySnapshot.set.styles.typography.body.size.desktop.value, 1.125);
@@ -713,9 +713,9 @@ test("two assigned documents share a design while a duplicated set and published
   const store = { version: m.TEMPLATE_VERSION, sets: [set, copy], assignments: documents.map(d => ({ documentId: d.id, kind: d.kind, setId: set.id, templateId: set.templates.find(t => t.kind === d.kind).id })) };
   m.validateTemplateStore(store, documents);
   const snapshot = m.resolveTemplate(store, documents[0]);
-  set.identity.name = "Updated Brand"; set.styles.layout.spacing = 40;
+  set.identity.name = "Updated Brand"; set.styles.layout.spacing = { value: 40, unit: "px" };
   assert.equal(m.resolveTemplate(store, documents[0]).set.identity.name, "Updated Brand");
-  assert.equal(m.resolveTemplate(store, documents[1]).set.styles.layout.spacing, 40);
+  assert.deepEqual(plain(m.resolveTemplate(store, documents[1]).set.styles.layout.spacing), { value: 40, unit: "px" });
   assert.equal(snapshot.set.identity.name, "Your Site"); assert.equal(copy.identity.name, "Your Site");
   assert.notEqual(copy.parts[0].id, set.parts[0].id);
   assert.equal(copy.templates[0].nodes[0].partId, copy.parts[0].id);
@@ -932,7 +932,31 @@ test("template edit nodes remain keyboard and pointer selectable without visible
   assert.match(html, /class="template-node-selectable studio-nested-block"[^>]*data-studio-selected="false"/, "nested nodes retain their own selection paint");
   assert.match(html, /aria-label="Template node: Site Identity"/);
   const source = readFileSync(new URL("../app/studio/template-editor.tsx", import.meta.url), "utf8");
-  assert.match(source, /onPointerDown=\{event => \{ event\.stopPropagation\(\); const nestedId = event\.target instanceof Element \? event\.target\.closest<HTMLElement>\("\[data-studio-nested-block-id\]"\)\?\.dataset\.studioNestedBlockId : undefined; selectBlock\(nestedId \?\? node\.id\); \}\}/);
+  const pointerHandler = source.slice(source.indexOf('onPointerDown={event => {', source.indexOf('const selectionFrame = <div')), source.indexOf('onFocusCapture=', source.indexOf('const selectionFrame = <div')));
+  assert.match(pointerHandler, /event\.stopPropagation\(\)/);
+  assert.match(pointerHandler, /element\?\.closest<HTMLElement>\("\[data-studio-nested-block-id\]"\)\?\.dataset\.studioNestedBlockId/);
+  assert.match(pointerHandler, /selectBlock\(child\?\.id \?\? nestedId \?\? node\.id\)/);
+  class FakeElement {
+    constructor(nested, interactive = false) { this.nested = nested; this.interactive = interactive; }
+    closest(selector) {
+      if (selector === '[data-studio-nested-block-id]') return this.nested ? { dataset: { studioNestedBlockId: this.nested } } : null;
+      return this.interactive ? {} : null;
+    }
+  }
+  const expression = pointerHandler.slice(pointerHandler.indexOf('{') + 1, pointerHandler.lastIndexOf('}'));
+  const invokePointer = (reference, nested, interactive = false) => {
+    const selections = [], events = [];
+    const node = { id: 'header', type: 'group', visualStyle: { className: 'tt5-header-shell' }, children: [{ id: 'inner', type: 'group' }] };
+    const handler = createHostModuleEvaluator(['Element', 'set', 'target', 'referencePartSetId', 'node', 'currentBlock', 'selectBlock'], 'return (' + expression + ');')(
+      FakeElement, { id: reference ? 'reference' : 'other' }, { id: 'tt5-header' }, 'reference', node, node, id => selections.push(id));
+    handler({ target: new FakeElement(nested, interactive), stopPropagation: () => events.push('stop'), preventDefault: () => events.push('prevent') });
+    return { selections, events };
+  };
+  assert.deepEqual(invokePointer(false, 'nested'), { selections: ['nested'], events: ['stop'] });
+  assert.deepEqual(invokePointer(false, null), { selections: ['header'], events: ['stop'] });
+  assert.deepEqual(invokePointer(true, null), { selections: ['inner'], events: ['stop', 'prevent'] });
+  assert.deepEqual(invokePointer(true, null, true), { selections: ['header'], events: ['stop'] });
+  assert.deepEqual(invokePointer(true, 'nested'), { selections: ['nested'], events: ['stop'] });
   assert.match(source, /onFocusCapture=\{event => \{ const nestedId = event\.target instanceof Element \? event\.target\.closest<HTMLElement>\("\[data-studio-nested-block-id\]"\)\?\.dataset\.studioNestedBlockId : undefined; selectBlock\(nestedId \?\? node\.id\); \}\}/);
   assert.match(source, /onKeyDown=\{event => \{/);
 });

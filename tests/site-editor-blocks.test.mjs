@@ -406,7 +406,7 @@ test('List Block spacing is exposed by the native Styles pane and reaches both l
 test('flow Groups inherit the website block-spacing default unless they set their own gap', () => {
   const stylesheet = readFileSync(new URL('../app/studio/studio.css', import.meta.url), 'utf8');
   const flowGroupSpacing = stylesheet.match(/\.content-group\.has-layout-options\.layout-flow\s*>\s*\*\s*\+\s*\*\s*\{\s*margin-block-start:\s*([^;}]+)/)?.[1];
-  assert.equal(flowGroupSpacing, 'var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-block-gap, 0px)))');
+  assert.equal(flowGroupSpacing, 'var(--block-layout-row-gap, var(--block-layout-gap, var(--studio-group-default-gap, var(--studio-block-gap, 0px))))');
   const inherited = websiteDesignRules({ ...state.resolvePreviewStyle(state.createStylesPreview().present, 'test'), layout: undefined }, 'block-spacing');
   assert.ok(inherited.includes('.test-site-page{--studio-block-gap:1.2rem}'));
   assert.ok(inherited.includes('.test-site-page{--studio-block-margin:1.2rem}'));

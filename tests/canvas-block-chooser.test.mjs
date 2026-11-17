@@ -132,11 +132,19 @@ test('actual JSX canvas plus callbacks route to the chooser with their root boun
   for(const [className,callback] of handlers) {
     let opened;
     const anchor={};
-    const scope={activeDocument:document,index:2,insertionIndex:2,insertionParent:null,replaceEmpty:false,block:{id:'paragraph'},event:{currentTarget:anchor},openCanvasInserter:(...args)=>{opened=args;}};
+    const scope={activeDocument:document,index:2,insertionIndex:2,insertionParent:null,replaceEmpty:false,projectedGroupAppender:false,block:{id:'paragraph'},event:{currentTarget:anchor},openCanvasInserter:(...args)=>{opened=args;}};
     runInNewContext(ts.transpileModule(`(${callback})(event)`,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,scope);
     assert.equal(opened[0],anchor);
     assert.equal(opened[1],className.includes('cover-inserter')?-1:className.includes('appender')?2:1);
   }
+  let opened;
+  const anchor = {};
+  const callback = handlers.get('"canvas-appender-button canvas-paragraph-inserter"');
+  runInNewContext(ts.transpileModule(`(${callback})(event)`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, {
+    projectedGroupAppender: true, block: { id: 'group', type: 'group', children: [{}, {}] }, event: { currentTarget: anchor },
+    openCanvasInserter: (...args) => { opened = args; },
+  });
+  assert.deepEqual(opened, [anchor, 1, 'group']);
 });
 test('Column insertion retains numeric child boundary and template dispatch retains explicit owners', () => {
   const column={id:'column',type:'column',children:[p('child')]};
@@ -197,10 +205,11 @@ test('real Group and Section markup exposes each nested boundary only while writ
   const { BlockField } = await loadProductionModule(new URL('../app/studio/studio-canvas.tsx', import.meta.url));
   for (const type of ['group', 'section']) for (const count of [1, 3]) {
     const block = { id: 'legacy-main', type, tagName: 'main', layout: 'flow', role: 'main', children: Array.from({ length: count }, (_, i) => p(`p${i}`)) };
-    const render = writable => renderToStaticMarkup(createElement(BlockField, { block, writable, onOpenNestedInserter() {}, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
+    const render = writable => renderToStaticMarkup(createElement(BlockField, { block, writable, selectedBlockId: block.id, onOpenNestedInserter() {}, onChange() {}, onTableCellFocus() {}, onTextSelection() {}, onLinkActivate() {} }));
     const html = render(true);
     assert.equal((html.match(/class="between-blocks nested-between-blocks"/g) || []).length, count);
-    assert.equal((html.match(/class="between-blocks nested-end-inserter"/g) || []).length, 1);
+    const endAppender = type === 'group' ? /class="canvas-appender-button group-empty-add"/g : /class="between-blocks nested-end-inserter"/g;
+    assert.equal((html.match(endAppender) || []).length, 1);
     assert.ok(html.indexOf('Add block before Paragraph') < html.indexOf('data-studio-block-id="p0"'));
     assert.equal((render(false).match(/class="between-blocks nested-between-blocks"/g) || []).length, 0);
   }

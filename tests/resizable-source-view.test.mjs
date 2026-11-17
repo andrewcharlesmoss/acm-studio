@@ -196,7 +196,8 @@ test("both editors place the resize boundary around the complete canonical inspe
     const source = readFileSync(new URL(`../app/studio/ui/styles/${file}`, import.meta.url), "utf8");
     assert.match(source, new RegExp(`<ResizableSourceView[^>]*className="${className}"`));
     assert.equal((source.match(/<ResizableSourceView[\s>]/g) ?? []).length, 1);
-    assert.match(source, /<div className="sg-guide-views"/);
+    const sourceView = source.slice(source.indexOf('<ResizableSourceView'), source.indexOf('</ResizableSourceView>'));
+    assert.match(sourceView, /<div className=\{`sg-guide-views\$\{wordWrap \? "" : " is-word-wrap-off"\}`\}/);
   }
 });
 

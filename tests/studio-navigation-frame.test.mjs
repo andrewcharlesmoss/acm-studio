@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { readFile } from "node:fs/promises";
 import * as jsxRuntime from "react/jsx-runtime";
 import { evaluateProductionModule, loadProductionModule } from "./production-module.mjs";
+import { studioNavigationToolItems } from "../app/studio/studio-navigation-visibility-contract.mjs";
 
 const { StudioNavigationFrame } = await loadProductionModule(new URL("../app/studio/studio-navigation-frame.tsx", import.meta.url));
 const noop = () => {};
@@ -90,11 +91,12 @@ test("rendered tool buttons invoke zero-argument commands without forwarding the
   const exports = {};
   const source = await readFile(new URL("../app/studio/studio-navigation-frame.tsx",import.meta.url),"utf8");
   const modules = {
-    react: {useId:()=>"navigation"}, "react/jsx-runtime":jsxRuntime,
+    react: {useId:()=>"navigation",useRef:value=>({current:value}),useState:value=>[value,()=>{}]}, "react/jsx-runtime":jsxRuntime,
     "@acm/icons/react": {AcmIcon:"icon"}, "./panes/pane-components": {Pane:"pane",PaneTabPanel:"panel",PaneTabs:"tabs"},
     "./project-local-links": {LocalFixtureSiteNavigation:"sites"}, "./studio-icons": {StudioIcon:"icon"}, "./studio-tool-icon": {StudioToolIcon:"tool-icon"},
     "./library-drag-handle": {LibraryDragHandle:"handle"}, "./drag-placement-indicator": {DragPlacementIndicator:"indicator"}, "./controls/tooltip-group": {StudioTooltipGroup:"tooltips"},
-    "./use-site-ordering": {useNavigationOrdering: ids=>({order:ids,reordering:{listProps:{},rowProps:()=>({}),canReorder:false},status:""})},
+    "./inspector-accordion": {InspectorAccordionSection:"section"}, "./studio-navigation-visibility": {useStudioNavigationVisibility:()=>null}, "./studio-navigation-visibility-contract.mjs": {studioNavigationToolItems},
+    "./use-site-ordering": {useNavigationOrdering: ids=>({order:ids,ready:true,reordering:{listProps:{},rowProps:()=>({}),canReorder:false},status:""})},
   };
   evaluateProductionModule(source,{exports,require:name=>modules[name]??assert.fail(name)});
   const frame = exports.StudioNavigationFrame({...props,onOpenFiles:(...args)=>calls.push(["files",args]),onOpenBackup:(...args)=>calls.push(["backup",args]),onOpenBin:(...args)=>calls.push(["bin",args])});

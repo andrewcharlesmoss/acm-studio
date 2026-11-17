@@ -301,12 +301,14 @@ test("global hook installs merged acknowledgements and restarts its broker after
     if (name === "./template-model") return templates;
     if (name === "./global-template-contract") return model;
     if (name === "./write-ownership") return { studioWriteOwnership: { write: callback => callback() } };
-    if (name === "./studio-sync") return { createStudioTransaction: sync.createStudioTransaction, createStudioSync(options) {
-      const session = { options, closed: false, isPrimary: () => false, getStatus: () => "synced", retryConnection() {}, close() { this.closed = true; }, async submit(next) {
+    if (name === "./studio-sync") return { applyStudioTransaction: sync.applyStudioTransaction, createStudioTransaction: sync.createStudioTransaction, createStudioSync(options) {
+      const session = { options, closed: false, isPrimary: () => false, getStatus: () => "synced", retryConnection() {}, close() { this.closed = true; }, async submit(next, onTransactionCreated) {
         if (failSave) throw new Error("CAS conflict");
+        const transaction = { transactionId: "merged-test-operation" };
+        onTransactionCreated(transaction.transactionId);
         // Another peer has committed a different property before this operation.
         const merged = structuredClone(next); merged.templates.sets[0].name = "Other peer original";
-        options.onCommittedSnapshot(merged, { source: "commit" }); options.onSnapshot(merged, "commit");
+        options.onCommittedSnapshot(merged, { source: "commit", acknowledgedTransaction: transaction });
       } }; sessions.push(session); options.onStatus("synced"); return session;
     } };
     throw new Error(`Unexpected import ${name}`);

@@ -82,7 +82,7 @@ test("selected specimen rings survive pointer-focus suppression and button sampl
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
   const component = fs.readFileSync(path.join(root, "app/studio/ui/styles/style-guide-sandbox.tsx"), "utf8");
   assert.match(styles, /\.sg-preview \[data-source-selected="true"\]:not\(\.sg-swatch\) \{ box-shadow: 0 0 0 2px var\(--studio-selection-colour\); \}/);
-  assert.match(styles, /\.sg-preview\[data-source-selected="true"\] \{ box-shadow: inset 0 0 0 2px var\(--studio-selection-colour\); \}/);
+  assert.match(styles, /\.sg-preview\[data-source-selected="true"\] \{ border-radius: 7px; box-shadow: inset 0 0 0 2px var\(--studio-selection-colour\); \}/);
   for (const role of ["base", "secondary", "outline"]) {
     assert.match(component, new RegExp(`data-source-selected=\\{selectedPreviewPath === "buttons\\.${role}\\.background"`));
   }

@@ -162,7 +162,8 @@ test("all typed blocks and template Content have complete, ordered inspector cap
   assert.doesNotMatch(groupDimensions, /Link block spacing|Unlink block spacing|label="Horizontal gap"|label="Vertical gap"/);
   assert.match(groupDimensions, /gapLength, gap: undefined, columnGap: undefined, rowGap: undefined/);
   assert.match(inspectorSource, /resetGroupDimensionFields\(block, nextStyle, \{ padding: selectedIds.includes\("padding"\), layout: resetGroupLayout \|\| selectedIds.includes\("gaps"\) \}\)/);
-  assert.match(inspectorSource, /title="Position" options=\{\[\{ id: "position", label: "Position" \}\]\}/);
+  assert.match(inspectorSource, /title="Position" options=\{block\.position \? \[\] : \[\{ id: "position", label: "Position" \}\]\}/);
+  assert.match(inspectorSource, /menuOptions=\{block\.position \? \[\{ id: "reset-position", label: "Reset Position" \}\] : \[\]\}/);
   const groupPositionInspector = inspectorSource.slice(inspectorSource.indexOf("function GroupPositionInspector"), inspectorSource.indexOf("function ColumnsInspector"));
   assert.match(groupPositionInspector, /configuredPosition: block\.position, visible: Boolean\(block\.position\)/);
   assert.match(groupPositionInspector, /positionVisibility\.configuredPosition === block\.position/);

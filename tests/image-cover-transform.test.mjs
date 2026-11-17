@@ -313,7 +313,7 @@ test('Cover content position and inner content width survive versioned workspace
   currentSite.documents[0].blocks = [cover];
   assert.equal(currentSite.version, 57);
   assert.equal(validTestSiteDocument(currentSite), true);
-  assert.equal(testSiteWorkspace(currentSite).version, 65);
+  assert.equal(testSiteWorkspace(currentSite).version, 66);
   assert.equal(validTestSiteDocument({ ...currentSite, version: 40 }), false);
   assert.equal(testSiteCollection(currentSite).version, 57, 'current fixture data is preserved rather than treated as a legacy document');
 

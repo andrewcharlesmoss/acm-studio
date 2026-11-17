@@ -1,4 +1,4 @@
-import { createHostModuleEvaluator } from "./production-module.mjs";
+import { createHostModuleEvaluator, loadProductionModule } from "./production-module.mjs";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -15,7 +15,8 @@ const appearanceCode = (appearanceSource);
 const FontAppearanceSelect = createHostModuleEvaluator(['require', 'exports'], `${appearanceCode}\nreturn exports.FontAppearanceSelect;`)(name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : { FontPreviewSelect: 'FontPreviewSelect' }, {});
 const appearanceSettingSource = readFileSync(new URL('../app/studio/controls/font-size-appearance-setting.tsx', import.meta.url), 'utf8');
 const appearanceSettingCode = appearanceSettingSource;
-const FontSizeAppearanceSetting = createHostModuleEvaluator(['require', 'exports'], `${appearanceSettingCode}\nreturn exports.FontSizeAppearanceSetting;`)(name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name === './setting-inheritance' ? { SettingLabel: 'SettingLabel' } : name === './font-preview-select' ? { FontPreviewSelect: 'FontPreviewSelect' } : name === '@acm/icons/react' ? { AcmIcon: 'AcmIcon' } : name === './custom-font-size-setting' ? { CustomFontSizeSetting: 'CustomFontSizeSetting' } : {} , {});
+const websiteFonts = await loadProductionModule(new URL('../app/content/website-fonts.ts', import.meta.url));
+const FontSizeAppearanceSetting = createHostModuleEvaluator(['require', 'exports'], `${appearanceSettingCode}\nreturn exports.FontSizeAppearanceSetting;`)(name => name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name === '../../content/website-fonts' ? websiteFonts : name === './setting-inheritance' ? { SettingLabel: 'SettingLabel' } : name === './font-preview-select' ? { FontPreviewSelect: 'FontPreviewSelect' } : name === '@acm/icons/react' ? { AcmIcon: 'AcmIcon' } : name === './custom-font-size-setting' ? { CustomFontSizeSetting: 'CustomFontSizeSetting' } : {} , {});
 const all = node => !node || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(all) : [node, ...all(node.props?.children)];
 
 test('shared Font dropdown previews each family and selects with focus return', () => {
@@ -69,4 +70,11 @@ test('Typography Appearance matches Gutenberg weights, italic variants, authored
   dropdown.props.onChange('extra-black-italic');
   dropdown.props.onChange('');
   assert.deepEqual(changes, ['extra-black-italic', undefined]);
+});
+
+test('Appearance filters unavailable weights while retaining an authored choice', () => {
+  const tree = FontSizeAppearanceSetting({ appearance: 'extra-black', appearanceFontId: 'site-literata', mode: 'presets', showSize: false, onModeChange() {}, onSizeChange() {}, onCustomSizeChange() {}, onAppearanceChange() {} });
+  const options = all(tree).find(node => node.type === 'FontPreviewSelect').props.options;
+  assert.deepEqual(options.filter(option => option.weight && !option.italic).map(option => option.weight), [200, 300, 400, 900, 1000]);
+  assert.equal(options.length, 11);
 });

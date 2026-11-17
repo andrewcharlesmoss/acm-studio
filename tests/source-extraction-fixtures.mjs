@@ -46,6 +46,7 @@ export const sourceExtractionFixtures = new Set([
   "rich-text-form-selection.test.mjs",
   "rich-text-line-break.test.mjs",
   "separator-inspector.test.mjs",
+  "site-ordering.test.mjs",
   "site-editor-home-preview.test.mjs",
   "sticky-block-library.test.mjs",
   "studio-behaviour.test.mjs",

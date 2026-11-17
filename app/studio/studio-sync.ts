@@ -500,12 +500,13 @@ export class StudioSyncSession<T> {
     else { this.stopHeartbeat(); this.brokerEpoch = ""; this.setStatus("connecting"); this.sendHello(); }
   }
 
-  submit(snapshot: T) {
+  submit(snapshot: T, onTransactionCreated?: (transactionId: string | null) => void) {
     if (!this.isConnectedPeer()) return Promise.reject(new Error("Studio is not connected to its primary tab."));
     const validated = this.validate(snapshot);
     const baseSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
     const transaction = this.makeTransaction(this.optimisticSnapshot, validated, this.revision + this.peerQueue.length + this.pending.size);
     this.optimisticSnapshot = this.cloneSnapshot(validated);
+    onTransactionCreated?.(transaction.changes.length ? transaction.transactionId : null);
     if (!transaction.changes.length) return Promise.resolve();
     return new Promise<void>((resolve, reject) => {
       const operation: PendingPeer = { requestId: id("operation"), transaction, baseSnapshot, resolve, reject, timer: setTimeout(() => this.failPeer(operation.requestId, new Error("The primary Studio tab stopped responding.")), OPERATION_TIMEOUT_MS) };
@@ -513,12 +514,13 @@ export class StudioSyncSession<T> {
     });
   }
 
-  commitPrimary(snapshot: T) {
+  commitPrimary(snapshot: T, onTransactionCreated?: (transactionId: string | null) => void) {
     if (!this.isPrimary()) return Promise.reject(new Error("This tab is not the Studio persistence owner."));
     const validated = this.validate(snapshot);
     const baseSnapshot = this.cloneSnapshot(this.optimisticSnapshot);
     const transaction = this.makeTransaction(this.optimisticSnapshot, validated, this.revision + this.primaryQueue.length);
     this.optimisticSnapshot = this.cloneSnapshot(validated);
+    onTransactionCreated?.(transaction.changes.length ? transaction.transactionId : null);
     if (!transaction.changes.length) return Promise.resolve();
     return new Promise<void>((resolve, reject) => { this.primaryQueue.push({ transaction, baseSnapshot, local: true, resolve, reject }); void this.processPrimaryQueue(); });
   }

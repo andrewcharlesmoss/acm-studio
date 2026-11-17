@@ -47,7 +47,7 @@ test("workspace and publication formats gate expanded ranges before migrating ol
   assert.deepEqual(migrateStudioWorkspace(workspace).documents[0].blocks, [grid]);
   assert.throws(() => migrateStudioWorkspace({ ...workspace, version: 64 }), /invalid|unsupported/i);
   const legacy = migrateStudioWorkspace({ ...workspace, version: 64, documents: [{ ...document, blocks: [legacyGrid] }] });
-  assert.equal(legacy.version, 65);
+  assert.equal(legacy.version, 66);
   assert.deepEqual(legacy.documents[0].blocks, [legacyGrid]);
   assert.deepEqual(validatePublicationSnapshot({ version: 56, posts: [publication] }).posts[0].blocks, [grid]);
   assert.throws(() => validatePublicationSnapshot({ version: 55, posts: [publication] }), /snapshot v56/);

@@ -13,6 +13,8 @@ import { accountExample } from "../app/studio/ribbon/catalogue-model.ts";
 const { CheckboxControl } = await loadProductionModule(new URL("../app/studio/controls/checkbox-control.tsx", import.meta.url));
 const { RangeControl } = await loadProductionModule(new URL("../app/studio/controls/range-control.tsx", import.meta.url));
 const { createTemplateSet } = await loadProductionModule(new URL("../app/studio/template-model.ts", import.meta.url));
+const { isReferenceTemplatePart } = await loadProductionModule(new URL("../app/studio/reference-template-parts.ts", import.meta.url));
+const { AdvancedFieldsControl } = await loadProductionModule(new URL("../app/studio/controls/advanced-fields-control.tsx", import.meta.url));
 function productionFunction(file, name, bindings = {}) {
   const source = readFileSync(new URL(`../app/studio/${file}`, import.meta.url), "utf8");
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -27,6 +29,13 @@ function productionFunction(file, name, bindings = {}) {
   return scope.subject;
 }
 function nodes(node) { return Array.isArray(node) ? node.flatMap(nodes) : !node?.props ? [] : [node, ...nodes(node.props.children)]; }
+
+test("Group anchor help is available without external WordPress links", () => {
+  const html = renderToStaticMarkup(createElement(AdvancedFieldsControl, { fields: { anchor: true, className: false, additionalCss: false }, style: {}, blockName: "Group", anchorHelpLink: true, onChange() {} }));
+  assert.match(html, /HTML anchor/);
+  assert.match(html, /unique web address/);
+  assert.doesNotMatch(html, /href="https?:\/\/wordpress\.(?:org|com)/i);
+});
 
 test("checkbox supports native IDs, accessible names, rich labels and independent uncontrolled defaults", () => {
   const rich = renderToStaticMarkup(createElement(CheckboxControl, { inputProps: { id: "choice", name: "enabled", "aria-describedby": "help" }, defaultChecked: true, label: createElement("strong", null, "Keep this") }));
@@ -106,7 +115,7 @@ test("template pane retains defaults without exposing the retired default checkb
   const page = set.templates.find(template => template.kind === "page");
   const changes = [];
   const render = productionFunction("template-inspector.tsx", "TemplateInspector", {
-    CheckboxControl, GroupGlobalStylesContext: { Provider: "GroupGlobalStylesProvider" }, useContext: () => ({}), useState: value => [value, () => {}], useEffect: effect => effect(), useId: () => "template", useSharedStylePreset: () => set.styles,
+    CheckboxControl, isReferenceTemplatePart, GroupGlobalStylesContext: { Provider: "GroupGlobalStylesProvider" }, useContext: () => ({}), useState: value => [value, () => {}], useEffect: effect => effect(), useId: () => "template", useSharedStylePreset: () => set.styles,
     useResponsiveStyleScope: () => ({ editingViewport: "desktop" }), templateEditorBlocks: () => [], visitTemplateNodes: () => {}, findColumnsParent: () => null,
     templateCopyrightPlaceholders: [], TemplateTextSetting: "TemplateTextSetting", ResettableStyleSetting: "ResettableStyleSetting", LinkSettings: "LinkSettings",
   });

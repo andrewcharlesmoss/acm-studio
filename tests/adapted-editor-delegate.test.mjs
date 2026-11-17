@@ -29,23 +29,29 @@ function canvas(extra = {}) {
   return { html, fields, contexts };
 }
 
-test("adapted Group toolbars expose the Gutenberg parent and inserter actions", () => {
+test("adapted Group toolbars distinguish template roots from nested blocks", () => {
   for (const allowed of [true, false]) {
-    const { html } = canvas({ selectedBlockId: "group", targetLabel: "part", presentation: { canAlignBlock: () => allowed } });
-    const actions = html.match(/data-toolbar-block="group" data-toolbar-actions="([^"]+)"/)?.[1]?.split(" ") ?? [];
-    assert.equal(actions.includes("block-alignment"), false);
-    assert.equal(actions.includes("group-layout"), false);
-    assert.match(html, /aria-label="Select parent Template Part"/);
-    assert.match(html, /aria-label="Add block"/);
+    const root = { ...document, blocks: [blocks[1]] };
+    const { html } = canvas({ activeDocument: root, selectedBlockId: "group", targetLabel: "part", presentation: { canAlignBlock: () => allowed } });
+    const start = html.indexOf('<div class="canvas-block-toolbar is-template-part-root');
+    const end = html.indexOf('<div class="studio-nested-group layout-stack', start);
+    assert.ok(start >= 0 && end > start);
+    const toolbar = html.slice(start, end);
+    assert.match(toolbar, /aria-label="Transform Stack block"/);
+    assert.match(toolbar, /aria-label="More block options"/);
+    assert.doesNotMatch(toolbar, /aria-label="(?:Select parent Template Part|Align block|Add block|Move block up|Move block down|Drag to reorder Stack block)"/);
   }
   const nested = { ...document, blocks: [{ id: "container", type: "group", layout: "row", children: [blocks[1]] }] };
   const { html } = canvas({ activeDocument: nested, selectedBlockId: "group" });
-  assert.match(html, /aria-label="Select parent block: Row"/);
-  assert.match(html, /aria-label="Move left"/);
-  assert.match(html, /aria-label="Move right"/);
-  const childToolbar = html.match(/aria-label="Select parent block: Row"[\s\S]*?aria-label="Add block"/)[0];
-  assert.doesNotMatch(childToolbar, /aria-label="Align block"/);
-  assert.match(childToolbar, /aria-label="Add block"/);
+  const parent = html.indexOf('aria-label="Select parent block: Row"');
+  const start = html.lastIndexOf('<div class="canvas-block-toolbar', parent);
+  const end = html.indexOf('<div class="studio-nested-group layout-stack', parent);
+  assert.ok(parent >= 0 && start >= 0 && end > parent);
+  const toolbar = html.slice(start, end);
+  assert.match(toolbar, /aria-label="Drag to reorder Stack block"/);
+  assert.match(toolbar, /aria-label="Move block up"/);
+  assert.match(toolbar, /aria-label="Move block down"/);
+  assert.doesNotMatch(toolbar, /aria-label="(?:Align block|Add block)"/);
 });
 
 test("presentation overrides preserve Canvas callbacks and editing roots", () => {

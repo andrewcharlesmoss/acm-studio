@@ -43,7 +43,7 @@ test("all four insertion choices use the portable Group contract and defaults", 
 test("every variation transforms mutually without losing nested data or presentation", () => {
   for (const variation of ["group", "row", "stack", "grid"]) {
     const block = { ...createBlock(variation, "preserved"), children: [{ id: "child", type: "paragraph", text: "Keep" }], visualStyle: { backgroundColor: "#FFFFFF" }, tagName: "header", ariaLabel: "Site", allowedBlocks: ["paragraph"] };
-    const transforms = availableBlockTransforms(block);
+    const transforms = availableBlockTransforms(block).filter(transform => transform.target === "group" && transform.layout !== undefined);
     assert.equal(transforms.length, 3);
     for (const transform of transforms) {
       const next = transformBlock(block, transform);
@@ -131,7 +131,7 @@ test("block sizing reaches the shared visual frame only in its matching parent l
   const activeBlock = { ...block, style: { ...block.style, flexItemSizingActive: true } };
   const rowFrame = renderToStaticMarkup(BlockVisualFrame({ block: activeBlock, layoutParent: row, children: child }));
   assert.match(rowFrame, /flex-grow:1/);
-  assert.match(rowFrame, /flex-basis:0px/);
+  assert.match(rowFrame, /flex-basis:auto/);
   assert.doesNotMatch(rowFrame, /grid-column:/);
   const grid = createBlock("grid", "sizing-grid");
   const gridBlock = { ...block, style: { ...block.style, gridItemSizing: { columnSpan: 2 } } };
@@ -413,18 +413,18 @@ test("Section Grid retains its separately exposed alignment controls", () => {
 
 test("Row and Stack child sizing renders bounded Gutenberg-style Fit, Grow, Max width and Fixed modes", () => {
   assert.deepEqual(flexItemSizingStyle({ mode: "fit" }), { flexGrow: 0, flexShrink: 1, flexBasis: "auto" });
-  assert.deepEqual(flexItemSizingStyle({ mode: "grow" }), { flexGrow: 1, flexShrink: 1, flexBasis: "0px" });
+  assert.deepEqual(flexItemSizingStyle({ mode: "grow" }), { flexGrow: 1, flexShrink: 1, flexBasis: "auto" });
   assert.deepEqual(flexItemSizingStyle({ mode: "max", size: "320px" }), { flexGrow: 0, flexShrink: 1, flexBasis: "320px" });
   assert.deepEqual(flexItemSizingStyle({ mode: "fixed", size: "45%" }), { flexGrow: 0, flexShrink: 0, flexBasis: "45%" });
   assert.deepEqual(flexItemSizingStyle({ mode: "fixed", size: "url(javascript:alert(1))" }), {});
   assert.deepEqual(flexItemSizingStyle({ mode: "fixed", size: "0px" }), { flexGrow: 0, flexShrink: 0, flexBasis: "0px" });
-  assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: true }, { flexItemSizing: { mode: "grow" } }), { flexGrow: 1, flexShrink: 1, flexBasis: "0px" });
+  assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: true }, { flexItemSizing: { mode: "grow" } }), { flexGrow: 1, flexShrink: 1, flexBasis: "auto" });
   assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "stack", allowSizingOnChildren: true }, { flexItemSizing: { mode: "fixed", size: "320px" } }), { flexGrow: 0, flexShrink: 0, flexBasis: "320px" });
   assert.equal(groupChildFlexItemStyle({ type: "group", layout: "row" }, { flexItemSizing: { mode: "grow" } }), undefined);
   assert.equal(groupChildFlexItemStyle({ type: "group", layout: "stack" }, { flexItemSizing: { mode: "fixed", size: "320px" } }), undefined);
   assert.equal(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: false }, { flexItemSizing: { mode: "grow" } }), undefined);
-  assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: false }, { flexItemSizing: { mode: "grow" }, flexItemSizingActive: true }), { flexGrow: 1, flexShrink: 1, flexBasis: "0px" });
-  assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: true }, { flexItemSizing: { mode: "grow" } }), { flexGrow: 1, flexShrink: 1, flexBasis: "0px" });
+  assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: false }, { flexItemSizing: { mode: "grow" }, flexItemSizingActive: true }), { flexGrow: 1, flexShrink: 1, flexBasis: "auto" });
+  assert.deepEqual(groupChildFlexItemStyle({ type: "group", layout: "row", allowSizingOnChildren: true }, { flexItemSizing: { mode: "grow" } }), { flexGrow: 1, flexShrink: 1, flexBasis: "auto" });
   assert.equal(groupChildFlexItemStyle({ type: "group", layout: "grid", allowSizingOnChildren: true }, { flexItemSizing: { mode: "grow" } }), undefined);
   assert.equal(validLayoutOptions({ layout: "row", allowSizingOnChildren: true }, true), true);
   assert.equal(validLayoutOptions({ layout: "grid", allowSizingOnChildren: true }, true), true);
@@ -563,9 +563,9 @@ test("per-child legacy sizing opt-in is retained only by the new envelopes while
   assert.throws(() => migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [invalidMarker] }), /invalid|unsupported/i);
   assert.equal(validContentBlocks(invalidMarker.blocks), false);
   const workspace = migrateStudioWorkspace({ ...initialStudioWorkspace, version: 64, documents: [document] });
-  assert.equal(workspace.version, 65);
+  assert.equal(workspace.version, 66);
   assert.equal(workspace.documents[0].blocks[0].children[0].visualStyle.flexItemSizingActive, true);
-  assert.equal(migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [{ ...document, blocks: [{ ...row, children: [{ ...child, visualStyle: { flexItemSizing: { mode: "grow" } } }] }] }] }).version, 65);
+  assert.equal(migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [{ ...document, blocks: [{ ...row, children: [{ ...child, visualStyle: { flexItemSizing: { mode: "grow" } } }] }] }] }).version, 66);
 
   const post = { localDocumentId: "scoped-sizing", slug: "scoped-sizing", title: "Row", summary: "", displayDate: "", readingTime: "", publishedAt: "2026-01-01T00:00:00.000Z", section: "", blocks: [row], mediaIds: [] };
   assert.throws(() => validatePublicationSnapshot({ version: 54, posts: [post] }), /snapshot v55/);
@@ -607,7 +607,7 @@ test("per-child legacy sizing opt-in is retained only by the new envelopes while
   set.templates[0].nodes = [row];
   const library = { format: "acm-global-templates", version: 47, templates: { ...emptyTemplateStore(), sets: [set] },
     header: { setId: set.id, partId: set.parts[0].id }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(validateGlobalTemplateLibrary(library).version, 48);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 49);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 46 }), /global template library v47/);
 });
 

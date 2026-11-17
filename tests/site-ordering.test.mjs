@@ -1,9 +1,12 @@
 import { evaluateProductionModule } from "./production-module.mjs";
 import test from 'node:test';
-import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
+import * as jsxRuntime from 'react/jsx-runtime';
+import ts from 'typescript';
+import { studioNavigationSiteItems } from '../app/studio/studio-navigation-visibility-contract.mjs';
 
 import { loadProductionModule } from './production-module.mjs';
 import { orderedSiteIds, readSiteOrder, createSiteOrderRepository, siteOrderPreferenceKey } from '../app/studio/site-order-repository.mjs';
@@ -26,15 +29,32 @@ test('stale, invalid, denied and failed saves preserve the last stored site orde
  const failing=createSiteOrderRepository({storage:{getItem:store.getItem,setItem(){throw new Error('Quota');}},ids,ownership:owner,locks:null});assert.equal((await failing.save(ids,['test2','acm-studio','test'])).reason,'storage');
 });
 const links=await loadProductionModule(new URL('../app/studio/project-local-links.tsx',import.meta.url));
+const registry=await loadProductionModule(new URL('../app/studio/project-registry.ts',import.meta.url));
+const fixtures=await loadProductionModule(new URL('../app/studio/test-site/sites.ts',import.meta.url));
+const navigation=await loadProductionModule(new URL('../app/studio/use-studio-screen-navigation.ts',import.meta.url));
+const accordions=await loadProductionModule(new URL('../app/studio/inspector-accordion.tsx',import.meta.url));
+const indicator=await loadProductionModule(new URL('../app/studio/drag-placement-indicator.tsx',import.meta.url));
+const icons=await loadProductionModule(new URL('../app/studio/studio-icons.tsx',import.meta.url));
 const libraryMoves=await loadProductionModule(new URL('../app/studio/library-reordering.ts',import.meta.url));
 const gapGeometry=await loadProductionModule(new URL('../app/studio/drop-gap-geometry.ts',import.meta.url));
 const dashboardOrderContract=await loadProductionModule(new URL('../app/studio/dashboard-order-contract.mjs',import.meta.url));
-test('Sites renders three named catalogue handles alongside separate edit/visit controls',()=>{
- const html=renderToStaticMarkup(React.createElement(links.LocalFixtureSiteNavigation,{selectedSite:'test'}));
+test('Sites expose reorder handles only in edit mode alongside separate edit and visit controls',()=>{
+ const source=readFileSync(new URL('../app/studio/project-local-links.tsx',import.meta.url),'utf8');
+ const ast=ts.createSourceFile('links.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+ const declaration=ast.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='LocalFixtureSiteNavigation');assert.ok(declaration);
+ let editing=false;
+ const scope={exports:{},require:()=>jsxRuntime,useContext:()=>({open:true}),SitesDisclosureContext:{},
+  useState:()=>[editing,next=>editing=typeof next==='function'?next(editing):next],useRef:()=>({current:null}),useEffect:()=>{},useStudioNavigationVisibility:()=>null,
+  ...registry,...fixtures,...navigation,...accordions,...indicator,...icons,studioNavigationSiteItems,AcmIcon:'icon',ProjectLocalSiteNavigation:links.ProjectLocalSiteNavigation,
+  useSiteOrdering:ids=>({order:ids,ready:true,status:'',reordering:{listProps:{},rowProps:id=>({'data-library-entry-id':id}),canReorder:true,cancel(){},message:''}})};
+ runInNewContext(ts.transpileModule(declaration.getText(ast)+';globalThis.component=LocalFixtureSiteNavigation;', {compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,scope);
+ const nodes=node=>Array.isArray(node)?node.flatMap(nodes):node?.props?[node,...nodes(node.props.children)]:[];
+ let tree=scope.component({selectedSite:'test'});let html=renderToStaticMarkup(tree);
+ assert.doesNotMatch(html,/aria-label="Reorder ACM Studio"/);assert.match(html,/Edit Site — Test1 — Local/);assert.match(html,/Visit Site — Test1 — Production/);assert.match(html,/data-active="true"/);
+ const toggle=nodes(tree).find(node=>node.type==='button'&&node.props['aria-label']==='Edit site visibility and order');assert.ok(toggle);toggle.props.onClick();
+ tree=scope.component({selectedSite:'test'});html=renderToStaticMarkup(tree);
  for(const name of ['ACM Studio','Test1','Test2'])assert.match(html,new RegExp(`aria-label="Reorder ${name}"`));
- assert.equal((html.match(/class="studio-site-drag-button"/g)??[]).length,3);
- assert.match(html,/Edit Site — Test1 — Local/);assert.match(html,/Visit Site — Test1 — Production/);assert.match(html,/data-active="true"/);assert.match(html,/data-library-entry-id="test"/);
- assert.doesNotMatch(html,/<div[^>]+class="studio-local-site-actions[^>]+draggable/);
+ assert.equal((html.match(/class="studio-site-drag-button"/g)??[]).length,3);assert.match(html,/data-library-entry-id="test"/);assert.doesNotMatch(html,/<div[^>]+class="studio-local-site-actions[^>]+draggable/);
 });
 function hookHarness(store=storage(),allowed=true, navigationIds=ids, key=siteOrderPreferenceKey){
  const slots=[];let cursor=0,effects=[];const events=new Map();

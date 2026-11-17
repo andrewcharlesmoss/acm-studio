@@ -12,15 +12,19 @@ const { module: syncModule } = await runnerImport("app/studio/studio-sync.ts", o
 
 const { module: designContracts } = await runnerImport("app/studio/site-editor/website-design.ts",options);
 
-function fixture(t, { websiteDesignDefaults, failSave = false } = {}) {
-  const rooms = new Map(); const drivers = []; const sessions = []; const writes = [];
+function fixture(t, { websiteDesignDefaults, failSave = false, allowDiscard = false } = {}) {
+  const rooms = new Map(); const drivers = []; const sessions = []; const writes = []; const reads = []; const cacheWrites = []; const suppressedUpdates = new Set(); const heldAcknowledgements = new Map();
   let revision = "a".repeat(64);
-  let saveGate; let waitingForSave = false;
+  let saveGate; let waitingForSave = false; let readGate; let waitingForRead = false;
   const initialSet = templates.createTemplateSet("Original");
   let source = contracts.validateGlobalTemplateLibrary({ format: "acm-global-templates", version: websiteDesignDefaults ? 4 : 1, templates: { ...templates.emptyTemplateStore(), sets: [initialSet] }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } }, ...(websiteDesignDefaults ? { header: { setId: initialSet.id, partId: initialSet.parts[0].id }, websiteDesignDefaults } : {}) });
   class Channel {
     constructor(name) { this.name = name; this.listeners = new Map(); this.room = rooms.get(name) ?? new Set(); rooms.set(name, this.room); this.room.add(this); }
-    postMessage(data) { for (const other of this.room) if (other !== this) queueMicrotask(() => other.listeners.get("message")?.forEach(listener => listener({ data: structuredClone(data) }))); }
+    postMessage(data) { for (const other of this.room) if (other !== this && !(data.kind === "update" && suppressedUpdates.has(other))) {
+      const deliver = () => other.listeners.get("message")?.forEach(listener => listener({ data: structuredClone(data) }));
+      if (data.kind === "ack" && heldAcknowledgements.has(other)) heldAcknowledgements.get(other).push(deliver);
+      else queueMicrotask(deliver);
+    } }
     addEventListener(name, listener) { const group = this.listeners.get(name) ?? new Set(); group.add(listener); this.listeners.set(name, group); }
     removeEventListener(name, listener) { this.listeners.get(name)?.delete(listener); }
     close() { this.room.delete(this); this.listeners.clear(); }
@@ -35,6 +39,12 @@ function fixture(t, { websiteDesignDefaults, failSave = false } = {}) {
     };
     const ownership = { canWrite: () => owner, write: async callback => { assert.equal(owner, true, "only the existing lock owner writes"); return callback(); } };
     async function request(input) {
+      if (input.action === "global-read") {
+        reads.push(input);
+        const response = { library: structuredClone(source), revision, initialised: true };
+        if (readGate) { waitingForRead = true; await readGate; waitingForRead = false; }
+        return response;
+      }
       if (input.action === "global-save") {
         waitingForSave = true;
         if (saveGate) await saveGate;
@@ -54,14 +64,14 @@ JSON,
 BroadcastChannel: Channel,
 setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; },
 clearInterval: id => intervals.delete(id),
-window: { setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id), addEventListener: (name, callback) => { const group = events.get(name) ?? new Set(); group.add(callback); events.set(name, group); }, removeEventListener: (name, callback) => events.get(name)?.delete(callback), confirm: () => { throw new Error("Reconnect must not discard a draft"); } } },
+window: { setInterval: callback => { const id = intervals.size + 1; intervals.set(id, callback); return id; }, clearInterval: id => intervals.delete(id), addEventListener: (name, callback) => { const group = events.get(name) ?? new Set(); group.add(callback); events.set(name, group); }, removeEventListener: (name, callback) => events.get(name)?.delete(callback), confirm: () => { if (!allowDiscard) throw new Error("Reconnect must not discard a draft"); return true; } } },
       sourceOverrides: {
         ...(process.env.GLOBAL_TEMPLATE_HOOK_SOURCE ? { "app/studio/use-global-templates.ts": process.env.GLOBAL_TEMPLATE_HOOK_SOURCE } : {}),
         ...(process.env.GLOBAL_TEMPLATE_RUNTIME_SOURCE ? { "app/studio/test-site/broker-runtime.tsx": process.env.GLOBAL_TEMPLATE_RUNTIME_SOURCE } : {}),
       },
       resolveImport(name, fallback) {
           if (name === "react") return react;
-    if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(){}};
+    if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(response){ cacheWrites.push(response.revision); }};
           if (name.endsWith("site-editor/website-design")) return designContracts;
           if (name === "next/navigation") return { usePathname: () => route };
           if (name.endsWith("template-model")) return templates;
@@ -71,7 +81,7 @@ window: { setInterval: callback => { const id = intervals.size + 1; intervals.se
           if (name.endsWith("write-ownership")) return { studioWriteOwnership: ownership };
           if (name.endsWith("use-test-site")) return { useTestSite: (enabled, borrowed, siteId) => ({ ...site, siteId, canSaveGlobalTemplates: enabled && borrowed && owner }) };
           if (name.endsWith("use-global-templates")) return load("app/studio/use-global-templates.ts");
-          if (name.endsWith("studio-sync")) return { createStudioTransaction: syncModule.createStudioTransaction, createStudioSync: options => { const session = syncModule.createStudioSync({ ...options, channelFactory: name => new Channel(name) }); sessions.push(session); return session; } };
+          if (name.endsWith("studio-sync")) return { applyStudioTransaction: syncModule.applyStudioTransaction, createStudioTransaction: syncModule.createStudioTransaction, createStudioSync: options => { const session = syncModule.createStudioSync({ ...options, channelFactory: name => new Channel(name) }); sessions.push(session); return session; } };
           return fallback();
         },
     });
@@ -97,8 +107,274 @@ window: { setInterval: callback => { const id = intervals.size + 1; intervals.se
     assert.fail("Global template outcome did not settle before its deadline");
   }
   t.after(() => { drivers.forEach(driver => driver.close()); sessions.forEach(session => session.close()); });
-  return { open, settle, until, writes, rooms, sessions, source: () => source, gate(promise) { saveGate = promise; }, setFailSave(value) { failSave = value; }, waitingForSave: () => waitingForSave };
+  return { open, settle, until, writes, reads, cacheWrites, rooms, sessions, source: () => source, suppressUpdates(channel) { suppressedUpdates.add(channel); }, holdAcknowledgements(channel) { heldAcknowledgements.set(channel, []); }, releaseAcknowledgements(channel) { const held = heldAcknowledgements.get(channel) ?? []; heldAcknowledgements.delete(channel); held.forEach(deliver => deliver()); }, gate(promise) { saveGate = promise; }, gateRead(promise) { readGate = promise; }, waitingForRead: () => waitingForRead, setFailSave(value) { failSave = value; }, waitingForSave: () => waitingForSave };
 }
+
+for (const isOwner of [true, false]) test(`a pending reload blocks stale edits and duplicate retries for ${isOwner ? "the owner" : "a peer"}`, async t => {
+  const f = fixture(t); const owner = f.open(true); const editor = isOwner ? owner : f.open(false);
+  await f.until(() => editor.state?.session.writable);
+  let release; f.gateRead(new Promise(resolve => { release = resolve; }));
+  const session = editor.state.session; const baselineReads = f.reads.length;
+  session.retryConnection(); await f.until(f.waitingForRead); editor.render();
+  assert.equal(editor.state.session.writable, false);
+  assert.equal(session.commit(store => { store.sets[0].name = "Stale edit"; return store; }), false);
+  session.retryConnection();
+  assert.equal(f.reads.length, baselineReads + 1);
+  release(); await f.until(() => editor.state.session.writable);
+  assert.equal(f.writes.length, 0);
+});
+
+test("a superseded reload cannot clear a newer conflict or accept stale edits", async t => {
+  const f = fixture(t); f.open(true); const peer = f.open(false);
+  await f.until(() => peer.state?.session.writable);
+  const priorSession = peer.state.session;
+  const broker = f.sessions.at(-1);
+  let release; f.gateRead(new Promise(resolve => { release = resolve; }));
+  priorSession.retryConnection(); await f.until(f.waitingForRead);
+  assert.equal(priorSession.commit(store => { store.sets[0].name = "Stale action"; return store; }), false);
+  const local = { templates: structuredClone(priorSession.store) };
+  broker.options.onConflict({ localSnapshot: local, remoteSnapshot: local, baseSnapshot: local, conflicts: [], reason: "New conflict" });
+  await assert.rejects(priorSession.resolveSyncConflict("theirs"), /are reconnecting/);
+  release(); await f.settle(); peer.render();
+  assert.equal(peer.state.session.error, "New conflict");
+  assert.equal(peer.state.session.syncConflict.reason, "New conflict");
+  assert.equal(peer.state.session.writable, false);
+  assert.equal(f.sessions.at(-1), broker, "a superseded reload must not replace the broker");
+  assert.equal(f.writes.length, 0);
+});
+
+test("a superseded owner reload does not update the startup cache", async t => {
+  const f = fixture(t); const owner = f.open(true);
+  await f.until(() => owner.state?.session.writable);
+  const baseline = f.cacheWrites.length; const broker = f.sessions.at(-1);
+  let release; f.gateRead(new Promise(resolve => { release = resolve; }));
+  owner.state.session.retryConnection(); await f.until(f.waitingForRead);
+  const local = { templates: structuredClone(owner.state.session.store) };
+  broker.options.onConflict({ localSnapshot: local, remoteSnapshot: local, baseSnapshot: local, conflicts: [], reason: "New conflict" });
+  release(); await f.settle(); owner.render();
+  assert.equal(f.cacheWrites.length, baseline);
+  assert.equal(owner.state.session.syncConflict.reason, "New conflict");
+});
+
+test("a delayed reload cannot replace a newer committed peer update", async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  let release; f.gateRead(new Promise(resolve => { release = resolve; }));
+  const oldBroker = f.sessions.at(-2);
+  first.state.session.retryConnection(); await f.until(f.waitingForRead);
+  assert.equal(second.state.session.commit(store => { store.sets[0].name = "Newer peer edit"; return store; }), true);
+  await f.until(() => f.source().templates.sets[0].name === "Newer peer edit");
+  await f.settle(); release(); await f.settle(); first.render();
+  assert.equal(first.state.session.store.sets[0].name, "Newer peer edit");
+  assert.equal(f.sessions.at(-2), oldBroker, "the stale reload must not restart the broker");
+  assert.equal(first.state.session.writable, true);
+});
+
+test("a delayed background refresh cannot replace a newer committed peer update", async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  let release; f.gateRead(new Promise(resolve => { release = resolve; }));
+  first.refresh(); await f.until(f.waitingForRead);
+  assert.equal(second.state.session.commit(store => { store.sets[0].name = "Newer peer edit"; return store; }), true);
+  await f.until(() => f.source().templates.sets[0].name === "Newer peer edit");
+  await f.settle(); release(); await f.settle(); first.render();
+  assert.equal(first.state.session.store.sets[0].name, "Newer peer edit");
+  assert.equal(first.state.session.writable, true);
+});
+
+for (const queued of [false, true]) test(`merged save acknowledgements preserve remote and ${queued ? "queued" : "submitted"} local edits`, async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  const room = [...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")];
+  f.suppressUpdates(room[1]);
+  assert.equal(second.state.session.commit(store => { store.sets[0].templates[0].name = "Remote edit"; return store; }), true);
+  await f.until(() => f.source().templates.sets[0].templates[0].name === "Remote edit");
+  let release;
+  if (queued) f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = "Submitted edit"; return store; }), true);
+  if (queued) {
+    await f.until(f.waitingForSave); first.render();
+    assert.equal(first.state.session.commit(store => { store.sets[0].name = "Queued edit"; return store; }), true);
+    first.render();
+  }
+  const saved = first.state.session.flush();
+  if (queued) release();
+  await saved; await f.until(() => first.state.session.writable);
+  assert.equal(first.state.session.store.sets[0].name, queued ? "Queued edit" : "Submitted edit");
+  assert.equal(first.state.session.store.sets[0].templates[0].name, "Remote edit");
+  assert.equal(f.source().templates.sets[0].name, queued ? "Queued edit" : "Submitted edit");
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Remote edit");
+  assert.equal(first.state.session.canUndo, false, "a merged receipt invalidates whole-design history");
+});
+
+test("a merged acknowledgement preserves a conflicting queued draft without replaying it", async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  f.suppressUpdates([...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")][1]);
+  assert.equal(second.state.session.commit(store => { store.sets[0].templates[0].name = "Remote edit"; return store; }), true);
+  await f.until(() => f.source().templates.sets[0].templates[0].name === "Remote edit");
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = "Submitted edit"; return store; }), true);
+  await f.until(f.waitingForSave); first.render();
+  assert.equal(first.state.session.commit(store => { store.sets[0].templates[0].name = "Queued local edit"; return store; }), true);
+  first.render(); const saved = first.state.session.flush(); release();
+  await assert.rejects(saved, /changed in another tab/);
+  await f.until(() => Boolean(first.state.session.error));
+  assert.equal(first.state.session.store.sets[0].name, "Submitted edit");
+  assert.equal(first.state.session.store.sets[0].templates[0].name, "Queued local edit");
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Remote edit");
+  assert.equal(f.writes.length, 2, "the conflicting queued draft must not be submitted");
+});
+
+test("a confirmed reload after a queued conflict allows a fresh save", async t => {
+  const f = fixture(t, { allowDiscard: true }); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  f.suppressUpdates([...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")][1]);
+  assert.equal(second.state.session.commit(store => { store.sets[0].templates[0].name = "Remote edit"; return store; }), true);
+  await f.until(() => f.source().templates.sets[0].templates[0].name === "Remote edit");
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = "Submitted edit"; return store; }), true);
+  await f.until(f.waitingForSave); first.render();
+  assert.equal(first.state.session.commit(store => { store.sets[0].templates[0].name = "Conflicting draft"; return store; }), true);
+  first.render(); const failed = first.state.session.flush(); release(); await assert.rejects(failed);
+  await f.until(() => Boolean(first.state.session.error));
+  first.state.session.retryConnection();
+  await f.until(() => first.state.session.writable);
+  assert.equal(first.state.session.store.sets[0].templates[0].name, "Remote edit");
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = "Fresh edit"; return store; }), true);
+  await first.state.session.flush();
+  assert.equal(f.source().templates.sets[0].name, "Fresh edit");
+});
+
+test("an older receipt cannot settle a newer in-flight save", async t => {
+  const f = fixture(t); f.open(true); const peer = f.open(false);
+  await f.until(() => peer.state?.session.writable);
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "First save"; return store; }), true);
+  await f.until(() => peer.state.session.writable && f.writes.length === 1);
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Newer draft"; return store; }), true);
+  await f.until(f.waitingForSave); peer.render();
+  const pending = peer.state.session.flush(); let settled = false;
+  pending.then(() => { settled = true; }, () => { settled = true; });
+  const session = f.sessions.at(-1);
+  session.options.onCommittedSnapshot({ templates: structuredClone(peer.state.session.store) }, {
+    source: "commit", acknowledgedTransaction: { transactionId: "older-operation" },
+  });
+  await f.settle();
+  assert.equal(settled, false);
+  assert.equal(f.writes.length, 1);
+  assert.equal(peer.state.session.store.sets[0].name, "Newer draft");
+  release(); await pending;
+  assert.equal(f.source().templates.sets[0].name, "Newer draft");
+});
+
+test("a no-op submission after a save does not replay or remain pending", async t => {
+  const f = fixture(t); f.open(true); const peer = f.open(false);
+  await f.until(() => peer.state?.session.writable);
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Saved"; return store; }), true);
+  await f.until(() => peer.state.session.writable && f.writes.length === 1);
+  assert.equal(peer.state.session.commit(store => store), true);
+  await peer.state.session.flush(); await f.settle();
+  assert.equal(peer.state.session.writable, true);
+  assert.equal(f.writes.length, 1);
+});
+
+test("a disjoint foreign commit after the own update but before its ACK is retained", async t => {
+  const f = fixture(t); const owner = f.open(true); const peer = f.open(false);
+  await f.until(() => owner.state?.session.writable && peer.state?.session.writable);
+  const peerChannel = [...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")][1];
+  f.holdAcknowledgements(peerChannel);
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Peer edit"; return store; }), true);
+  await f.until(() => f.writes.length === 1); await f.settle();
+  assert.equal(owner.state.session.commit(store => { store.sets[0].templates[0].name = "Owner edit"; return store; }), true);
+  await f.until(() => f.writes.length === 2); await f.settle();
+  peer.render(); const saved = peer.state.session.flush();
+  f.releaseAcknowledgements(peerChannel);
+  await saved; await f.until(() => peer.state.session.writable);
+  assert.equal(peer.state.session.store.sets[0].name, "Peer edit");
+  assert.equal(peer.state.session.store.sets[0].templates[0].name, "Owner edit");
+  assert.equal(f.writes.length, 2);
+  assert.equal(peer.state.session.canUndo, false);
+});
+
+test("a queued edit rebases over a foreign commit after the own update but before its ACK", async t => {
+  const f = fixture(t); const owner = f.open(true); const peer = f.open(false);
+  await f.until(() => owner.state?.session.writable && peer.state?.session.writable);
+  const peerChannel = [...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")][1];
+  f.holdAcknowledgements(peerChannel);
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Peer edit"; return store; }), true);
+  await f.until(() => f.writes.length === 1); await f.settle(); peer.render();
+  assert.equal(peer.state.session.commit(store => { store.sets[0].templates[1].name = "Queued edit"; return store; }), true);
+  assert.equal(owner.state.session.commit(store => { store.sets[0].templates[0].name = "Owner edit"; return store; }), true);
+  await f.until(() => f.writes.length === 2); await f.settle(); peer.render();
+  const saved = peer.state.session.flush(); f.releaseAcknowledgements(peerChannel);
+  await saved; await f.until(() => peer.state.session.writable && f.writes.length === 3);
+  assert.equal(f.source().templates.sets[0].name, "Peer edit");
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Owner edit");
+  assert.equal(f.source().templates.sets[0].templates[1].name, "Queued edit");
+  assert.equal(peer.state.session.canUndo, false);
+});
+
+test("a conflicting foreign commit before the ACK keeps the newer queued draft", async t => {
+  const f = fixture(t); const owner = f.open(true); const peer = f.open(false);
+  await f.until(() => owner.state?.session.writable && peer.state?.session.writable);
+  const peerChannel = [...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")][1];
+  f.holdAcknowledgements(peerChannel);
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Peer edit"; return store; }), true);
+  await f.until(() => f.writes.length === 1); await f.settle(); peer.render();
+  assert.equal(peer.state.session.commit(store => { store.sets[0].templates[0].name = "Queued edit"; return store; }), true);
+  assert.equal(owner.state.session.commit(store => { store.sets[0].templates[0].name = "Owner edit"; return store; }), true);
+  await f.until(() => f.writes.length === 2); await f.settle(); peer.render();
+  const saved = peer.state.session.flush(); f.releaseAcknowledgements(peerChannel);
+  await assert.rejects(saved, /changed in another tab/);
+  await f.until(() => Boolean(peer.state.session.error));
+  assert.equal(peer.state.session.store.sets[0].templates[0].name, "Queued edit");
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Owner edit");
+  assert.equal(f.writes.length, 2);
+});
+
+test("later foreign commits cannot clear a queued-edit conflict", async t => {
+  const f = fixture(t); const owner = f.open(true); const peer = f.open(false);
+  await f.until(() => owner.state?.session.writable && peer.state?.session.writable);
+  const peerChannel = [...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")][1];
+  f.holdAcknowledgements(peerChannel);
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Peer edit"; return store; }), true);
+  await f.until(() => f.writes.length === 1); await f.settle(); peer.render();
+  assert.equal(peer.state.session.commit(store => { store.sets[0].templates[0].name = "Queued edit"; return store; }), true);
+  assert.equal(owner.state.session.commit(store => { store.sets[0].templates[0].name = "Owner edit"; return store; }), true);
+  await f.until(() => f.writes.length === 2 && owner.state.session.writable);
+  assert.equal(owner.state.session.commit(store => { store.sets[0].templates[1].name = "Later owner edit"; return store; }), true);
+  await f.until(() => f.writes.length === 3); await f.settle(); peer.render();
+  const saved = peer.state.session.flush(); f.releaseAcknowledgements(peerChannel);
+  await assert.rejects(saved, /changed in another tab/);
+  await f.until(() => Boolean(peer.state.session.error));
+  assert.equal(peer.state.session.store.sets[0].templates[0].name, "Queued edit");
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Owner edit");
+  assert.equal(f.source().templates.sets[0].templates[1].name, "Later owner edit");
+  assert.equal(f.writes.length, 3);
+});
+
+test("a late merged receipt keeps an uncertain draft paused without replaying it", async t => {
+  const f = fixture(t); f.open(true); const peer = f.open(false); const other = f.open(false);
+  await f.until(() => peer.state?.session.writable && other.state?.session.writable);
+  const peerChannel = [...f.rooms.get("acm-studio-sync-global-template-library-v2-templates")][1];
+  f.suppressUpdates(peerChannel);
+  assert.equal(other.state.session.commit(store => { store.sets[0].templates[0].name = "Remote edit"; return store; }), true);
+  await f.until(() => f.source().templates.sets[0].templates[0].name === "Remote edit");
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(peer.state.session.commit(store => { store.sets[0].name = "Uncertain local edit"; return store; }), true);
+  const pending = peer.state.session.flush().catch(error => error);
+  await f.until(f.waitingForSave);
+  peerChannel.listeners.get("messageerror")?.forEach(callback => callback());
+  await f.until(() => Boolean(peer.state.session.error));
+  await pending; release(); await f.until(() => f.writes.length === 2); await f.settle();
+  assert.equal(peer.state.session.store.sets[0].name, "Uncertain local edit");
+  assert.ok(peer.state.session.error, "a merged late receipt requires review");
+  assert.equal(peer.state.session.writable, false);
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Remote edit");
+  assert.equal(f.source().templates.sets[0].name, "Uncertain local edit");
+  assert.equal(f.writes.length, 2, "the uncertain edit is not replayed");
+});
 
 test("Group Apply globally merges selected styles, rejects stale review values, and preserves failed drafts", async t => {
   const websiteDesignDefaults = designContracts.emptyWebsiteDesign();
@@ -326,6 +602,66 @@ test('a conflicting peer cannot discard newer queued global edits', async t => {
   if (first.state.session.syncConflict) {
     assert.equal(first.state.session.syncConflict.localSnapshot.templates.sets[0].name, 'latest local draft');
   }
+});
+
+test("choosing the remote version installs it before allowing a new edit", async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = "First peer"; return store; }), true);
+  await f.until(f.waitingForSave);
+  assert.equal(second.state.session.commit(store => { store.sets[0].name = "Conflicting peer"; return store; }), true);
+  release(); await f.until(() => Boolean(second.state.session.syncConflict));
+  await second.state.session.resolveSyncConflict("theirs");
+  await f.until(() => second.state.session.writable);
+  assert.equal(second.state.session.store.sets[0].name, "First peer");
+  assert.equal(second.state.session.commit(store => { store.sets[0].templates[0].name = "Independent edit"; return store; }), true);
+  await second.state.session.flush();
+  assert.equal(f.source().templates.sets[0].name, "First peer");
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Independent edit");
+});
+
+test("choosing my version retains unrelated remote edits before the next save", async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = "First peer"; store.sets[0].templates[0].name = "Independent remote edit"; return store; }), true);
+  await f.until(f.waitingForSave);
+  const staleSession = second.state.session;
+  assert.equal(staleSession.commit(store => { store.sets[0].name = "My choice"; return store; }), true);
+  release(); await f.until(() => Boolean(second.state.session.syncConflict));
+  let releaseResolution; f.gate(new Promise(resolve => { releaseResolution = resolve; }));
+  const resolution = second.state.session.resolveSyncConflict("mine");
+  await f.until(f.waitingForSave);
+  assert.equal(staleSession.commit(store => { store.sets[0].name = "Stale edit"; return store; }), false);
+  await assert.rejects(second.state.session.resolveSyncConflict("mine"), /are reconnecting/);
+  const readsBeforeRetry = f.reads.length;
+  staleSession.retryConnection();
+  assert.equal(f.reads.length, readsBeforeRetry, "a retry must not interrupt conflict resolution");
+  releaseResolution(); await resolution;
+  await f.until(() => second.state.session.writable);
+  assert.equal(second.state.session.store.sets[0].name, "My choice");
+  assert.equal(second.state.session.store.sets[0].templates[0].name, "Independent remote edit");
+  assert.equal(second.state.session.commit(store => { store.sets[0].templates[1].name = "Later local edit"; return store; }), true);
+  await second.state.session.flush();
+  assert.equal(f.source().templates.sets[0].name, "My choice");
+  assert.equal(f.source().templates.sets[0].templates[0].name, "Independent remote edit");
+  assert.equal(f.source().templates.sets[0].templates[1].name, "Later local edit");
+});
+
+test("a missing broker cannot falsely resolve a retained conflict", async t => {
+  const f = fixture(t); f.open(true); const first = f.open(false); const second = f.open(false);
+  await f.until(() => first.state?.session.writable && second.state?.session.writable);
+  let release; f.gate(new Promise(resolve => { release = resolve; }));
+  assert.equal(first.state.session.commit(store => { store.sets[0].name = "First peer"; return store; }), true);
+  await f.until(f.waitingForSave);
+  assert.equal(second.state.session.commit(store => { store.sets[0].name = "Conflicting draft"; return store; }), true);
+  release(); await f.until(() => Boolean(second.state.session.syncConflict));
+  const retained = second.state.session; second.close();
+  await assert.rejects(retained.resolveSyncConflict("theirs"), /broker is unavailable/);
+  assert.equal(retained.store.sets[0].name, "Conflicting draft");
+  assert.ok(retained.syncConflict);
+  assert.equal(f.source().templates.sets[0].name, "First peer");
 });
 
 test('queued edits preserve a concurrent disjoint change from another peer', async t => {

@@ -378,12 +378,15 @@ test("keyboard inspector exposes each selected key's artwork provenance and avai
   assert.match(keyboard, /<pre>\{artwork\.licenceNotice\}<\/pre>/);
 });
 
-test("Studio tool navigation points to one combined library entry", () => {
+test("Studio tool navigation points to one combined library entry", async () => {
   const coordinator = read("app/studio/studio-prototype.tsx");
   assert.match(coordinator, /<StudioNavigationPane\b[\s\S]*?workspace=\{workspace\}/);
+  const { studioNavigationToolItems } = await import('../app/studio/studio-navigation-visibility-contract.mjs');
+  assert.deepEqual(studioNavigationToolItems.filter(item => item.id === 'ui-library').map(item => item.label), ['Studio UI Library']);
   for (const file of ["app/studio/studio-dashboard.tsx", "app/studio/studio-navigation-frame.tsx"]) {
     const source = read(file);
-    assert.ok(source.includes("Studio UI Library"), file);
+    if (file.endsWith('studio-dashboard.tsx')) assert.ok(source.includes("Studio UI Library"), file);
+    else { assert.match(source, /studioNavigationToolItems\.map/); assert.match(source, /"ui-library": \{[^}]*href: "\/studio\/ui"/); }
     assert.match(source, /href(?:=|: )"\/studio\/ui"/, file);
     assert.doesNotMatch(source, /href(?:=|: )"\/studio\/ribbon"/, file);
     assert.doesNotMatch(source, /href(?:=|: )"\/studio\/panes"/, file);

@@ -317,8 +317,8 @@ test("shared inspector control defaults follow each Gutenberg block declaration"
   assert.deepEqual(capabilityProfileFor("paragraph").defaults.typography, ["colour", "size"]);
   assert.match(source, /const styleControls = \[\.\.\.profile\.controls, \.\.\.retainedLegacyStyleControls/);
   assert.match(source, /const optionalTypographyOptions = scopedTypographyOptions\.filter\(option => !defaultTypography\.has\(option\.id\)\)/);
-  assert.match(source, /const optionalDimensionOptions = scopedDimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\) \|\| \(profile\.type === "template-content" && option\.id === "gaps"\)\)/);
-  assert.match(source, /const optionalBorderOptions = scopedBorderOptions\.filter\(option => !defaultBorder\.has\(option\.id\)\)/);
+  assert.match(source, /const optionalDimensionOptions = block\.type === "group" \? scopedDimensionOptions\.map\(option => \(\{ \.\.\.option, disabled: defaultDimensions\.has\(option\.id\) && !groupDimensionValues\.has\(option\.id\) \}\)\) : scopedDimensionOptions\.filter\(option => !defaultDimensions\.has\(option\.id\) \|\| \(profile\.type === "template-content" && option\.id === "gaps"\)\)/);
+  assert.match(source, /const optionalBorderOptions = block\.type === "group" \? scopedBorderOptions\.map\(option => \(\{ \.\.\.option, disabled: defaultBorder\.has\(option\.id\) && !groupBorderValues\.has\(option\.id\) \}\)\) : scopedBorderOptions\.filter\(option => !defaultBorder\.has\(option\.id\)\)/);
   assert.match(source, /const optionalElementOptions = \[\.\.\.scopedElementOptions\.filter\(option => !defaultElements\.has\(option\.id\)\), \.\.\.groupHeadingIds\.map/);
 });
 
@@ -349,7 +349,7 @@ test("Advanced exposes Gutenberg anchor, class and safe CSS fields for mapped pa
   assert.match(blockSettings, /fields=\{advanced\}/);
   assert.match(stylesheet, /\.paragraph-advanced-fields \.advanced-field > label \{ text-transform: none; \}/);
   assert.match(advancedControl, /const fieldId = useId\(\)/);
-  assert.match(advancedInspector, /placeholders=\{block\.type !== "paragraph" && block\.type !== "embed"\}/);
+  assert.match(advancedInspector, /placeholders=\{block\.type !== "paragraph" && block\.type !== "embed" && block\.type !== "group"\}/);
   const { AdvancedFieldsControl } = await loadProductionModule(new URL("../app/studio/controls/advanced-fields-control.tsx", import.meta.url));
   const markup = renderToStaticMarkup(createElement(AdvancedFieldsControl, { fields: { anchor: true, className: true, additionalCss: true }, style: { className: "first second", additionalCss: "color: red;" }, blockName: "Paragraph", onChange() {} }));
   for (const label of ["HTML anchor", "Additional CSS class(es)", "Additional CSS"]) assert.ok(markup.includes(label));
@@ -863,7 +863,7 @@ test("the selected block summary stays above the single inspector panel", async 
   const summary = source.slice(summaryStart, settingsStart);
   assert.match(summary, /<BlockLibraryIcon type=\{block\.type === "social-link" \? socialServiceInsertType\(block\.service\) : block\.type === "group" \? groupVariationFor\(block\)\.type : block\.type\} \/>/);
   assert.match(summary, /<HeadingLevelIcon level=\{block\.level\} \/>/);
-  assert.match(summary, /<h2>\{blockName\}<\/h2>/);
+  assert.match(summary, /<h2>\{displayName \?\? blockName\}<\/h2>/);
   assert.match(summary, /<p className="setting-note">\{blockDescription\}<\/p>/);
   assert.match(source, /blockCatalogue\.find\(\(item\) => item\.type === block\.type\)/);
   assert.match(source, /blockDescription = contentSlot \? "Displays the current document body in this template\." : \(block\.type === "group" \? groupVariationFor\(block\)\.description : blockInfo\?\.description\) \?\? profile\.description/);
@@ -2289,7 +2289,8 @@ test("canvas add controls open the anchored chooser while toolbar Add retains th
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
   assert.match(canvas, /className="between-blocks cover-inserter"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, -1\)\}/);
   assert.match(canvas, /className="between-blocks"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, index - 1\)\}/);
-  assert.match(canvas, /className="canvas-appender-button canvas-paragraph-inserter"[^>]*disabled=\{!writable\} onClick=\{event => openCanvasInserter\(event.currentTarget, replaceEmpty \? insertionIndex - 1 : insertionIndex, insertionParent\?\.id \?\? null, "", undefined, replaceEmpty \? block\.id : undefined\)\}/);
+  assert.match(canvas, /className="canvas-appender-button canvas-paragraph-inserter"[^>]*disabled=\{!writable\}/);
+  assert.match(canvas, /onClick=\{event => projectedGroupAppender && block\.type === "group" \? openCanvasInserter\(event\.currentTarget, block\.children\.length - 1, block\.id\) : openCanvasInserter\(event\.currentTarget, replaceEmpty \? insertionIndex - 1 : insertionIndex, insertionParent\?\.id \?\? null, "", undefined, replaceEmpty \? block\.id : undefined\)\}/);
   assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
 });
 
