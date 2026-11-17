@@ -133,7 +133,6 @@ test("the written guide defaults to formatted Markdown with an accessible source
   assert.match(component, /sg-guide-(?:formatted|markdown)-line-\$\{(?:row\.line|lineNumber)\}/);
   assert.match(component, /<table className="sg-formatted-source-table"><thead>/);
   assert.match(component, /<List>\{block\.items\.map/);
-  assert.match(component, /\}, \[activeGuideLine, hoveredGuidePath\]\);/);
   assert.match(component, /block\.lines\.some\(item => item\.line === activeLine\)/);
   assert.match(component, /item\.continuations\.some\(continuation => continuation\.line === activeLine\)/);
   assert.match(component, /aria-current=\{activeLine === row\.line \? "location" : undefined\}/);

@@ -111,6 +111,9 @@ test('typography role selection jumps to its canonical guide row, including when
   await page.goto('/studio/ui/styles');
   await expect(page.getByRole('status').filter({ hasText: 'Source loaded' })).toBeVisible();
 
+  await expect(page.getByRole('button', { name: 'Formatted', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Markdown source', exact: true })).toHaveAttribute('aria-pressed', 'false');
+
   const h2 = page.getByRole('group', { name: 'Typography role' }).getByRole('button', { name: 'H2', exact: true });
   const location = page.locator('.sg-source-detail dl > div').nth(2).locator('dd');
 

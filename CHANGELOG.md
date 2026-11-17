@@ -8,6 +8,42 @@
 
 - Add a reusable SwiftUI vertical reorder package alongside the web behaviour.
 
+- Toggle word wrapping in the formatted and Markdown Style Guide views.
+
+- Full-size UK Mac and Windows keyboard artwork in the UI Library, with SVG and PNG downloads.
+
+- Make Navigation Page List selectable with Gutenberg-style parent filtering, Advanced fields and typography controls, while retaining compatibility with saved automatic Page Lists.
+- Add responsive H1–H6 colour and background controls for Group blocks, versioned across workspace, publication, template, fixture, clipboard, backup and global-library formats.
+- Add a reviewed Apply globally dialog for Group styles, saving selected properties through the canonical global website-design owner.
+
+- Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
+
+- Add a dynamic Site Tagline element and restore the seven Twenty Twenty-Five reference parts to their theme structures, including a live Sidebar query and distinct footer menus.
+
+- Browse template parts in Grid or Table with adjustable view options.
+
+- Add seven editable Twenty Twenty-Five reference template parts with comparable sample content.
+
+- Add a Site Title template block with separate link, heading and style settings.
+
+- Browse shared Post and Page templates from Site Editor → Templates.
+
+- Resize Header and Footer template-part previews from either edge.
+
+- Browse shared Header and Footer template parts from Site Editor → Patterns.
+
+- Show the latest master artwork modification date in the icon inspector.
+
+- Preview and download coloured Designs, Shapes and security icons.
+
+- Preview and download coloured Highlight and Redaction icons.
+
+- Preview and download Files, Image, Audio, Video and Gallery icons in the universal Accent colour.
+
+- Preview and download status icons in universal palette colours.
+
+- Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
+
 ### Changed
 
 - Use the website outline action text colour for the example content link on the Style Guide page.
@@ -62,451 +98,6 @@
 - Keep an open mobile Navigation overlay visible while widening the canvas, matching Gutenberg's editor behaviour; restore inline links when the overlay closes.
 
 - Match Gutenberg Typography control order and labels, preview all Appearance weights through Extra Black in the selected font, pair line height with letter spacing, and use icon choices for Decoration and Letter case. Inherited values stay unset until edited.
-
-### Added
-
-- Toggle word wrapping in the formatted and Markdown Style Guide views.
-
-- Full-size UK Mac and Windows keyboard artwork in the UI Library, with SVG and PNG downloads.
-
-- Make Navigation Page List selectable with Gutenberg-style parent filtering, Advanced fields and typography controls, while retaining compatibility with saved automatic Page Lists.
-- Add responsive H1–H6 colour and background controls for Group blocks, versioned across workspace, publication, template, fixture, clipboard, backup and global-library formats.
-- Add a reviewed Apply globally dialog for Group styles, saving selected properties through the canonical global website-design owner.
-
-- Add a bounded Query Loop with Post Template and No Results blocks to reusable templates, using only the selected local site's eligible published posts.
-
-- Add a dynamic Site Tagline element and restore the seven Twenty Twenty-Five reference parts to their theme structures, including a live Sidebar query and distinct footer menus.
-
-- Browse template parts in Grid or Table with adjustable view options.
-
-- Add seven editable Twenty Twenty-Five reference template parts with comparable sample content.
-
-- Add a Site Title template block with separate link, heading and style settings.
-
-- Browse shared Post and Page templates from Site Editor → Templates.
-
-- Resize Header and Footer template-part previews from either edge.
-
-- Browse shared Header and Footer template parts from Site Editor → Patterns.
-
-- Show the latest master artwork modification date in the icon inspector.
-
-- Preview and download coloured Designs, Shapes and security icons.
-
-- Preview and download coloured Highlight and Redaction icons.
-
-- Preview and download Files, Image, Audio, Video and Gallery icons in the universal Accent colour.
-
-- Preview and download status icons in universal palette colours.
-
-- Add a Preferences option for the selected-block outline: toolbar hover, always, or off.
-
-### Fixed
-
-- Keep rows stationary when a SwiftUI reorder drag starts or is cancelled.
-
-- Keep guide line numbers aligned and fully visible, with one horizontal document scroll surface, a fixed gutter, and a bottom-pinned scrollbar in both style editors; remove the gap after table headers.
-
-- Show dark keyboard keycaps and light legends on a light specimen background.
-
-- Align Group, Row, Stack and Grid controls with the WordPress 7.1 reference, including nested sizing, Grid ranges, optional resets and selection-aware appenders.
-- Preview Group style variations without saving hover state or adding Undo entries.
-
-- Restore Query Loop selection tools and map its inspector controls to their stored fields; refresh regression fixtures for the current editor contracts.
-
-- Keep clipboard readers aligned with current image-ratio, table-alignment, inline Math, inline-image and language payload versions while rejecting unsupported or future envelopes.
-
-- Bound the open Navigation overlay canvas to Gutenberg's 320–600px window-relative height instead of stretching it to the full editor stage.
-
-- Make template-part fit and reset actions clear custom width state, preserve cancellable resizing and allow canvas zoom to scroll beyond the fitted frame.
-
-- Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
-
-- Added a separate Pullquote block with rich citation, alignment, shared styling, transforms, previews and portable saving. Quote remains available independently.
-
-- Reorder the dashboard’s site and tool cards independently, with saved order and keyboard controls.
-
-- Add editor Preferences with an optional block-toolbar spacing setting.
-
-- Offer brand-colour social icon variants alongside the default artwork in the Icons catalogue and downloads.
-
-- Preview catalogue icons in a chosen colour, with a reset to their default appearance.
-
-- Add a Content Editor destination beside Site Editor in shared Studio navigation, carrying the selected site, library and document into the content workspace.
-- Distinguish hovered and selected shared template parts with a configurable purple outline in content and template editors.
-- Add a URL-based native Video block with playback settings, captions and poster images; uploads, Media Library selection and caption tracks remain unsupported.
-- Add a separate direct-URL native video background for Cover, with reduced-motion-aware rendering and a guarded lossless Cover-to-Video transform. Provider iframe sources remain separate; managed video uploads are unsupported.
-
-
-- Add the Cover crop editor using the shared Image crop geometry, preserving original media and carrying edits through versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
-- Add all 47 built-in WordPress 7.1 Social Link services inside Social Icons, including generic web and email links, while retaining standalone LinkedIn and TikTok records. New service records round-trip through all versioned editors and exports. The added ACM service monograms are original approximations, not official brand marks.
-
-- Add an Image crop editor with direct and keyboard-operable crop bounds, aspect ratios, zoom, rotation, straightening and flips; preserve the original media and carry edits through versioned render and export paths.
-
-- Add a selectable Navigation Home Link whose destination follows the owning site, with guarded template, fixture, backup and global-library formats.
-- Add typed Navigation Spacer menu items with keyboard insertion, inspector sizing and inert rendering across template, fixture, backup and global-library formats.
-
-- Add Navigation Search across browser-local publications and Test/Test2 output, with adjustable placement, label, placeholder, button position and input width; protected publications stay out of results and scheduled documents appear when due.
-
-- Add a bounded semantic HTML element choice to the template Content slot, preserved through template packages and local fixture contracts.
-
-- Add Button text and background colour/gradient controls to the template Content slot, reusing the shared element-colour inspector and button CSS variables.
-
-- Add Columns vertical alignment to the block toolbar, matching the WordPress control while keeping the inspector setting.
-
-- Add Columns-to-Row and Columns-to-Grid toolbar transforms, retaining column widths in Row and preserving column content and styles in both layouts.
-
-- Add Author text alignment to the block toolbar, retaining inherited website alignment and the existing inspector control.
-
-- Add managed background-image, size, repeat and focal-position controls to Buttons containers in the main inspector, using the existing portable media and rendering contracts.
-
-- Add lossless Paragraph-to-Code and Paragraph-to-Columns toolbar transforms, withholding Code conversion when it would discard alignment or rich-text content.
-- Add Paragraph-to-Pullquote and plain-text-to-Poetry transforms with preserved authored styles and metadata; withhold Poetry conversion when alignment or rich text cannot be retained.
-
-- Add inherited Featured Image Duotone controls and rendering across editors, templates, portable formats and local publication.
-
-- Add lossless Group and Columns toolbar transforms for Featured Image blocks.
-
-- Add Gutenberg-compatible fixed width units for Columns children, preserving legacy proportional widths across saved workspaces, publications, templates, clipboard, backups and local fixtures.
-
-- Add Embed toolbar URL editing and intact Group/Columns wrapping, preserving URL drafts, captions and editor history.
-
-- Add intact Buttons Group and Columns toolbar wrapping with Undo/Redo.
-
-- Expose Buttons group font family, line height, letter spacing, decoration and letter case through the shared inspector.
-
-- Add intact Time to Read Group and Columns toolbar wrapping with Undo/Redo.
-
-- Add Button toolbar Fill/Outline and text alignment, with independent parent Buttons justification and vertical alignment shared across editing and preview.
-
-- Add Image toolbar Replace and canonical Files selection in the isolated block, content and template examples, with description, cancellation and Undo/Redo.
-
-- Add portable per-image Duotone with shared pane/toolbar controls, inheritance-aware Clear/Reset, enlarged-image rendering, and lossless Columns wrapping.
-
-- Add lossless Table-to-Columns wrapping and apply complete-document nesting checks to Table container transforms.
-
-- Add Code minimum dimensions and lossless Group/Columns wrapping; retain Code website margins, borders, and corner radii on the painted surface.
-
-- Add portable Quote block spacing and aggregate Heading colour, background, and gradient controls with responsive inheritance.
-
-- Add a lossless Quote-to-Columns toolbar action that retains the complete quotation and citation.
-
-- Add a side-by-side UI Library comparison of individual Image settings and site-wide Image styles.
-
-- Add named Test and Test2 navigation menus, per-block menu assignments, menu actions and a Review changes save dialog.
-
-- Add temporary drag handles at both sides of the visual Site Editor Navigation canvas.
-
-- Add Site Editor Navigation for Test and Test2 using each site’s existing menu editor, history and local saving, with a temporary interactive Library example.
-
-- Complete existing Site Editor block Styles with container Style 1–5 defaults, Social Icons variation defaults, and Text/Background/Gradient controls for Heading and optional H1–H6 rows, shared with the UI Library.
-
-- Add WordPress-style Pages management for Test and Test2 with shared List, Table and Grid layouts, view preferences, page actions, Bin recovery, and an isolated interactive Library specimen.
-
-- Add the Site Editor Design back action and description, with a reusable button/link control and interactive Library example.
-
-- Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
-
-- Restore Group's Gutenberg Advanced allowed-blocks control and enforce its saved child allowlist in insertion, movement and transform paths without removing existing children.
-
-- Add left, centre and right justification to the default Group toolbar, matching Gutenberg's Group controls.
-
-- Add a generic Catalogue Navigation example to the Pane Library, with sample groups and temporary selection using the shared grouped-list component.
-- Add a shared application-header Library specimen with section examples, narrow-width previews, temporary actions, and Reset.
-- Complete the Site Editor View menu with modes, viewport choices, Focus Outline, Show template and Preview in new tab; explain why viewport-scoped editing is unavailable at this level.
-- Add a View page action for published Test and Test2 pages, using the current local site address.
-- Put the website Styles editor's Local state, preview viewport menu, source status and Save Website Styles action in the shared app header.
-- Define block toolbar actions once and share their resolved presentation across the canvas, Page links, multi-selection and interactive memory-only Library specimens.
-- Add shared cell and column alignment controls, including vertical alignment, with compatible versioned saves and HTML/clipboard round-trips.
-- Align the ordinary page/post inserter with Gutenberg by keeping social networks inside Social Icons and using Group's semantic element setting for sections; retain ACM-specific Field and role-bearing Section blocks for compatibility and in the Library.
-- Refresh local site status manually beside its address, with one shared check, visible progress, and stale-status recovery.
-- Save independent Test and Test2 Identity and Styles overrides, inheriting Global Defaults with per-property Reset, shared actual-page rendering, portable images, local output refresh, and conflict-safe gateway persistence.
-- Show actual Test and Test2 authored home pages in Site Editor, with in-place canonical page editing and guarded draft-only return and scope changes.
-- Show saved identity text immediately from a validated display-only startup cache while authoritative browser storage and images load.
-- Retain Site Editor Identity text, Hide choices, and images across refreshes in browser-local storage, with ownership checks and visible save/conflict feedback.
-- Reset all Identity text, images, and Hide choices for the selected scope in one undoable action, in Site Editor and the shared Library specimen.
-- Restore deleted or edited Global Defaults titles and taglines with per-field, undoable Reset actions in Site Editor and its shared identity specimen.
-- Resize the whole Canonical Source inspector from its outside edges or corners in Styles and Interface Styles, with directional cursors and keyboard controls shared across source formats.
-- Give every interface style property its own labelled source row, saved value, original default and exact inspection highlight.
-- Preserve historical Original Default values in STYLE_GUIDE.md for undoable per-setting, section and all-style resets, independently of saved website and interface customisations.
-- Show complete canonical Interface Styles source documents with numbered, highlighted lines and internal scrolling linked to inspection.
-- Add optional Interface Styles hover inspection with keyboard focus, pinned selections, canonical file lines and saved-versus-draft values.
-- Add a separate Interface Styles section with its own executable @acm/styles preset, shared-control previews, history, reset and scoped saving. Website Styles retains website defaults and layout preview.
-- Add Site identity to the UI Library using the production controls, inheritance, Hide, Reset, image choices and isolated Undo/Redo.
-- Extend temporary Site Editor identity inheritance, Hide and Reset to Logo and Site Icon.
-- Inherit unset Site Editor titles and taglines from Global Defaults, with explicit Hide and Reset to restore inheritance.
-- Correct all twelve Site Editor block Styles panes to the current WordPress configuration, with separate editor and Styles compositions, variation defaults, theme typography, filters, shadows, Advanced CSS and a working Library specimen.
-- Add Default, Tablet, and Mobile States to Site Editor block styles, with device inheritance, scoped Reset, and matching preview widths.
-- Add WordPress-matched Button pseudo-state options — Default, Hover, Focus, Focus-visible, and Active — to Site Editor and the shared UI Library pane, with inherited styles and undoable previews.
-- Show the active Tablet or Mobile selection beneath the shared States dropdown in the Site Editor and UI Library.
-- Add temporary Site Editor Blocks styling for existing Style Book families, using shared controls and canonical rendering with scoped inheritance, Reset, and Undo/Redo.
-- Add temporary Site Editor Shadows presets with multi-layer editing and a dedicated specimen, plus Layout width, padding, and block-spacing previews with inherited scope history and reset.
-- Add temporary Site Editor Background image, colour, and gradient controls with scoped inheritance, reset, Undo/Redo, and live website and Style Book previews.
-- Demonstrate the shared Custom palette editor in the UI Library with temporary colours, working actions and Reset.
-- Add the inline gradient editor alongside the popup example in the Studio UI Library, sharing temporary values and Reset.
-- Add temporary Site Editor Colours with editable theme and custom palettes, custom gradients, element foreground/background and link hover colours, inherited scope history, and live webpage/Style Book updates.
-- Add temporary Additional CSS with scoped live sample previews, site inheritance, reset, and Styles history.
-- Add reference Pullquote and Search specimens to the Site Editor Style Book, with centred pill buttons and a matching separator.
-- Add the reference two-column paragraph sample to Site Editor Typography and its Style Book overview, inheriting Text styles and stacking in narrow previews.
-- Reorder Studio Navigation tools with dedicated drag handles or Alt+Up/Down, retaining the preferred order across content and template workspaces.
-- Add a Preview frame specimen to Controls, sharing the reusable animated handle, resizing behaviour and rounded frame with Site Editor and Style Book.
-- Add a matching Home comparison sample to the Site Editor webpage preview, covering heading levels, rich text, lists, quotation, image, buttons, table, separator, and code.
-- Resize the Site Editor webpage and Style Book previews from a centred edge handle, with keyboard controls and live content reflow.
-- Add temporary Site Editor Typography with shared Typesets, bundled font management, element and heading-level controls, editable fluid font-size presets, and scoped Undo/Redo.
-- Add a temporary Browse Styles preview with Twenty Twenty-Five variations, colour palettes, typography pairings, global/site inheritance, and Undo/Redo.
-- Make Reset Styles available from the actions menu, with current-scope reset and undoable history.
-- Add a live, preview-only Style Book with palette, typography, image, and block specimens, navigation into existing Styles controls, and scoped history.
-- Preview the Site Editor Styles menu with Browse Styles, Typography, Colours, Background, Shadows, Layout, and Blocks; settings remain unavailable in this first step.
-- Give Global Defaults an independent generic Identity preview with logo/icon placeholders, without site inheritance or saved-site changes.
-- Share the two-left-pane workspace layout, responsive behaviour, and gap-free collapse/reopen placement between Site Editor and a new Pane Library example (Pane contract v1.5.0).
-- Add a separate, preview-only Site Editor with global Paragraph font size, independent Test and Test 2 overrides, reset to inheritance, and temporary Undo/Redo. Existing editing tools and saved sites remain unchanged.
-- Replace Website Styles sample cards with a temporary production block editor preview, remove the sample profile selector, and show width and gutter changes in Edit and Preview without changing existing sites.
-- Add an optional Hover Inspection toggle in Styles, off by default, to keep the written guide steady while browsing. Click and keyboard inspection remain available.
-
-- Added a preview-only Website Styles → Layout area with shared profile and template inheritance, width and responsive gutter controls, live samples, and local Undo/Redo. Existing sites remain unchanged.
-
-
-- Define an isolated shared website layout contract with explicit inheritance,
-  value origins, responsive gutters, and legacy layout capture. Existing sites
-  and saved-data formats retain their current appearance and behaviour.
-
-- Expose 49 original shared website icons and directional variants in the Studio
-  library, with three optical sizes, SVG/PNG downloads, and searchable existing
-  equivalents for Share, arrows, and compact chevrons.
-
-- Offer Rectangle, Ellipse, Triangle, and Hexagon choices in the temporary object
-  manipulation and resize examples, with Undo/Redo for shape changes.
-
-- Offer optional Fit to Part canvases for Header and Footer editing, remembering
-  each choice separately and keeping Edit and Preview sizing consistent.
-
-- Publish browser-local Pages with immutable snapshots, separate draft edits,
-  local page addresses, and shared publication recovery, media, and previews.
-
-
-- Add a Mobile navigation Library example using production menu rendering,
-  opening, closing, submenu, and keyboard behaviour in an isolated page frame.
-
-- Add shared Text input, Text area, Select dropdown, Search field, Number field,
-  Number with units, Button, Tooltip, and Field label, help and error specimens
-  with temporary states and keyboard interaction. Connect ordinary Studio fields
-  to the production primitives and their canonical Library entries, with a
-  coverage check that records specialised editor exceptions.
-
-- Add shared Checkbox and Radio group Library entries with mixed, disabled,
-  independent selection, and native keyboard examples, also used by existing
-  template defaults and keyboard collection controls.
-
-- Add a Workspace Object manipulation playground combining shared move, resize,
-  and rotation controls with temporary shape/image history.
-
-- Add a Block editor playground in the Library’s Workspace section using the
-  production Template editor, with temporary Header, Navigation, and empty
-  templates for trying blocks and checking appender positioning.
-
-- Add page resizing to the Resize handles Library example with shared Design
-  page handles, sizing, anchored layout, keyboard input, and temporary history.
-
-- Add a Zoom slider specimen using the shared Design zoom control, with the
-  100% midpoint, 10–500% limits, percentage feedback, and grab cursor.
-
-- Add a Resize handles specimen using shared Design controls and geometry, with
-  shapes, images, Shift stretching, zoom, rotation, cancellation, and Undo/Redo.
-
-- Share circular canvas handle presentation, sizing, focus, and input forwarding
-  across Design object resizing, page resizing, and arrow endpoints.
-
-- Add a searchable Studio UI Library catalogue with cross-section filters,
-  ownership and dependency details, and keyboard-accessible previews from shared
-  component and specimen definitions. Make it the Library landing view.
-
-- Add a History actions example showing shared compact, labelled and Ribbon
-  controls with temporary Undo/Redo, read-only mode and keyboard shortcuts.
-
-- Add a temporary Rotation handle example to the UI Library using Design’s
-  shared handle, artwork and rotation calculations, with zoom, keyboard steps,
-  read-only mode, cancellation and Undo/Redo.
-
-- Make Sites in Studio Navigation collapsible to free space for content lists,
-  with native keyboard disclosure and drag cancellation on collapse.
-
-- Add a shared drag-to-position Controls specimen with vertical, horizontal,
-  and wrapped layouts, read-only mode, keyboard moves, and temporary Undo/Redo.
-
-- Add six-dot site handles for pointer and keyboard reordering in Studio Navigation,
-  retaining each site’s environments and saving the order as an owned preference.
-
-- Manage template dependencies across Studio Drafts, Test and Test2 with bulk
-  replacement or detachment, per-owner save results, and a global template Bin
-  supporting Undo and Restore for unused originals.
-
-- Edit navigation from any Templates context with a separate Studio Drafts, Test,
-  or Test2 target selector and saves through each target’s existing owner.
-
-- Add Responsive styles to the View menu for posts, pages, and templates, with
-  independent Tablet and Mobile block styles, Desktop inheritance, and saved
-  local preview and publication rendering.
-
-- Share the post-only Sticky checkbox across Studio Drafts, Test and Test2,
-  retaining separate draft saves and publication captures.
-
-- Share Draft, Pending, Private, Scheduled, Published and password preview controls
-  across Test and Test2 posts and pages, including the home page; retain local
-  ownership and saving, with explicit unavailable-home previews and UTC timing.
-
-- Open a compact block chooser from canvas Add Block controls, with contextual
-  search and an explicit Browse All action for the Block Library pane.
-
-- Add shared HTML anchor, CSS classes, and Additional CSS controls to Buttons,
-  LinkedIn, TikTok, Reading Time, Navigation, and Page link, retaining safe
-  presentation in Edit, Preview, and local output.
-
-- Include ACM Studio in Sites, with homepage Visit actions and unavailable Edit
-  actions until its homepage is connected to the editor.
-
-- Reorder Posts, Pages, and Templates by dragging their Navigation entries, or
-  using Alt+Up/Down, with saved order, Undo/Redo, and shared-tab conflict checks.
-
-- Fit resizable panes to their primary labels and controls by double-clicking
-  the resize edge or pressing Enter while it is focused, within existing limits.
-
-- Add Workspace Background to Styles → Colours, updating the surrounding workspace across Studio Drafts, local sites, Templates, and the UI Library.
-
-- Show blue date markers for days with existing published or scheduled posts in
-  the publish calendar, with post counts in each marked day's accessible name.
-
-
-- Separate Save Draft and Publish/Update actions for local Test and Test2, with saved publication snapshots that keep unpublished edits out of the generated site preview.
-
-- Shared Revision slider in the UI Library, used by Page and Post revision comparisons with a compact neutral timeline and author/date tooltip.
-
-- Page and Post Revisions controls with saved-version previews and undoable
-  content restoration, preserving current publication state and assignments.
-
-- Add Reset all styles to restore template colours, body typography and shared layout together.
-
-- Site-specific navigation editing for Test and Test2, with menu link actions and site history while retaining global template presentation.
-
-- Default global templates to neutral preview content, with a temporary Test or
-  Test2 preview choice independent of the editing site.
-
-- Add one shared Control accent colour in Styles for toggles and standard sliders,
-  with derived hover and pressed colours and simplified Controls examples.
-- Keep Styles history and the selected settings panel when saving source values
-  by excluding gateway-owned data from development-server config restarts.
-
-- Add one shared interface selection colour in Styles → Interactions, independent
-  of specimen Accent, with live previews and source-backed refresh across tabs.
-
-- One central Neutral hover background setting shared across disclosure headings,
-  neutral controls, menus and list items, with four preview examples.
-
-- Central Styles hover backgrounds for neutral controls, menu items and list
-  items, alongside the disclosure heading setting.
-
-- Global template originals for Test and Test2, with revision-checked shared
-  saving and local preview propagation. Template layouts and styles are edited
-  globally; site identity and links remain local. Former site designs remain
-  recoverable without affecting the global design.
-
-- Added Navigation overlay icon controls and reusable overlay templates, with
-  creation, selection and editing through the existing template workspace.
-
-- Page link children in Navigation, with a contextual Block Library entry, individual Content/Settings/Styles controls, sibling drag and movement, and saved per-link typography.
-
-- Navigation in the template editor's Theme block category and the UI Library, with an editable specimen using the production Menu, Settings and Styles controls.
-
-- Gutenberg-style Navigation authoring with Menu, Settings and Styles tabs, inline link editing, nested submenus, shared layout and colour controls, and responsive overlays in previews and local output.
-
-- Editable shared Navigation blocks for Test and Test2, with saved menu labels, destinations, order and link controls across editor and website views.
-
-- Website View and Full Preview for local Test and Test2 drafts, with isolated browser viewports, device sizes and Fit / 100% scale controls.
-
-- Test2’s Production visit link alongside its Local controls in the Sites pane and homepage.
-- Local Visit Site controls open the freshly discovered address in a new tab.
-
-- Added the independent local Test2 fixture and safe switching between Test and Test2, with separate content, templates, saving sessions and previews.
-
-- Sites navigation shares the homepage’s Local, Staging and Production action
-  groups, with unavailable editing marked clearly and absent staging omitted.
-  Test is now included in the homepage directory.
-- Site-aware Test content: Pages, Posts and Templates use its canonical source,
-  including the existing test drafts, preserved template assignments and a
-  recoverable Bin. Studio Drafts retains the original browser recovery copies.
-- Test collection backups and stable document links in its local preview.
-
-- Styles now supports explicit local saving to the shared preset, synchronised
-  guide token tables and source bundle, with live draft source updates, revision
-  checks, write ownership and recoverable file transactions.
-
-- List toolbars distinguish items from their parent List, with ordered/unordered
-  controls, item move/duplicate/remove actions and Gutenberg-style indentation.
-  Empty items retain their inspector; Lists and items now support background
-  images and shadows. Sibling-range indentation preserves reading order, and
-  delayed focus yields to subsequent input.
-
-
-- Local Test can be edited in multiple Studio tabs, with shared updates,
-  independent-change merging, overlap choices and automatic save handover.
-
-- Group floating toolbars now follow the chosen layout: block alignment for Group and Grid, and both layout alignment axes for Row and Stack.
-- Empty Group layouts now use Gutenberg-style insertion areas: a full-width Group button, horizontal Row and vertical Stack placeholders, and responsive Grid track guides with a compact insertion button. Empty unselected Groups show a dashed boundary; these guides remain editor-only.
-
-- Group, Row, Stack and Grid are separate block choices with mutual transforms,
-  consistent labels and icons, and shared Gutenberg-style layout controls.
-
-- Edit the local Test website inside Studio using its standard block library
-  and inspector, with revision checks, history and standalone preview.
-
-
-- Added Test to the editor's Sites area, with a live local-service status and an open action when Project Ports reports it running.
-
-- Shared inspector sliders show a value label beneath the thumb on hover, focus and adjustment, using spacing preset names or the current numeric value.
-
-- Shared Text action buttons keep Clear and inspector Reset All consistently linked to the shared semantic Accent token, with readable text colour, central hover, pressed, focus and disabled states and a working Controls specimen.
-
-- Paragraph Typography now offers Font for individual block overrides, with Default restoring inheritance. The reusable Font selector and its working Controls specimen share font choices with the content renderer.
-
-- The editor List View button now uses a new shared `@acm/icons` List View mark with the three-line stepped outline shown in Gutenberg.
-
-- Homepage local-site actions resolve current running ports through Project Ports, with shared discovery, clear unavailable states and a fresh lookup before opening. Hosted links remain separate.
-
-- Insert and replace inline images without leaving the editor, with reusable image controls, changed-only width and alternative-text editing, caret restoration and Undo/Redo. Managed images render in rich captions and table cells.
-
-- Drag existing blocks or Block Library items into individual Columns, with a red insertion indicator and one-step Undo/Redo; blocks can also move between columns or back to the document.
-- Extend a List text gesture into a separate List to select both whole blocks, while retaining text selection within one List. The UI Library includes isolated document and Template column-drop examples.
-
-- Button labels support direct rich-text editing with matching preview, HTML and local storage; inline links and footnotes remain excluded from the already linked label.
-- Button toolbars edit and remove their own destination through a reusable Link destination control, with safe URLs, internal suggestions, new-tab/nofollow settings, clipboard preview and preserved rich labels. The Controls library demonstrates the same component in isolated state.
-
-- Undo and Redo in the Styles sandbox, with platform shortcuts and temporary history for colour, typography, button, layout and reset actions.
-
-- Reusable Studio dialog shells, popover headings and dismissal, and menu keyboard navigation; editor and dialog actions now share the Base/Secondary button styles.
-
-- Block notes now appear in a bottom-right canvas card, with Edit note, Back to block and dismiss/reopen controls.
-
-- Gutenberg-style block options with clipboard actions, insertion, style transfer, grouping, private notes, naming, visibility and movement/removal locks.
-
-- Completed Group width inheritance, Row wrapping and Grid arrangement controls; added Columns gap axes, Column allowed-block restrictions, shared List Item styling, dynamic presentation options and a styled template Content-slot inspector.
-
-- Quote inner blocks and rich citations, a Buttons container with shared layout, and actual YouTube, Vimeo and TikTok embeds with a safe original-link fallback.
-
-
-- Added six shared H1–H6 catalogue symbols for the Heading pane and canvas toolbar, with reusable Controls specimens and three-scale icon exports.
-- Focus Outline offers On, Off and Keyboard Only throughout ACM Studio, including the editor and its empty appender. The Library header and editor View menu share an ownership-guarded preference that survives navigation and reloads; keyboard navigation and selected-item markings remain available.
-- Select ranges or separate blocks across mixed block types and nested layouts, then delete the selection in one undoable action. The UI Library selection specimen keeps its example document and history in memory.
-- Table cells now retain Gutenberg `th`/`td` tags and `scope` values through preview, structural edits and HTML editing. Workspace schema v17, local publication snapshots v10 and template schema v0.17.0 preserve readers for previous versions.
-- Every Block Library tile now uses a shared `@acm/icons` symbol; the block-symbol inspector links to the symbol record and the symbol record links back to each consuming block. Existing repeated inspector actions now resolve through the shared icon adapter.
-- Shared icon catalogue entries now link to block movement, duplication, deletion, inline rich-text formatting, link-preview and canvas zoom examples; Studio editor zoom and link-preview globe artwork use their shared catalogue symbols.
-- Group blocks now use Gutenberg's Group, Row, Stack and Grid variations, show a layout chooser when empty, let nested insertion be restricted by allowed block type, support Row and Stack Space between justification, and place layout and background-image options within the shared Dimensions and Background controls. Workspace schema v16, publication snapshots v9 and template schema v0.16.0 retain readers for their previous versions.
-- Added Additional CSS classes and safe Additional CSS declarations to the List Item Advanced settings.
-- Added catalogue-linked indent and outdent toolbar actions for the selected List Item; keyboard indentation remains available.
-- Added a standalone Slider foundation to the Controls library, with shared accent, derived hover and pressed colours, independent temporary overrides and a visible consumer list.
-- Added dependency and consumer details to each Controls section's ownership and compatibility disclosure.
-- Added sorting by the first-added date and time for shared interface icons, with the selected symbol's timestamp shown in UK local time.
-- Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 13 working control specimens plus its standalone Slider foundation, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.
-
-### Changed
 
 - Offer the current site’s available fonts in local block settings, while retaining existing saved font choices.
 
@@ -1342,6 +933,409 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+
+- Keep rows stationary when a SwiftUI reorder drag starts or is cancelled.
+
+- Keep guide line numbers aligned and fully visible, with one horizontal document scroll surface, a fixed gutter, and a bottom-pinned scrollbar in both style editors; remove the gap after table headers.
+
+- Show dark keyboard keycaps and light legends on a light specimen background.
+
+- Align Group, Row, Stack and Grid controls with the WordPress 7.1 reference, including nested sizing, Grid ranges, optional resets and selection-aware appenders.
+- Preview Group style variations without saving hover state or adding Undo entries.
+
+- Restore Query Loop selection tools and map its inspector controls to their stored fields; refresh regression fixtures for the current editor contracts.
+
+- Keep clipboard readers aligned with current image-ratio, table-alignment, inline Math, inline-image and language payload versions while rejecting unsupported or future envelopes.
+
+- Bound the open Navigation overlay canvas to Gutenberg's 320–600px window-relative height instead of stretching it to the full editor stage.
+
+- Make template-part fit and reset actions clear custom width state, preserve cancellable resizing and allow canvas zoom to scroll beyond the fitted frame.
+
+- Inspect each block on one main canvas, with Block editor and Site editor styles tabs in its right-hand pane and independent temporary histories and resets.
+
+- Added a separate Pullquote block with rich citation, alignment, shared styling, transforms, previews and portable saving. Quote remains available independently.
+
+- Reorder the dashboard’s site and tool cards independently, with saved order and keyboard controls.
+
+- Add editor Preferences with an optional block-toolbar spacing setting.
+
+- Offer brand-colour social icon variants alongside the default artwork in the Icons catalogue and downloads.
+
+- Preview catalogue icons in a chosen colour, with a reset to their default appearance.
+
+- Add a Content Editor destination beside Site Editor in shared Studio navigation, carrying the selected site, library and document into the content workspace.
+- Distinguish hovered and selected shared template parts with a configurable purple outline in content and template editors.
+- Add a URL-based native Video block with playback settings, captions and poster images; uploads, Media Library selection and caption tracks remain unsupported.
+- Add a separate direct-URL native video background for Cover, with reduced-motion-aware rendering and a guarded lossless Cover-to-Video transform. Provider iframe sources remain separate; managed video uploads are unsupported.
+
+
+- Add the Cover crop editor using the shared Image crop geometry, preserving original media and carrying edits through versioned workspace, publication, template, clipboard, backup, global-template and Test/Test2 formats.
+- Add all 47 built-in WordPress 7.1 Social Link services inside Social Icons, including generic web and email links, while retaining standalone LinkedIn and TikTok records. New service records round-trip through all versioned editors and exports. The added ACM service monograms are original approximations, not official brand marks.
+
+- Add an Image crop editor with direct and keyboard-operable crop bounds, aspect ratios, zoom, rotation, straightening and flips; preserve the original media and carry edits through versioned render and export paths.
+
+- Add a selectable Navigation Home Link whose destination follows the owning site, with guarded template, fixture, backup and global-library formats.
+- Add typed Navigation Spacer menu items with keyboard insertion, inspector sizing and inert rendering across template, fixture, backup and global-library formats.
+
+- Add Navigation Search across browser-local publications and Test/Test2 output, with adjustable placement, label, placeholder, button position and input width; protected publications stay out of results and scheduled documents appear when due.
+
+- Add a bounded semantic HTML element choice to the template Content slot, preserved through template packages and local fixture contracts.
+
+- Add Button text and background colour/gradient controls to the template Content slot, reusing the shared element-colour inspector and button CSS variables.
+
+- Add Columns vertical alignment to the block toolbar, matching the WordPress control while keeping the inspector setting.
+
+- Add Columns-to-Row and Columns-to-Grid toolbar transforms, retaining column widths in Row and preserving column content and styles in both layouts.
+
+- Add Author text alignment to the block toolbar, retaining inherited website alignment and the existing inspector control.
+
+- Add managed background-image, size, repeat and focal-position controls to Buttons containers in the main inspector, using the existing portable media and rendering contracts.
+
+- Add lossless Paragraph-to-Code and Paragraph-to-Columns toolbar transforms, withholding Code conversion when it would discard alignment or rich-text content.
+- Add Paragraph-to-Pullquote and plain-text-to-Poetry transforms with preserved authored styles and metadata; withhold Poetry conversion when alignment or rich text cannot be retained.
+
+- Add inherited Featured Image Duotone controls and rendering across editors, templates, portable formats and local publication.
+
+- Add lossless Group and Columns toolbar transforms for Featured Image blocks.
+
+- Add Gutenberg-compatible fixed width units for Columns children, preserving legacy proportional widths across saved workspaces, publications, templates, clipboard, backups and local fixtures.
+
+- Add Embed toolbar URL editing and intact Group/Columns wrapping, preserving URL drafts, captions and editor history.
+
+- Add intact Buttons Group and Columns toolbar wrapping with Undo/Redo.
+
+- Expose Buttons group font family, line height, letter spacing, decoration and letter case through the shared inspector.
+
+- Add intact Time to Read Group and Columns toolbar wrapping with Undo/Redo.
+
+- Add Button toolbar Fill/Outline and text alignment, with independent parent Buttons justification and vertical alignment shared across editing and preview.
+
+- Add Image toolbar Replace and canonical Files selection in the isolated block, content and template examples, with description, cancellation and Undo/Redo.
+
+- Add portable per-image Duotone with shared pane/toolbar controls, inheritance-aware Clear/Reset, enlarged-image rendering, and lossless Columns wrapping.
+
+- Add lossless Table-to-Columns wrapping and apply complete-document nesting checks to Table container transforms.
+
+- Add Code minimum dimensions and lossless Group/Columns wrapping; retain Code website margins, borders, and corner radii on the painted surface.
+
+- Add portable Quote block spacing and aggregate Heading colour, background, and gradient controls with responsive inheritance.
+
+- Add a lossless Quote-to-Columns toolbar action that retains the complete quotation and citation.
+
+- Add a side-by-side UI Library comparison of individual Image settings and site-wide Image styles.
+
+- Add named Test and Test2 navigation menus, per-block menu assignments, menu actions and a Review changes save dialog.
+
+- Add temporary drag handles at both sides of the visual Site Editor Navigation canvas.
+
+- Add Site Editor Navigation for Test and Test2 using each site’s existing menu editor, history and local saving, with a temporary interactive Library example.
+
+- Complete existing Site Editor block Styles with container Style 1–5 defaults, Social Icons variation defaults, and Text/Background/Gradient controls for Heading and optional H1–H6 rows, shared with the UI Library.
+
+- Add WordPress-style Pages management for Test and Test2 with shared List, Table and Grid layouts, view preferences, page actions, Bin recovery, and an isolated interactive Library specimen.
+
+- Add the Site Editor Design back action and description, with a reusable button/link control and interactive Library example.
+
+- Add shared Button element text, background and gradient styling to Group, Columns and Column, with nested inheritance and matching interactive Library examples.
+
+- Restore Group's Gutenberg Advanced allowed-blocks control and enforce its saved child allowlist in insertion, movement and transform paths without removing existing children.
+
+- Add left, centre and right justification to the default Group toolbar, matching Gutenberg's Group controls.
+
+- Add a generic Catalogue Navigation example to the Pane Library, with sample groups and temporary selection using the shared grouped-list component.
+- Add a shared application-header Library specimen with section examples, narrow-width previews, temporary actions, and Reset.
+- Complete the Site Editor View menu with modes, viewport choices, Focus Outline, Show template and Preview in new tab; explain why viewport-scoped editing is unavailable at this level.
+- Add a View page action for published Test and Test2 pages, using the current local site address.
+- Put the website Styles editor's Local state, preview viewport menu, source status and Save Website Styles action in the shared app header.
+- Define block toolbar actions once and share their resolved presentation across the canvas, Page links, multi-selection and interactive memory-only Library specimens.
+- Add shared cell and column alignment controls, including vertical alignment, with compatible versioned saves and HTML/clipboard round-trips.
+- Align the ordinary page/post inserter with Gutenberg by keeping social networks inside Social Icons and using Group's semantic element setting for sections; retain ACM-specific Field and role-bearing Section blocks for compatibility and in the Library.
+- Refresh local site status manually beside its address, with one shared check, visible progress, and stale-status recovery.
+- Save independent Test and Test2 Identity and Styles overrides, inheriting Global Defaults with per-property Reset, shared actual-page rendering, portable images, local output refresh, and conflict-safe gateway persistence.
+- Show actual Test and Test2 authored home pages in Site Editor, with in-place canonical page editing and guarded draft-only return and scope changes.
+- Show saved identity text immediately from a validated display-only startup cache while authoritative browser storage and images load.
+- Retain Site Editor Identity text, Hide choices, and images across refreshes in browser-local storage, with ownership checks and visible save/conflict feedback.
+- Reset all Identity text, images, and Hide choices for the selected scope in one undoable action, in Site Editor and the shared Library specimen.
+- Restore deleted or edited Global Defaults titles and taglines with per-field, undoable Reset actions in Site Editor and its shared identity specimen.
+- Resize the whole Canonical Source inspector from its outside edges or corners in Styles and Interface Styles, with directional cursors and keyboard controls shared across source formats.
+- Give every interface style property its own labelled source row, saved value, original default and exact inspection highlight.
+- Preserve historical Original Default values in STYLE_GUIDE.md for undoable per-setting, section and all-style resets, independently of saved website and interface customisations.
+- Show complete canonical Interface Styles source documents with numbered, highlighted lines and internal scrolling linked to inspection.
+- Add optional Interface Styles hover inspection with keyboard focus, pinned selections, canonical file lines and saved-versus-draft values.
+- Add a separate Interface Styles section with its own executable @acm/styles preset, shared-control previews, history, reset and scoped saving. Website Styles retains website defaults and layout preview.
+- Add Site identity to the UI Library using the production controls, inheritance, Hide, Reset, image choices and isolated Undo/Redo.
+- Extend temporary Site Editor identity inheritance, Hide and Reset to Logo and Site Icon.
+- Inherit unset Site Editor titles and taglines from Global Defaults, with explicit Hide and Reset to restore inheritance.
+- Correct all twelve Site Editor block Styles panes to the current WordPress configuration, with separate editor and Styles compositions, variation defaults, theme typography, filters, shadows, Advanced CSS and a working Library specimen.
+- Add Default, Tablet, and Mobile States to Site Editor block styles, with device inheritance, scoped Reset, and matching preview widths.
+- Add WordPress-matched Button pseudo-state options — Default, Hover, Focus, Focus-visible, and Active — to Site Editor and the shared UI Library pane, with inherited styles and undoable previews.
+- Show the active Tablet or Mobile selection beneath the shared States dropdown in the Site Editor and UI Library.
+- Add temporary Site Editor Blocks styling for existing Style Book families, using shared controls and canonical rendering with scoped inheritance, Reset, and Undo/Redo.
+- Add temporary Site Editor Shadows presets with multi-layer editing and a dedicated specimen, plus Layout width, padding, and block-spacing previews with inherited scope history and reset.
+- Add temporary Site Editor Background image, colour, and gradient controls with scoped inheritance, reset, Undo/Redo, and live website and Style Book previews.
+- Demonstrate the shared Custom palette editor in the UI Library with temporary colours, working actions and Reset.
+- Add the inline gradient editor alongside the popup example in the Studio UI Library, sharing temporary values and Reset.
+- Add temporary Site Editor Colours with editable theme and custom palettes, custom gradients, element foreground/background and link hover colours, inherited scope history, and live webpage/Style Book updates.
+- Add temporary Additional CSS with scoped live sample previews, site inheritance, reset, and Styles history.
+- Add reference Pullquote and Search specimens to the Site Editor Style Book, with centred pill buttons and a matching separator.
+- Add the reference two-column paragraph sample to Site Editor Typography and its Style Book overview, inheriting Text styles and stacking in narrow previews.
+- Reorder Studio Navigation tools with dedicated drag handles or Alt+Up/Down, retaining the preferred order across content and template workspaces.
+- Add a Preview frame specimen to Controls, sharing the reusable animated handle, resizing behaviour and rounded frame with Site Editor and Style Book.
+- Add a matching Home comparison sample to the Site Editor webpage preview, covering heading levels, rich text, lists, quotation, image, buttons, table, separator, and code.
+- Resize the Site Editor webpage and Style Book previews from a centred edge handle, with keyboard controls and live content reflow.
+- Add temporary Site Editor Typography with shared Typesets, bundled font management, element and heading-level controls, editable fluid font-size presets, and scoped Undo/Redo.
+- Add a temporary Browse Styles preview with Twenty Twenty-Five variations, colour palettes, typography pairings, global/site inheritance, and Undo/Redo.
+- Make Reset Styles available from the actions menu, with current-scope reset and undoable history.
+- Add a live, preview-only Style Book with palette, typography, image, and block specimens, navigation into existing Styles controls, and scoped history.
+- Preview the Site Editor Styles menu with Browse Styles, Typography, Colours, Background, Shadows, Layout, and Blocks; settings remain unavailable in this first step.
+- Give Global Defaults an independent generic Identity preview with logo/icon placeholders, without site inheritance or saved-site changes.
+- Share the two-left-pane workspace layout, responsive behaviour, and gap-free collapse/reopen placement between Site Editor and a new Pane Library example (Pane contract v1.5.0).
+- Add a separate, preview-only Site Editor with global Paragraph font size, independent Test and Test 2 overrides, reset to inheritance, and temporary Undo/Redo. Existing editing tools and saved sites remain unchanged.
+- Replace Website Styles sample cards with a temporary production block editor preview, remove the sample profile selector, and show width and gutter changes in Edit and Preview without changing existing sites.
+- Add an optional Hover Inspection toggle in Styles, off by default, to keep the written guide steady while browsing. Click and keyboard inspection remain available.
+
+- Added a preview-only Website Styles → Layout area with shared profile and template inheritance, width and responsive gutter controls, live samples, and local Undo/Redo. Existing sites remain unchanged.
+
+
+- Define an isolated shared website layout contract with explicit inheritance,
+  value origins, responsive gutters, and legacy layout capture. Existing sites
+  and saved-data formats retain their current appearance and behaviour.
+
+- Expose 49 original shared website icons and directional variants in the Studio
+  library, with three optical sizes, SVG/PNG downloads, and searchable existing
+  equivalents for Share, arrows, and compact chevrons.
+
+- Offer Rectangle, Ellipse, Triangle, and Hexagon choices in the temporary object
+  manipulation and resize examples, with Undo/Redo for shape changes.
+
+- Offer optional Fit to Part canvases for Header and Footer editing, remembering
+  each choice separately and keeping Edit and Preview sizing consistent.
+
+- Publish browser-local Pages with immutable snapshots, separate draft edits,
+  local page addresses, and shared publication recovery, media, and previews.
+
+
+- Add a Mobile navigation Library example using production menu rendering,
+  opening, closing, submenu, and keyboard behaviour in an isolated page frame.
+
+- Add shared Text input, Text area, Select dropdown, Search field, Number field,
+  Number with units, Button, Tooltip, and Field label, help and error specimens
+  with temporary states and keyboard interaction. Connect ordinary Studio fields
+  to the production primitives and their canonical Library entries, with a
+  coverage check that records specialised editor exceptions.
+
+- Add shared Checkbox and Radio group Library entries with mixed, disabled,
+  independent selection, and native keyboard examples, also used by existing
+  template defaults and keyboard collection controls.
+
+- Add a Workspace Object manipulation playground combining shared move, resize,
+  and rotation controls with temporary shape/image history.
+
+- Add a Block editor playground in the Library’s Workspace section using the
+  production Template editor, with temporary Header, Navigation, and empty
+  templates for trying blocks and checking appender positioning.
+
+- Add page resizing to the Resize handles Library example with shared Design
+  page handles, sizing, anchored layout, keyboard input, and temporary history.
+
+- Add a Zoom slider specimen using the shared Design zoom control, with the
+  100% midpoint, 10–500% limits, percentage feedback, and grab cursor.
+
+- Add a Resize handles specimen using shared Design controls and geometry, with
+  shapes, images, Shift stretching, zoom, rotation, cancellation, and Undo/Redo.
+
+- Share circular canvas handle presentation, sizing, focus, and input forwarding
+  across Design object resizing, page resizing, and arrow endpoints.
+
+- Add a searchable Studio UI Library catalogue with cross-section filters,
+  ownership and dependency details, and keyboard-accessible previews from shared
+  component and specimen definitions. Make it the Library landing view.
+
+- Add a History actions example showing shared compact, labelled and Ribbon
+  controls with temporary Undo/Redo, read-only mode and keyboard shortcuts.
+
+- Add a temporary Rotation handle example to the UI Library using Design’s
+  shared handle, artwork and rotation calculations, with zoom, keyboard steps,
+  read-only mode, cancellation and Undo/Redo.
+
+- Make Sites in Studio Navigation collapsible to free space for content lists,
+  with native keyboard disclosure and drag cancellation on collapse.
+
+- Add a shared drag-to-position Controls specimen with vertical, horizontal,
+  and wrapped layouts, read-only mode, keyboard moves, and temporary Undo/Redo.
+
+- Add six-dot site handles for pointer and keyboard reordering in Studio Navigation,
+  retaining each site’s environments and saving the order as an owned preference.
+
+- Manage template dependencies across Studio Drafts, Test and Test2 with bulk
+  replacement or detachment, per-owner save results, and a global template Bin
+  supporting Undo and Restore for unused originals.
+
+- Edit navigation from any Templates context with a separate Studio Drafts, Test,
+  or Test2 target selector and saves through each target’s existing owner.
+
+- Add Responsive styles to the View menu for posts, pages, and templates, with
+  independent Tablet and Mobile block styles, Desktop inheritance, and saved
+  local preview and publication rendering.
+
+- Share the post-only Sticky checkbox across Studio Drafts, Test and Test2,
+  retaining separate draft saves and publication captures.
+
+- Share Draft, Pending, Private, Scheduled, Published and password preview controls
+  across Test and Test2 posts and pages, including the home page; retain local
+  ownership and saving, with explicit unavailable-home previews and UTC timing.
+
+- Open a compact block chooser from canvas Add Block controls, with contextual
+  search and an explicit Browse All action for the Block Library pane.
+
+- Add shared HTML anchor, CSS classes, and Additional CSS controls to Buttons,
+  LinkedIn, TikTok, Reading Time, Navigation, and Page link, retaining safe
+  presentation in Edit, Preview, and local output.
+
+- Include ACM Studio in Sites, with homepage Visit actions and unavailable Edit
+  actions until its homepage is connected to the editor.
+
+- Reorder Posts, Pages, and Templates by dragging their Navigation entries, or
+  using Alt+Up/Down, with saved order, Undo/Redo, and shared-tab conflict checks.
+
+- Fit resizable panes to their primary labels and controls by double-clicking
+  the resize edge or pressing Enter while it is focused, within existing limits.
+
+- Add Workspace Background to Styles → Colours, updating the surrounding workspace across Studio Drafts, local sites, Templates, and the UI Library.
+
+- Show blue date markers for days with existing published or scheduled posts in
+  the publish calendar, with post counts in each marked day's accessible name.
+
+
+- Separate Save Draft and Publish/Update actions for local Test and Test2, with saved publication snapshots that keep unpublished edits out of the generated site preview.
+
+- Shared Revision slider in the UI Library, used by Page and Post revision comparisons with a compact neutral timeline and author/date tooltip.
+
+- Page and Post Revisions controls with saved-version previews and undoable
+  content restoration, preserving current publication state and assignments.
+
+- Add Reset all styles to restore template colours, body typography and shared layout together.
+
+- Site-specific navigation editing for Test and Test2, with menu link actions and site history while retaining global template presentation.
+
+- Default global templates to neutral preview content, with a temporary Test or
+  Test2 preview choice independent of the editing site.
+
+- Add one shared Control accent colour in Styles for toggles and standard sliders,
+  with derived hover and pressed colours and simplified Controls examples.
+- Keep Styles history and the selected settings panel when saving source values
+  by excluding gateway-owned data from development-server config restarts.
+
+- Add one shared interface selection colour in Styles → Interactions, independent
+  of specimen Accent, with live previews and source-backed refresh across tabs.
+
+- One central Neutral hover background setting shared across disclosure headings,
+  neutral controls, menus and list items, with four preview examples.
+
+- Central Styles hover backgrounds for neutral controls, menu items and list
+  items, alongside the disclosure heading setting.
+
+- Global template originals for Test and Test2, with revision-checked shared
+  saving and local preview propagation. Template layouts and styles are edited
+  globally; site identity and links remain local. Former site designs remain
+  recoverable without affecting the global design.
+
+- Added Navigation overlay icon controls and reusable overlay templates, with
+  creation, selection and editing through the existing template workspace.
+
+- Page link children in Navigation, with a contextual Block Library entry, individual Content/Settings/Styles controls, sibling drag and movement, and saved per-link typography.
+
+- Navigation in the template editor's Theme block category and the UI Library, with an editable specimen using the production Menu, Settings and Styles controls.
+
+- Gutenberg-style Navigation authoring with Menu, Settings and Styles tabs, inline link editing, nested submenus, shared layout and colour controls, and responsive overlays in previews and local output.
+
+- Editable shared Navigation blocks for Test and Test2, with saved menu labels, destinations, order and link controls across editor and website views.
+
+- Website View and Full Preview for local Test and Test2 drafts, with isolated browser viewports, device sizes and Fit / 100% scale controls.
+
+- Test2’s Production visit link alongside its Local controls in the Sites pane and homepage.
+- Local Visit Site controls open the freshly discovered address in a new tab.
+
+- Added the independent local Test2 fixture and safe switching between Test and Test2, with separate content, templates, saving sessions and previews.
+
+- Sites navigation shares the homepage’s Local, Staging and Production action
+  groups, with unavailable editing marked clearly and absent staging omitted.
+  Test is now included in the homepage directory.
+- Site-aware Test content: Pages, Posts and Templates use its canonical source,
+  including the existing test drafts, preserved template assignments and a
+  recoverable Bin. Studio Drafts retains the original browser recovery copies.
+- Test collection backups and stable document links in its local preview.
+
+- Styles now supports explicit local saving to the shared preset, synchronised
+  guide token tables and source bundle, with live draft source updates, revision
+  checks, write ownership and recoverable file transactions.
+
+- List toolbars distinguish items from their parent List, with ordered/unordered
+  controls, item move/duplicate/remove actions and Gutenberg-style indentation.
+  Empty items retain their inspector; Lists and items now support background
+  images and shadows. Sibling-range indentation preserves reading order, and
+  delayed focus yields to subsequent input.
+
+
+- Local Test can be edited in multiple Studio tabs, with shared updates,
+  independent-change merging, overlap choices and automatic save handover.
+
+- Group floating toolbars now follow the chosen layout: block alignment for Group and Grid, and both layout alignment axes for Row and Stack.
+- Empty Group layouts now use Gutenberg-style insertion areas: a full-width Group button, horizontal Row and vertical Stack placeholders, and responsive Grid track guides with a compact insertion button. Empty unselected Groups show a dashed boundary; these guides remain editor-only.
+
+- Group, Row, Stack and Grid are separate block choices with mutual transforms,
+  consistent labels and icons, and shared Gutenberg-style layout controls.
+
+- Edit the local Test website inside Studio using its standard block library
+  and inspector, with revision checks, history and standalone preview.
+
+
+- Added Test to the editor's Sites area, with a live local-service status and an open action when Project Ports reports it running.
+
+- Shared inspector sliders show a value label beneath the thumb on hover, focus and adjustment, using spacing preset names or the current numeric value.
+
+- Shared Text action buttons keep Clear and inspector Reset All consistently linked to the shared semantic Accent token, with readable text colour, central hover, pressed, focus and disabled states and a working Controls specimen.
+
+- Paragraph Typography now offers Font for individual block overrides, with Default restoring inheritance. The reusable Font selector and its working Controls specimen share font choices with the content renderer.
+
+- The editor List View button now uses a new shared `@acm/icons` List View mark with the three-line stepped outline shown in Gutenberg.
+
+- Homepage local-site actions resolve current running ports through Project Ports, with shared discovery, clear unavailable states and a fresh lookup before opening. Hosted links remain separate.
+
+- Insert and replace inline images without leaving the editor, with reusable image controls, changed-only width and alternative-text editing, caret restoration and Undo/Redo. Managed images render in rich captions and table cells.
+
+- Drag existing blocks or Block Library items into individual Columns, with a red insertion indicator and one-step Undo/Redo; blocks can also move between columns or back to the document.
+- Extend a List text gesture into a separate List to select both whole blocks, while retaining text selection within one List. The UI Library includes isolated document and Template column-drop examples.
+
+- Button labels support direct rich-text editing with matching preview, HTML and local storage; inline links and footnotes remain excluded from the already linked label.
+- Button toolbars edit and remove their own destination through a reusable Link destination control, with safe URLs, internal suggestions, new-tab/nofollow settings, clipboard preview and preserved rich labels. The Controls library demonstrates the same component in isolated state.
+
+- Undo and Redo in the Styles sandbox, with platform shortcuts and temporary history for colour, typography, button, layout and reset actions.
+
+- Reusable Studio dialog shells, popover headings and dismissal, and menu keyboard navigation; editor and dialog actions now share the Base/Secondary button styles.
+
+- Block notes now appear in a bottom-right canvas card, with Edit note, Back to block and dismiss/reopen controls.
+
+- Gutenberg-style block options with clipboard actions, insertion, style transfer, grouping, private notes, naming, visibility and movement/removal locks.
+
+- Completed Group width inheritance, Row wrapping and Grid arrangement controls; added Columns gap axes, Column allowed-block restrictions, shared List Item styling, dynamic presentation options and a styled template Content-slot inspector.
+
+- Quote inner blocks and rich citations, a Buttons container with shared layout, and actual YouTube, Vimeo and TikTok embeds with a safe original-link fallback.
+
+
+- Added six shared H1–H6 catalogue symbols for the Heading pane and canvas toolbar, with reusable Controls specimens and three-scale icon exports.
+- Focus Outline offers On, Off and Keyboard Only throughout ACM Studio, including the editor and its empty appender. The Library header and editor View menu share an ownership-guarded preference that survives navigation and reloads; keyboard navigation and selected-item markings remain available.
+- Select ranges or separate blocks across mixed block types and nested layouts, then delete the selection in one undoable action. The UI Library selection specimen keeps its example document and history in memory.
+- Table cells now retain Gutenberg `th`/`td` tags and `scope` values through preview, structural edits and HTML editing. Workspace schema v17, local publication snapshots v10 and template schema v0.17.0 preserve readers for previous versions.
+- Every Block Library tile now uses a shared `@acm/icons` symbol; the block-symbol inspector links to the symbol record and the symbol record links back to each consuming block. Existing repeated inspector actions now resolve through the shared icon adapter.
+- Shared icon catalogue entries now link to block movement, duplication, deletion, inline rich-text formatting, link-preview and canvas zoom examples; Studio editor zoom and link-preview globe artwork use their shared catalogue symbols.
+- Group blocks now use Gutenberg's Group, Row, Stack and Grid variations, show a layout chooser when empty, let nested insertion be restricted by allowed block type, support Row and Stack Space between justification, and place layout and background-image options within the shared Dimensions and Background controls. Workspace schema v16, publication snapshots v9 and template schema v0.16.0 retain readers for their previous versions.
+- Added Additional CSS classes and safe Additional CSS declarations to the List Item Advanced settings.
+- Added catalogue-linked indent and outdent toolbar actions for the selected List Item; keyboard indentation remains available.
+- Added a standalone Slider foundation to the Controls library, with shared accent, derived hover and pressed colours, independent temporary overrides and a visible consumer list.
+- Added dependency and consumer details to each Controls section's ownership and compatibility disclosure.
+- Added sorting by the first-added date and time for shared interface icons, with the selected symbol's timestamp shown in UK local time.
+- Expanded the Blocks library from the Paragraph pilot to all 27 typed block types plus the template Content slot, with profile-driven pane inventories, isolated production-editor specimens, history, reset, nested selection and compatibility notes. Expanded Controls to one grouped page with 13 working control specimens plus its standalone Slider foundation, compatible direct-route anchors, and shared border, background, typography, image-dimensions, focal-position and preset-number controls between the inspector and catalogue.
 
 - Match the reference template parts' outer Header divider, Footer logo position, centred inner content, and responsive gutters and spacing to Twenty Twenty-Five.
 
