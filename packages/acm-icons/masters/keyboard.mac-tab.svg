@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Mac Tab</title>
+<desc>Original ACM Mac keyboard symbol</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 4.32 12 L 16.8 12 M 12 7.2 L 16.8 12 L 12 16.8 M 19.68 6.24 L 19.68 17.76" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4 12 L 17 12 M 12 7 L 17 12 L 12 17 M 20 6 L 20 18" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 3.68 12 L 17.2 12 M 12 6.8 L 17.2 12 L 12 17.2 M 20.32 5.76 L 20.32 18.24" />
+</g>
+</svg>

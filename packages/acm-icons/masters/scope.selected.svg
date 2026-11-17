@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Selected Item</title>
+<desc>Apply a setting to the selected item</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.63 7.35 L 3.63 3.63 L 7.35 3.63 M 16.65 3.63 L 20.37 3.63 L 20.37 7.35 M 20.37 16.65 L 20.37 20.37 L 16.65 20.37 M 7.35 20.37 L 3.63 20.37 L 3.63 16.65" />
+<path d="M 8.28 8.28 L 15.72 8.28 L 15.72 15.72 L 8.28 15.72 Z" fill="currentColor" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 7 L 3 3 L 7 3 M 17 3 L 21 3 L 21 7 M 21 17 L 21 21 L 17 21 M 7 21 L 3 21 L 3 17" />
+<path d="M 8 8 L 16 8 L 16 16 L 8 16 Z" fill="currentColor" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.73 6.85 L 2.73 2.73 L 6.85 2.73 M 17.15 2.73 L 21.27 2.73 L 21.27 6.85 M 21.27 17.15 L 21.27 21.27 L 17.15 21.27 M 6.85 21.27 L 2.73 21.27 L 2.73 17.15" />
+<path d="M 7.88 7.88 L 16.12 7.88 L 16.12 16.12 L 7.88 16.12 Z" fill="currentColor" />
+</g>
+</svg>

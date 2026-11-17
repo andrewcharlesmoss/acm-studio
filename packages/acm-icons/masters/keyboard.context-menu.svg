@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Context Menu</title>
+<desc>Original ACM Mac keyboard symbol</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.36 6.24 L 20.64 6.24 M 3.36 12 L 20.64 12 M 3.36 17.76 L 20.64 17.76" />
+<path d="M 5.28 6.24 L 5.28 6.24 M 5.28 12 L 5.28 12 M 5.28 17.76 L 5.28 17.76" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 6 L 21 6 M 3 12 L 21 12 M 3 18 L 21 18" />
+<path d="M 5 6 L 5 6 M 5 12 L 5 12 M 5 18 L 5 18" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.64 5.76 L 21.36 5.76 M 2.64 12 L 21.36 12 M 2.64 18.24 L 21.36 18.24" />
+<path d="M 4.72 5.76 L 4.72 5.76 M 4.72 12 L 4.72 12 M 4.72 18.24 L 4.72 18.24" />
+</g>
+</svg>

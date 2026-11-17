@@ -203,7 +203,7 @@ export function KeyboardCatalogue() {
         <details className="kb-artwork-info">
           <summary>Artwork provenance and licensing</summary>
           <p>{artwork.provenance}</p>
-          <code>acm-icons/masters/{asset.key.icon}.svg</code>
+          <code>acm-studio/packages/acm-icons/masters/{asset.key.icon}.svg</code>
           {artwork.licenceNotice && <details>
             <summary>Full licence notice</summary>
             <pre>{artwork.licenceNotice}</pre>

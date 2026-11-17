@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Mac Keypad Multiply</title>
+ <desc>UK keyboard legend drawn as Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 11.4821 14.5871 L 11.5807 12.7315 L 10.0193 13.749 L 9.498 12.8443 L 11.1592 12.0062 L 9.498 11.168 L 10.0193 10.251 L 11.5807 11.2685 L 11.4821 9.4129 L 12.5179 9.4129 L 12.4271 11.2685 L 13.9841 10.251 L 14.502 11.168 L 12.8441 12.0062 L 14.502 12.8443 L 13.9841 13.749 L 12.4271 12.7315 L 12.5179 14.5871 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 11.5065 14.5871 L 11.599 12.6976 L 10.0065 13.7279 L 9.5108 12.8654 L 11.1987 12.0062 L 9.5108 11.1469 L 10.0065 10.2721 L 11.599 11.3024 L 11.5065 9.4129 L 12.4935 9.4129 L 12.4083 11.3024 L 13.9957 10.2721 L 14.4892 11.1469 L 12.8035 12.0062 L 14.4892 12.8654 L 13.9957 13.7279 L 12.4083 12.6976 L 12.4935 14.5871 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 11.531 14.5871 L 11.6174 12.6637 L 9.9937 13.7067 L 9.5236 12.8865 L 11.2381 12.0062 L 9.5236 11.1258 L 9.9937 10.2933 L 11.6174 11.3363 L 11.531 9.4129 L 12.469 9.4129 L 12.3894 11.3363 L 14.0074 10.2933 L 14.4764 11.1258 L 12.763 12.0062 L 14.4764 12.8865 L 14.0074 13.7067 L 12.3894 12.6637 L 12.469 14.5871 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

@@ -29,6 +29,17 @@ The public personal presentation layer belongs to the separate
 `andrew-moss` project. ACM Studio may render local previews and provide
 portable publishing data, but it does not own the Andrew Moss public site.
 
+## Shared packages
+
+The canonical ACM Icons, Panel, Ribbon, and Styles packages live in
+`packages/acm-icons`, `packages/acm-panel`, `packages/acm-ribbon`, and
+`packages/acm-styles`. They keep their package identities and public exports
+for other ACM consumers. The original repositories retain their histories and remain historical
+checkouts; preserve their branches and uncommitted work.
+
+For a reproducible checkout, follow the guide revision and commands in README.
+The adjacent workspace-governance checkout remains the canonical style source.
+
 ## Shared standards
 
 This project inherits the workspace `AGENTS.md` and `STYLE_GUIDE.md` baselines.
@@ -110,11 +121,11 @@ Library rotation specimen inherit `RotationHandle`, its shared CSS and
 `rotation-geometry.ts`; owners retain transaction and persistence adapters.
 Andrew explicitly authorised the Copilot keyboard mark
 as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
-SVG, provenance and licence are owned by `acm-icons/sources/copilot/`; preserve
+SVG, provenance and licence are owned by `packages/acm-icons/sources/copilot/`; preserve
 the shared geometry and licence notices when previewing or exporting it.
 Andrew authorised Inter-derived H1–H6 heading marks on 2 October 2026. These
 shared font-outline assets use the pinned, licensed source in
-`acm-icons/sources/inter/`; retain their provenance and licence notices.
+`packages/acm-icons/sources/inter/`; retain their provenance and licence notices.
 
 The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Panels,
 Icons and Styles. `workspace-governance/STYLE_GUIDE.md` is the only stored source
@@ -147,7 +158,7 @@ Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and
 `/studio/panes` routes redirect to their new sections. ACM symbols come from the
-sibling `@acm/icons` package. The UK Keyboard collection lives at
+`packages/acm-icons` shared package. The UK Keyboard collection lives at
 `/studio/ui/icons?collection=keyboard`. Shared keycap assets are owned by
 `@acm/icons/keyboard`. The collection covers the common UK ISO Mac and Windows
 key families; layouts and hardware-dependent legends remain model-specific.

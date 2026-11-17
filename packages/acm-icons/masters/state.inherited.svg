@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Inherited</title>
+<desc>Value passed down from a higher level</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 6 4 L 18 4 L 18 9 L 6 9 Z M 12 9 L 12 20 M 8.5 16.5 L 12 20 L 15.5 16.5" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 5.5 3.5 L 18.5 3.5 L 18.5 9 L 5.5 9 Z M 12 9 L 12 20.25 M 8.25 16.5 L 12 20.25 L 15.75 16.5" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 5 3 L 19 3 L 19 9 L 5 9 Z M 12 9 L 12 20.5 M 8 16.5 L 12 20.5 L 16 16.5" />
+</g>
+</svg>

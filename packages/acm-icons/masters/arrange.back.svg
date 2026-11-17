@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Send to Back</title>
+<desc>Move an object behind all others</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3 6.5 L 12 3.5 L 21 6.5 L 12 9.5 Z" />
+<path d="M 3 9.5 L 12 12.5 L 21 9.5" />
+<path d="M 3 18 L 12 15.5 L 21 18 L 12 21.5 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 2.5 6.25 L 12 3 L 21.5 6.25 L 12 9.5 Z" />
+<path d="M 2.5 9.25 L 12 12.5 L 21.5 9.25" />
+<path d="M 2.5 18.5 L 12 16 L 21.5 18.5 L 12 22 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2 6 L 12 2.5 L 22 6 L 12 9.5 Z" />
+<path d="M 2 9 L 12 12.5 L 22 9" />
+<path d="M 2 19 L 12 16.5 L 22 19 L 12 22.5 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Heading 1</title>
+<desc>Heading 1 drawn as licensed Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 4.2706 17.5 L 4.2706 6.5 L 6.242 6.5 L 6.242 11.0471 L 11.3614 11.0471 L 11.3614 6.5 L 13.3328 6.5 L 13.3328 17.5 L 11.3614 17.5 L 11.3614 12.7072 L 6.242 12.7072 L 6.242 17.5 Z" fill="currentColor" stroke="none" />
+<path d="M 19.7294 6.5 L 19.7294 17.5 L 17.7721 17.5 L 17.7721 8.2564 L 17.6983 8.2564 L 15.1309 10.1027 L 15.1309 8.2246 L 17.5495 6.5 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3.6666 18 L 3.6666 6 L 5.6621 6 L 5.6621 11.017 L 11.4252 11.017 L 11.4252 6 L 13.4207 6 L 13.4207 18 L 11.4252 18 L 11.4252 12.7135 L 5.6621 12.7135 L 5.6621 18 Z" fill="currentColor" stroke="none" />
+<path d="M 20.3334 6 L 20.3334 18 L 18.3556 18 L 18.3556 7.7914 L 18.275 7.7914 L 15.4496 9.8396 L 15.4496 7.8922 L 18.0808 6 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 3.4221 18.25 L 3.4221 5.75 L 5.3392 5.75 L 5.3392 11.0349 L 11.5281 11.0349 L 11.5281 5.75 L 13.4452 5.75 L 13.4452 18.25 L 11.5281 18.25 L 11.5281 12.6829 L 5.3392 12.6829 L 5.3392 18.25 Z" fill="currentColor" stroke="none" />
+<path d="M 20.5779 5.75 L 20.5779 18.25 L 18.6815 18.25 L 18.6815 7.4862 L 18.5976 7.4862 L 15.6288 9.6552 L 15.6288 7.7324 L 18.362 5.75 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

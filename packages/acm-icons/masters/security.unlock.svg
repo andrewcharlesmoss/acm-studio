@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Unlocked</title>
+<desc>Fields or objects can be edited</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 7.35 10.14 L 7.35 7.35 C 7.35 1.77 16.65 1.77 16.65 7.35" />
+<path d="M 4.56 10.14 L 19.44 10.14 L 19.44 20.37 L 4.56 20.37 Z" />
+<path d="M 12 13.86 L 12 16.65" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 7 10 L 7 7 C 7 1 17 1 17 7" />
+<path d="M 4 10 L 20 10 L 20 21 L 4 21 Z" />
+<path d="M 12 14 L 12 17" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 6.85 9.94 L 6.85 6.85 C 6.85 0.67 17.15 0.67 17.15 6.85" />
+<path d="M 3.76 9.94 L 20.24 9.94 L 20.24 21.27 L 3.76 21.27 Z" />
+<path d="M 12 14.06 L 12 17.15" />
+</g>
+</svg>

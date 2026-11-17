@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<metadata>Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION AND CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.</metadata>
+<path d="M 2.4607 17.5 L 2.4607 6.5 L 4.4321 6.5 L 4.4321 11.0471 L 9.5515 11.0471 L 9.5515 6.5 L 11.5229 6.5 L 11.5229 17.5 L 9.5515 17.5 L 9.5515 12.7072 L 4.4321 12.7072 L 4.4321 17.5 Z" fill="currentColor" stroke="none" />
+<path d="M 17.5834 17.6477 Q 16.7985 17.6477 16.0482 17.378 Q 15.2978 17.1084 14.6985 16.4939 Q 14.0992 15.8794 13.7449 14.8534 Q 13.3907 13.8273 13.3907 12.3145 Q 13.3907 10.9027 13.6902 9.7981 Q 13.9896 8.6935 14.5547 7.9239 Q 15.1197 7.1544 15.9145 6.7534 Q 16.7093 6.3523 17.6974 6.3523 Q 18.7265 6.3523 19.5265 6.7574 Q 20.3265 7.1624 20.8221 7.8633 Q 21.3178 8.5642 21.4347 9.4571 L 19.4982 9.4571 Q 19.3455 8.8287 18.8805 8.4445 Q 18.4156 8.0604 17.6974 8.0604 Q 16.9329 8.0604 16.3982 8.5098 Q 15.8636 8.9593 15.5866 9.7961 Q 15.3096 10.633 15.3096 11.7977 L 15.3875 11.7977 Q 15.6536 11.3241 16.0697 10.9836 Q 16.4858 10.6431 17.0151 10.463 Q 17.5444 10.2828 18.1315 10.2828 Q 19.0977 10.2828 19.8683 10.7426 Q 20.6389 11.2024 21.0891 12.0123 Q 21.5393 12.8221 21.5393 13.8666 Q 21.5393 14.9486 21.0444 15.8038 Q 20.5494 16.659 19.6594 17.1533 Q 18.7693 17.6477 17.5834 17.6477 Z M 17.5728 16.0454 Q 18.1601 16.0454 18.6239 15.7597 Q 19.0877 15.4739 19.3579 14.9896 Q 19.6281 14.5053 19.6281 13.9038 Q 19.6281 13.3117 19.365 12.8322 Q 19.1019 12.3526 18.6428 12.0716 Q 18.1838 11.7906 17.5964 11.7906 Q 17.1582 11.7906 16.7821 11.9584 Q 16.406 12.1261 16.1237 12.4215 Q 15.8414 12.717 15.6845 13.1004 Q 15.5275 13.4839 15.5275 13.9133 Q 15.5275 14.4912 15.793 14.9755 Q 16.0585 15.4598 16.5236 15.7526 Q 16.9887 16.0454 17.5728 16.0454 Z" fill="currentColor" stroke="none" />
+</svg>

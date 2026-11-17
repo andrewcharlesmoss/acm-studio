@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Refresh</title>
+<desc>Reload the current collection</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.63 10.14 C 4.56 2.7 14.79 2.235 19.44 7.35 M 19.44 2.7 L 19.44 7.35 L 14.79 7.35 M 20.37 13.86 C 19.44 21.3 9.21 21.765 4.56 16.65 M 4.56 21.3 L 4.56 16.65 L 9.21 16.65" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 10 C 4 2 15 1.5 20 7 M 20 2 L 20 7 L 15 7 M 21 14 C 20 22 9 22.5 4 17 M 4 22 L 4 17 L 9 17" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.73 9.94 C 3.76 1.7 15.09 1.185 20.24 6.85 M 20.24 1.7 L 20.24 6.85 L 15.09 6.85 M 21.27 14.06 C 20.24 22.3 8.91 22.815 3.76 17.15 M 3.76 22.3 L 3.76 17.15 L 8.91 17.15" />
+</g>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Justify Centre</title>
+<desc>Centre layout content horizontally</desc>
+<g id="Regular-S" stroke-width="2">
+<path fill="currentColor" stroke="none" d="M 11.1 4 L 12.9 4 L 12.9 20 L 11.1 20 Z M 5.5 9 L 18.5 9 L 18.5 15 L 5.5 15 Z" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path fill="currentColor" stroke="none" d="M 11.25 3.75 L 12.75 3.75 L 12.75 20.25 L 11.25 20.25 Z M 5.25 9 L 18.75 9 L 18.75 15 L 5.25 15 Z" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path fill="currentColor" stroke="none" d="M 11.3 3.5 L 12.7 3.5 L 12.7 20.5 L 11.3 20.5 Z M 5 8.75 L 19 8.75 L 19 15.25 L 5 15.25 Z" />
+</g>
+</svg>

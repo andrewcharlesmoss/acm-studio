@@ -99,6 +99,40 @@ The architecture and next decision gate are recorded in
 The design canvas architecture and supported first-release behaviour are
 recorded in [`docs/design-canvas.md`](docs/design-canvas.md).
 
+## Clean checkout setup
+
+Studio owns the shared packages in `packages/`. Their package names and exports
+remain usable by ACM consumers. The workspace style guide remains in the
+independent `workspace-governance` repository. For a reproducible build, check
+out the verified guide revision alongside Studio. From a new parent directory
+with access to both GitHub repositories, run:
+
+```bash
+git clone https://github.com/andrewcharlesmoss/acm-studio.git
+git clone https://github.com/andrewcharlesmoss/workspace-governance.git
+git -C workspace-governance checkout --detach 2447a388760211155143613aff478d0de872c4f2
+cd acm-studio
+npm ci
+npm run build
+```
+
+The guide revision is a build input; advance it deliberately and verify Studio
+when the guide changes. Local development continues to use the adjacent working
+copy of the guide and its revision-checked editing gateway. Package sources are maintained in this repository under `packages/`. Original
+Git histories remain in the retained historical sibling repositories. These
+local source revisions were imported without rewriting their histories:
+
+| Package | Historical source revision |
+| --- | --- |
+| `@acm/icons` | `69e23840d52a9f6bd2576b484c13b3a3e6d5095a`, plus the reviewed Files illustration edit |
+| `@acm/panel` | `729dbc6dad4f5c1da38c9d3c0d18ab09c2b24ab6` |
+| `@acm/ribbon` | `7f9ed087fe18bdf7233a1fca7b98e7b439c83c57` |
+| `@acm/styles` | `83d2db2a907137f38f423d8080bbde98cee21cf8` |
+
+The original histories are local-only and are not included in a normal Studio
+GitHub push. Keep those repositories and their task branches until a separate
+archive has been authorised and verified.
+
 ## Local checks
 
 Run these commands from `/Users/andrewmoss/Documents/Codex/_Projects/acm-studio`:

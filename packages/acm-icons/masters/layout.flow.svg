@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Group layout</title>
+<desc>Gather blocks in a content-flow container</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5 10 L 13 10 Q 14 10 14 11 L 14 19 Q 14 20 13 20 L 5 20 Q 4 20 4 19 L 4 11 Q 4 10 5 10 Z" />
+<path d="M 11 4 L 19 4 Q 20 4 20 5 L 20 13 Q 20 14 19 14 L 11 14 Q 10 14 10 13 L 10 5 Q 10 4 11 4 Z" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4.5 10 L 13.0 10 Q 14.0 10 14.0 11 L 14.0 19.5 Q 14.0 20.5 13.0 20.5 L 4.5 20.5 Q 3.5 20.5 3.5 19.5 L 3.5 11 Q 3.5 10 4.5 10 Z" />
+<path d="M 11 3.5 L 19.5 3.5 Q 20.5 3.5 20.5 4.5 L 20.5 13.0 Q 20.5 14.0 19.5 14.0 L 11 14.0 Q 10 14.0 10 13.0 L 10 4.5 Q 10 3.5 11 3.5 Z" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 4 10 L 13 10 Q 14 10 14 11 L 14 20 Q 14 21 13 21 L 4 21 Q 3 21 3 20 L 3 11 Q 3 10 4 10 Z" />
+<path d="M 11 3 L 20 3 Q 21 3 21 4 L 21 13 Q 21 14 20 14 L 11 14 Q 10 14 10 13 L 10 4 Q 10 3 11 3 Z" />
+</g>
+</svg>

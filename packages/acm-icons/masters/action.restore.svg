@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Restore</title>
+<desc>Recover an archived or removed item</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 7.5 10 L 4 10 L 4 20 L 20 20 L 20 10 L 16.5 10 M 4 13 L 7.5 13 M 16.5 13 L 20 13" />
+<path d="M 12 14 L 12 3.5 M 8.5 7 L 12 3.5 L 15.5 7" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 7.5 10 L 3.5 10 L 3.5 20.5 L 20.5 20.5 L 20.5 10 L 16.5 10 M 3.5 13.5 L 7.5 13.5 M 16.5 13.5 L 20.5 13.5" />
+<path d="M 12 14.5 L 12 3 M 8 7 L 12 3 L 16 7" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 7.5 10 L 3 10 L 3 21 L 21 21 L 21 10 L 16.5 10 M 3 13.5 L 7.5 13.5 M 16.5 13.5 L 21 13.5" />
+<path d="M 12 15 L 12 2.5 M 7.75 6.75 L 12 2.5 L 16.25 6.75" />
+</g>
+</svg>

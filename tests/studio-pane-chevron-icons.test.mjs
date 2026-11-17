@@ -20,7 +20,7 @@ test("pane controls use the catalogued horizontal chevron and keep disclosure se
   assert.deepEqual(iconScales, ["Regular-S", "Regular-M", "Regular-L"]);
   assert.match(catalogue, /Three editable optical scales from the shared ACM icon catalogue/);
   assert.match(catalogue, /iconMetadata\[icon\]\.provenance/);
-  assert.match(catalogue, /acm-icons\/masters\/\{icon\}\.svg/);
+  assert.match(catalogue, /acm-studio\/packages\/acm-icons\/\{iconStyle.*masters.*\}\/\{icon\}\.svg/);
 });
 
 test("vertical options compatibility icon uses the vertical catalogue artwork", () => {

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Keypad Four</title>
+ <desc>UK keyboard legend drawn as Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 8.5008 14.8475 L 8.5008 13.6254 L 12.4399 7.4 L 13.4317 7.4 L 13.4317 9.1729 L 12.8145 9.1729 L 10.0793 13.4972 L 10.0793 13.5713 L 15.5318 13.5713 L 15.5318 14.8475 Z M 12.8675 16.6 L 12.8675 14.4801 L 12.8886 13.921 L 12.8886 7.4 L 14.3346 7.4 L 14.3346 16.6 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 8.5517 14.808 L 8.5517 13.6743 L 12.5196 7.4 L 13.4175 7.4 L 13.4175 9.0718 L 12.8476 9.0718 L 10.0218 13.5394 L 10.0218 13.6135 L 15.4722 13.6135 L 15.4722 14.808 Z M 12.9056 16.6 L 12.9056 14.4684 L 12.9217 13.9455 L 12.9217 7.4 L 14.2583 7.4 L 14.2583 16.6 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 8.6056 14.7686 L 8.6056 13.7232 L 12.6025 7.4 L 13.4065 7.4 L 13.4065 8.9706 L 12.8838 8.9706 L 9.9674 13.5817 L 9.9674 13.6558 L 15.4155 13.6558 L 15.4155 14.7686 Z M 12.9467 16.6 L 12.9467 14.4568 L 12.9579 13.9699 L 12.9579 7.4 L 14.1849 7.4 L 14.1849 16.6 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

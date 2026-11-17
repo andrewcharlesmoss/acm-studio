@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Shift</title>
+<desc>The Shift modifier key</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 12 3.5 L 21 12 L 16 12 L 16 20 L 8 20 L 8 12 L 3 12 Z" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 12 3 L 21.5 12 L 16 12 L 16 21 L 8 21 L 8 12 L 2.5 12 Z" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 12 2.5 L 22 12 L 16.25 12 L 16.25 21.5 L 7.75 21.5 L 7.75 12 L 2 12 Z" />
+</g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Receipt</title>
+<desc>Represent an itemised transaction receipt</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5.333 3.388 L 7.256 4.849 L 9.635 3.388 L 12 4.849 L 14.365 3.388 L 16.744 4.849 L 18.667 3.388 L 18.667 20.612 L 16.744 19.151 L 14.365 20.612 L 12 19.151 L 9.635 20.612 L 7.256 19.151 L 5.333 20.612 Z" />
+<path d="M 8.21 9.161 L 15.79 9.161 M 8.21 13.891 L 15.79 13.891" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 5 3 L 7 4.5 L 9.5 3 L 12 4.5 L 14.5 3 L 17 4.5 L 19 3 L 19 21 L 17 19.5 L 14.5 21 L 12 19.5 L 9.5 21 L 7 19.5 L 5 21 Z" />
+<path d="M 8 8 L 16 8 M 8 12 L 16 12 M 8 16 L 13 16" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 4.81 2.778 L 6.854 4.3 L 9.423 2.778 L 12 4.3 L 14.577 2.778 L 17.146 4.3 L 19.19 2.778 L 19.19 21.222 L 17.146 19.7 L 14.577 21.222 L 12 19.7 L 9.423 21.222 L 6.854 19.7 L 4.81 21.222 Z" />
+<path d="M 7.88 7.88 L 16.12 7.88 M 7.88 12 L 16.12 12 M 7.88 16.12 L 13.031 16.12" />
+</g>
+</svg>

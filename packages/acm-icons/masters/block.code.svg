@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Code block</title>
+<desc>Opposed code chevrons without a slash</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 10 7 L 6 12 L 10 17 M 14 7 L 18 12 L 14 17" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 10 6.5 L 5.5 12 L 10 17.5 M 14 6.5 L 18.5 12 L 14 17.5" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 10 6 L 5 12 L 10 18 M 14 6 L 19 12 L 14 18" />
+</g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>RSS</title>
+<desc>Identify a syndicated content feed</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 6.585 18.667 C 6.585 19.362 6.026 19.928 5.333 19.928 C 4.638 19.928 4.072 19.362 4.072 18.667 C 4.072 17.974 4.638 17.415 5.333 17.415 C 6.026 17.415 6.585 17.974 6.585 18.667 Z" fill="currentColor" stroke="none" />
+<path d="M 4.364 10.109 C 9.635 10.109 13.891 14.365 13.891 19.636 M 4.364 4.364 C 12.756 4.364 19.636 11.244 19.636 19.636" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 6.3 19 C 6.3 19.718 5.718 20.3 5 20.3 C 4.282 20.3 3.7 19.718 3.7 19 C 3.7 18.282 4.282 17.7 5 17.7 C 5.718 17.7 6.3 18.282 6.3 19 Z" fill="currentColor" stroke="none" />
+<path d="M 4 10 C 9.5 10 14 14.5 14 20 M 4 4 C 12.8 4 20 11.2 20 20" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 6.137 19.19 C 6.137 19.921 5.542 20.512 4.81 20.512 C 4.079 20.512 3.488 19.921 3.488 19.19 C 3.488 18.458 4.079 17.863 4.81 17.863 C 5.542 17.863 6.137 18.458 6.137 19.19 Z" fill="currentColor" stroke="none" />
+<path d="M 3.792 9.938 C 9.423 9.938 14.062 14.577 14.062 20.208 M 3.792 3.792 C 12.825 3.792 20.208 11.175 20.208 20.208" />
+</g>
+</svg>

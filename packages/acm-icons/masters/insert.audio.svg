@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Audio</title>
+<desc>Insert or work with audio</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 9 17 L 9 6 L 19 4 L 19 15" />
+<path d="M 9 17 C 9 18.66 7.43 20 5.5 20 C 3.57 20 3 18.8 3 17.75 C 3 16.09 4.57 14.75 6.5 14.75 C 8.1 14.75 9 15.7 9 17 Z" fill="currentColor" stroke="none" />
+<path d="M 19 15 C 19 16.66 17.43 18 15.5 18 C 13.57 18 13 16.8 13 15.75 C 13 14.09 14.57 12.75 16.5 12.75 C 18.1 12.75 19 13.7 19 15 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 9 17.5 L 9 5.5 L 20 3.5 L 20 15.5 M 9 9 L 20 7" />
+<path d="M 9 17.5 C 9 19.16 7.32 20.5 5.25 20.5 C 3.45 20.5 2.75 19.4 2.75 18.25 C 2.75 16.59 4.43 15.25 6.5 15.25 C 8.1 15.25 9 16.2 9 17.5 Z" fill="currentColor" stroke="none" />
+<path d="M 20 15.5 C 20 17.16 18.32 18.5 16.25 18.5 C 14.45 18.5 13.75 17.4 13.75 16.25 C 13.75 14.59 15.43 13.25 17.5 13.25 C 19.1 13.25 20 14.2 20 15.5 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 9 18 L 9 5 L 20.5 3 L 20.5 16 M 9 8.5 L 20.5 6.5" />
+<path d="M 9 18 C 9 19.66 7.21 21 5 21 C 3.2 21 2.5 19.9 2.5 18.75 C 2.5 17.09 4.29 15.75 6.5 15.75 C 8.1 15.75 9 16.7 9 18 Z" fill="currentColor" stroke="none" />
+<path d="M 20.5 16 C 20.5 17.66 18.71 19 16.5 19 C 14.7 19 14 17.9 14 16.75 C 14 15.09 15.79 13.75 18 13.75 C 19.6 13.75 20.5 14.7 20.5 16 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

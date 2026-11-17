@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Home</title>
+<desc>Return to the site home page</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.388 10.109 L 12 3.388 L 20.612 10.109 M 5.333 9.161 L 5.333 20.612 L 18.667 20.612 L 18.667 9.161 M 10.109 20.612 L 10.109 13.891 L 13.891 13.891 L 13.891 20.612" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 10 L 12 3 L 21 10 M 5 9 L 5 21 L 19 21 L 19 9 M 10 21 L 10 14 L 14 14 L 14 21" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.778 9.938 L 12 2.778 L 21.222 9.938 M 4.81 8.908 L 4.81 21.222 L 19.19 21.222 L 19.19 8.908 M 9.938 21.222 L 9.938 14.062 L 14.062 14.062 L 14.062 21.222" />
+</g>
+</svg>

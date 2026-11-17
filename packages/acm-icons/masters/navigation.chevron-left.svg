@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Chevron Left</title>
+<desc>Indicate leftward movement or a pane edge</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 14.839 5.333 L 8.21 12 L 14.839 18.667" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 15 5 L 8 12 L 15 19" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 15.092 4.81 L 7.88 12 L 15.092 19.19" />
+</g>
+</svg>

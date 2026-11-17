@@ -108,12 +108,12 @@ workbench stacks before its three columns exceed the available page width.
 ## Ownership boundaries
 
 The library groups reference views without combining package ownership. The
-sibling `@acm/icons` package owns original shared symbol artwork and metadata;
+Studio-owned `@acm/icons` package owns original shared symbol artwork and metadata;
 ACM Studio owns its Studio-specific symbols. The Block Library collection
 identifies which source supplies each tile symbol and previews both sets at
 16, 24 and 32px. Shared symbols use their Regular-S, Regular-M and Regular-L
 optical artwork. The Heading tile uses a generic Studio heading marker; the
-selected heading level stays in the block's level control. The sibling
+selected heading level stays in the block's level control. The Studio-owned
 `@acm/styles` package owns style types, validation and CSS custom-property
 exports. `workspace-governance/STYLE_GUIDE.md` is the only stored source for
 website and interface style values and remains authoritative for policy. The Ribbon and Pane implementations remain in their
@@ -692,7 +692,7 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The sibling `@acm/icons` package owns the glyph masters, shared square,
+The Studio-owned `@acm/icons` package owns the glyph masters, shared square,
 wide, tall, Backspace, Spacebar, numeric-zero and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
 left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48.
@@ -931,7 +931,7 @@ consume that same route-scoped token in Edit and Preview. Pane surfaces remain i
 
 ## Drag-to-position specimen
 
-The web implementation is the interactive example below. On macOS, choose Open SwiftUI Preview to open the genuine native example in a separate window. From the Studio root, prepare it with `./scripts/build-swiftui-preview.sh`; restart the local Studio server after adding the preview bridge. The local-only bridge launches a fixed prebuilt executable and is unavailable in hosted Studio. The build requires the sibling `acm-icons` checkout to provide `dist/svg/arrange.reorder/Regular-M.svg` and copies that icon into the preview application. The native preview’s eye button reveals per-item visibility controls, right-hand drag handles, a visible/hidden count and Done. Hidden items remain muted and recoverable while editing; Done closes editing after immediate temporary changes. Undo, Redo and Reset include both order and visibility. The read-only example prevents mutations. The handle inherits the shared macOS open-hand hover and closed-hand drag cursor. Build and test this fixture from the Studio root with `./scripts/build-swiftui-preview.sh` and `swift test --package-path native/ACMReorderPreview`. The build also requires the shared `view.show` and `view.hide` icons from the sibling catalogue.
+The web implementation is the interactive example below. On macOS, choose Open SwiftUI Preview to open the genuine native example in a separate window. From the Studio root, prepare it with `./scripts/build-swiftui-preview.sh`; restart the local Studio server after adding the preview bridge. The local-only bridge launches a fixed prebuilt executable and is unavailable in hosted Studio. The build requires `packages/acm-icons` to provide `dist/svg/arrange.reorder/Regular-M.svg` and copies that icon into the preview application. The native preview’s eye button reveals per-item visibility controls, right-hand drag handles, a visible/hidden count and Done. Hidden items remain muted and recoverable while editing; Done closes editing after immediate temporary changes. Undo, Redo and Reset include both order and visibility. The read-only example prevents mutations. The handle inherits the shared macOS open-hand hover and closed-hand drag cursor. Build and test this fixture from the Studio root with `./scripts/build-swiftui-preview.sh` and `swift test --package-path native/ACMReorderPreview`. The build also requires the shared `view.show` and `view.hide` icons from the shared catalogue.
 
 The reusable SwiftUI
 vertical-list implementation lives at `native/ACMReorder`; Project Ports uses

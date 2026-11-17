@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Heading block</title>
+<desc>A filled heading bookmark</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 7 5 L 17 5 L 17 19 L 12 15 L 7 19 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 6.5 4 L 17.5 4 L 17.5 20 L 12 15.5 L 6.5 20 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 6 3.5 L 18 3.5 L 18 20.5 L 12 15.5 L 6 20.5 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

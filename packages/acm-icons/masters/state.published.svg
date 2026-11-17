@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Published</title>
+<desc>Indicate a published or completed item</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 20.612 12 C 20.612 16.716 16.716 20.612 12 20.612 C 7.284 20.612 3.388 16.716 3.388 12 C 3.388 7.284 7.284 3.388 12 3.388 C 16.716 3.388 20.612 7.284 20.612 12 Z" />
+<path d="M 7.733 12 L 10.582 14.839 L 16.267 9.161" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 21 12 C 21 16.971 16.971 21 12 21 C 7.029 21 3 16.971 3 12 C 3 7.029 7.029 3 12 3 C 16.971 3 21 7.029 21 12 Z" />
+<path d="M 7.5 12 L 10.5 15 L 16.5 9" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 21.222 12 C 21.222 17.116 17.116 21.222 12 21.222 C 6.884 21.222 2.778 17.116 2.778 12 C 2.778 6.884 6.884 2.778 12 2.778 C 17.116 2.778 21.222 6.884 21.222 12 Z" />
+<path d="M 7.367 12 L 10.453 15.092 L 16.633 8.908" />
+</g>
+</svg>

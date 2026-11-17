@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Author</title>
+<desc>A person above two body rules</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 12 3 C 15 3 15 8 12 8 C 9 8 9 3 12 3 Z M 8 13 C 8 9 16 9 16 13 M 5 18 L 19 18 M 5 21 L 19 21" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 12 2.75 C 15 2.75 15 7.75 12 7.75 C 9 7.75 9 2.75 12 2.75 Z M 8 12.75 C 8 8.75 16 8.75 16 12.75 M 4.5 18.25 L 19.5 18.25 M 4.5 21.25 L 19.5 21.25" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 12 2.5 C 15 2.5 15 7.5 12 7.5 C 9 7.5 9 2.5 12 2.5 Z M 8 12.5 C 8 8.5 16 8.5 16 12.5 M 4 18.5 L 20 18.5 M 4 21.5 L 20 21.5" />
+</g>
+</svg>

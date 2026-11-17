@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Group</title>
+<desc>Combine selected objects into one group</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 2.5 4 L 21.5 4 L 21.5 20 L 2.5 20 Z" />
+<path d="M 6.5 9.5 L 10.5 9.5 L 10.5 13.5 L 6.5 13.5 Z M 13.5 9.5 L 17.5 9.5 L 17.5 13.5 L 13.5 13.5 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 2 3.5 L 22 3.5 L 22 20.5 L 2 20.5 Z" />
+<path d="M 6 9 L 10.5 9 L 10.5 13.5 L 6 13.5 Z M 13.5 9 L 18 9 L 18 13.5 L 13.5 13.5 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 1.75 3.25 L 22.25 3.25 L 22.25 20.75 L 1.75 20.75 Z" />
+<path d="M 5.75 8.75 L 10.5 8.75 L 10.5 13.5 L 5.75 13.5 Z M 13.5 8.75 L 18.25 8.75 L 18.25 13.5 L 13.5 13.5 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

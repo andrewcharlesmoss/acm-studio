@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Clear</title>
+<desc>Clear entered search and filters</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.63 3.63 L 20.37 3.63 L 13.86 11.07 L 13.86 19.44 L 10.14 16.65 L 10.14 11.07 Z M 16.65 13.86 L 21.3 18.51 M 21.3 13.86 L 16.65 18.51" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 3 L 21 3 L 14 11 L 14 20 L 10 17 L 10 11 Z M 17 14 L 22 19 M 22 14 L 17 19" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.73 2.73 L 21.27 2.73 L 14.06 10.97 L 14.06 20.24 L 9.94 17.15 L 9.94 10.97 Z M 17.15 14.06 L 22.3 19.21 M 22.3 14.06 L 17.15 19.21" />
+</g>
+</svg>

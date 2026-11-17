@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Calendar</title>
+<desc>Calendar date and schedule</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5 5 L 19 5 Q 20 5 20 6 L 20 19 Q 20 20 19 20 L 5 20 Q 4 20 4 19 L 4 6 Q 4 5 5 5 Z" />
+<path d="M 8 3 L 8 7 M 16 3 L 16 7 M 4 9 L 20 9 M 8 12 L 8 13 M 12 12 L 12 13 M 16 12 L 16 13 M 8 16 L 8 17 M 12 16 L 12 17" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 5 4 L 19 4 Q 21 4 21 6 L 21 19 Q 21 21 19 21 L 5 21 Q 3 21 3 19 L 3 6 Q 3 4 5 4 Z" />
+<path d="M 8 2.5 L 8 7 M 16 2.5 L 16 7 M 3 9 L 21 9 M 7.5 12 L 7.5 13.5 M 12 12 L 12 13.5 M 16.5 12 L 16.5 13.5 M 7.5 16.5 L 7.5 18 M 12 16.5 L 12 18" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 5 3 L 19 3 Q 22 3 22 6 L 22 19 Q 22 22 19 22 L 5 22 Q 2 22 2 19 L 2 6 Q 2 3 5 3 Z" />
+<path d="M 8 2 L 8 7 M 16 2 L 16 7 M 2 9 L 22 9 M 7.5 12 L 7.5 14 M 12 12 L 12 14 M 16.5 12 L 16.5 14 M 7.5 16.5 L 7.5 18.5 M 12 16.5 L 12 18.5" />
+</g>
+</svg>

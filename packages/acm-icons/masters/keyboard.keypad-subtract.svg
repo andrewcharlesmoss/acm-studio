@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Keypad Subtract</title>
+ <desc>UK keyboard legend drawn as Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 15.0117 12.3042 L 15.0117 13.623 L 8.9945 13.623 L 8.9945 12.3042 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 14.9741 12.3592 L 14.9741 13.5924 L 9.0341 13.5924 L 9.0341 12.3592 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 14.9365 12.4143 L 14.9365 13.5618 L 9.0738 13.5618 L 9.0738 12.4143 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

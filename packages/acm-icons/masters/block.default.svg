@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Block Default</title>
+<desc>Represent a generic content block</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5.816 6.297 L 18.184 6.297 Q 19.636 6.297 19.636 7.733 L 19.636 19.151 Q 19.636 20.612 18.184 20.612 L 5.816 20.612 Q 4.364 20.612 4.364 19.151 L 4.364 7.733 Q 4.364 6.297 5.816 6.297 Z" />
+<path d="M 8.21 6.297 L 8.21 3.388 L 15.79 3.388 L 15.79 6.297" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 5.5 6 L 18.5 6 Q 20 6 20 7.5 L 20 19.5 Q 20 21 18.5 21 L 5.5 21 Q 4 21 4 19.5 L 4 7.5 Q 4 6 5.5 6 Z" />
+<path d="M 8 6 L 8 3 L 16 3 L 16 6" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 5.32 5.83 L 18.68 5.83 Q 20.208 5.83 20.208 7.367 L 20.208 19.7 Q 20.208 21.222 18.68 21.222 L 5.32 21.222 Q 3.792 21.222 3.792 19.7 L 3.792 7.367 Q 3.792 5.83 5.32 5.83 Z" />
+<path d="M 7.88 5.83 L 7.88 2.778 L 16.12 2.778 L 16.12 5.83" />
+</g>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Heading</title>
+<desc>Choose heading text formatting</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5 4 L 5 20 M 19 4 L 19 20 M 5 12 L 19 12" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4.5 3 L 4.5 21 M 19.5 3 L 19.5 21 M 4.5 12 L 19.5 12" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 4.25 2.75 L 4.25 21.25 M 19.75 2.75 L 19.75 21.25 M 4.25 11.75 L 19.75 11.75" />
+</g>
+</svg>

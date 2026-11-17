@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Row Height</title>
+<desc>Adjust table row height</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 4 5 L 13 5 M 4 12 L 13 12 M 4 19 L 13 19 M 18.5 5 L 18.5 19 M 16 7.5 L 18.5 5 L 21 7.5 M 16 16.5 L 18.5 19 L 21 16.5" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 4 L 14 4 M 3 12 L 14 12 M 3 20 L 14 20 M 19 4 L 19 20 M 16 7 L 19 4 L 22 7 M 16 17 L 19 20 L 22 17" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.75 3.75 L 14 3.75 M 2.75 12 L 14 12 M 2.75 20.25 L 14 20.25 M 19.25 3.75 L 19.25 20.25 M 16.25 6.75 L 19.25 3.75 L 22.25 6.75 M 16.25 17.25 L 19.25 20.25 L 22.25 17.25" />
+</g>
+</svg>

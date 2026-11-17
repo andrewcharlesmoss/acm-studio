@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Arrow Up Left</title>
+<desc>Point up left with a directional arrow</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 19.636 19.636 L 4.364 4.364 M 11.122 4.364 L 4.364 4.364 L 4.364 11.122" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 20 20 L 4 4 M 11.071 4 L 4 4 L 4 11.071" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 20.208 20.208 L 3.792 3.792 M 11.042 3.792 L 3.792 3.792 L 3.792 11.042" />
+</g>
+</svg>

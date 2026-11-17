@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Rows</title>
+<desc>Highlight the selected row</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.63 4.56 L 20.37 4.56 L 20.37 19.44 L 3.63 19.44 Z M 3.63 9.21 L 20.37 9.21 M 3.63 14.79 L 20.37 14.79" />
+<path d="M 3.63 9.21 L 20.37 9.21 L 20.37 14.79 L 3.63 14.79 Z" fill="currentColor" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 4 L 21 4 L 21 20 L 3 20 Z M 3 9 L 21 9 M 3 15 L 21 15 M 9 4 L 9 20 M 15 4 L 15 20" />
+<path d="M 3 9 L 21 9 L 21 15 L 3 15 Z" fill="currentColor" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.73 3.76 L 21.27 3.76 L 21.27 20.24 L 2.73 20.24 Z M 2.73 8.91 L 21.27 8.91 M 2.73 15.09 L 21.27 15.09 M 8.91 3.76 L 8.91 20.24 M 15.09 3.76 L 15.09 20.24" />
+<path d="M 2.73 8.91 L 21.27 8.91 L 21.27 15.09 L 2.73 15.09 Z" fill="currentColor" />
+</g>
+</svg>

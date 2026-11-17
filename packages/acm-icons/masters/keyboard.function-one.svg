@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Function One</title>
+ <desc>UK keyboard legend drawn as Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 6.8371 16.4 L 6.8371 7.6 L 12.3928 7.6 L 12.3928 8.8441 L 8.3004 8.8441 L 8.3004 11.5788 L 11.9976 11.5788 L 11.9976 12.8102 L 8.3004 12.8102 L 8.3004 16.4 Z M 17.1635 7.6 L 17.1635 16.4 L 15.7131 16.4 L 15.7131 8.9137 L 15.6541 8.9137 L 13.5821 10.4157 L 13.5821 8.9876 L 15.5116 7.6 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 6.8994 16.4 L 6.8994 7.6 L 12.377 7.6 L 12.377 8.7602 L 8.2491 8.7602 L 8.2491 11.5873 L 11.9797 11.5873 L 11.9797 12.739 L 8.2491 12.739 L 8.2491 16.4 Z M 17.099 7.6 L 17.099 16.4 L 15.7639 16.4 L 15.7639 8.8223 L 15.7049 8.8223 L 13.6148 10.3493 L 13.6148 8.9956 L 15.539 7.6 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 6.9677 16.4 L 6.9677 7.6 L 12.3672 7.6 L 12.3672 8.6762 L 8.2036 8.6762 L 8.2036 11.5958 L 11.9677 11.5958 L 11.9677 12.6677 L 8.2036 12.6677 L 8.2036 16.4 Z M 17.0345 7.6 L 17.0345 16.4 L 15.8147 16.4 L 15.8147 8.7309 L 15.7557 8.7309 L 13.6476 10.2828 L 13.6476 9.0036 L 15.5664 7.6 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

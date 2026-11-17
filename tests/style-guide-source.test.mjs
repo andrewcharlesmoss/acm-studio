@@ -67,7 +67,7 @@ test("button normal and hover text colours are documented and editable in the St
   const guide = source.document;
   const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
-  const presetStyles = fs.readFileSync(path.join(projects, "acm-styles/src/styles.css"), "utf8");
+  const presetStyles = fs.readFileSync(path.join(root, "packages/acm-styles/src/styles.css"), "utf8");
 
   assert.match(guide, /\| Preset path \| Background \| Text colour \| Border \| Border width \| Hover background \| Hover text colour \|/);
   assert.match(guide, /Each button variant has separately editable text colours for its normal and\s+hover states\./);

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Table block</title>
+<desc>A table frame with a spanning header row</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5 4 L 19 4 Q 20 4 20 5 L 20 19 Q 20 20 19 20 L 5 20 Q 4 20 4 19 L 4 5 Q 4 4 5 4 Z" />
+<path d="M 4 9 L 20 9 M 4 14.5 L 20 14.5 M 12 9 L 12 20" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4.5 3.5 L 19.5 3.5 Q 20.5 3.5 20.5 4.5 L 20.5 19.5 Q 20.5 20.5 19.5 20.5 L 4.5 20.5 Q 3.5 20.5 3.5 19.5 L 3.5 4.5 Q 3.5 3.5 4.5 3.5 Z" />
+<path d="M 3.5 9 L 20.5 9 M 3.5 14.75 L 20.5 14.75 M 12 9 L 12 20.5" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 4 3 L 20 3 Q 21 3 21 4 L 21 20 Q 21 21 20 21 L 4 21 Q 3 21 3 20 L 3 4 Q 3 3 4 3 Z" />
+<path d="M 3 9 L 21 9 M 3 15 L 21 15 M 12 9 L 12 21" />
+</g>
+</svg>

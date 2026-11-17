@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Delete Backward</title>
+ <desc>UK keyboard legend drawn as Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 9.9562 16.6 L 5.3871 12.0062 L 9.9562 7.4 L 18.5388 7.4 L 18.5388 16.6 Z M 10.4716 15.3683 L 17.2961 15.3683 L 17.2961 8.635 L 10.4716 8.635 L 7.1251 12.0062 Z M 15.7785 13.7877 L 14.9369 14.6437 L 10.4643 10.2157 L 11.3014 9.3563 Z M 11.3014 14.6437 L 10.4643 13.7877 L 14.9369 9.3563 L 15.7785 10.2157 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 9.9562 16.6 L 5.3871 12.0062 L 9.9562 7.4 L 18.5388 7.4 L 18.5388 16.6 Z M 10.4377 15.4372 L 17.3728 15.4372 L 17.3728 8.565 L 10.4377 8.565 L 7.0212 12.0062 Z M 15.7868 13.8566 L 14.9953 14.6599 L 10.4493 10.1457 L 11.2358 9.3401 Z M 11.2358 14.6599 L 10.4493 13.8566 L 14.9953 9.3401 L 15.7868 10.1457 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 9.9562 16.6 L 5.3871 12.0062 L 9.9562 7.4 L 18.5388 7.4 L 18.5388 16.6 Z M 10.4038 15.5062 L 17.4495 15.5062 L 17.4495 8.495 L 10.4038 8.495 L 6.9173 12.0062 Z M 15.7952 13.9255 L 15.0536 14.676 L 10.4343 10.0756 L 11.1702 9.324 Z M 11.1702 14.676 L 10.4343 13.9255 L 15.0536 9.324 L 15.7952 10.0756 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

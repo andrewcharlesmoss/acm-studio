@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Previous</title>
+<desc>Move backward using a double chevron</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 12 5.333 L 5.333 12 L 12 18.667 M 18.667 5.333 L 12 12 L 18.667 18.667" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 12 5 L 5 12 L 12 19 M 19 5 L 12 12 L 19 19" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 12 4.81 L 4.81 12 L 12 19.19 M 19.19 4.81 L 12 12 L 19.19 19.19" />
+</g>
+</svg>

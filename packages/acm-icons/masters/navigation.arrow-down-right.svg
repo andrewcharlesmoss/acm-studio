@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Arrow Down Right</title>
+<desc>Point down right with a directional arrow</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 4.364 4.364 L 19.636 19.636 M 12.878 19.636 L 19.636 19.636 L 19.636 12.878" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4 4 L 20 20 M 12.929 20 L 20 20 L 20 12.929" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 3.792 3.792 L 20.208 20.208 M 12.958 20.208 L 20.208 20.208 L 20.208 12.958" />
+</g>
+</svg>

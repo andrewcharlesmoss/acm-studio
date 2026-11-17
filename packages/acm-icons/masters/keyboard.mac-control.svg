@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Mac Control</title>
+ <desc>UK keyboard legend drawn as Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 8.5216 11.9241 L 7.4966 10.8991 L 11.9991 6.3966 L 16.5055 10.8991 L 15.4806 11.9241 L 11.9991 8.4574 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 8.49 11.8337 L 7.5262 10.8699 L 11.9994 6.3966 L 16.4753 10.8699 L 15.5114 11.8337 L 11.9994 8.3365 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 8.4584 11.7433 L 7.5557 10.8406 L 11.9997 6.3966 L 16.445 10.8406 L 15.5423 11.7433 L 11.9997 8.2155 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

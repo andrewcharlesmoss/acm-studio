@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>All Corners</title>
+<desc>Identify all four corners of a box</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5 8.5 L 5 5 L 8.5 5 M 15.5 5 L 19 5 L 19 8.5 M 19 15.5 L 19 19 L 15.5 19 M 8.5 19 L 5 19 L 5 15.5" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4.5 8.5 L 4.5 4.5 L 8.5 4.5 M 15.5 4.5 L 19.5 4.5 L 19.5 8.5 M 19.5 15.5 L 19.5 19.5 L 15.5 19.5 M 8.5 19.5 L 4.5 19.5 L 4.5 15.5" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 4 8.5 L 4 4 L 8.5 4 M 15.5 4 L 20 4 L 20 8.5 M 20 15.5 L 20 20 L 15.5 20 M 8.5 20 L 4 20 L 4 15.5" />
+</g>
+</svg>

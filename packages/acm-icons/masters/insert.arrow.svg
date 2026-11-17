@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Arrow</title>
+<desc>Draw a directional arrow</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.63 19.44 L 19.44 3.63 M 10.14 3.63 L 19.44 3.63 L 19.44 12.93" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 20 L 20 3 M 10 3 L 20 3 L 20 13" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.73 20.24 L 20.24 2.73 M 9.94 2.73 L 20.24 2.73 L 20.24 13.03" />
+</g>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Mac Arrow Left</title>
+<desc>Original ACM Mac keyboard symbol</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 7.2 12 L 15.84 7.2 L 15.84 16.8 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 7 12 L 16 7 L 16 17 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 6.8 12 L 16.16 6.8 L 16.16 17.2 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

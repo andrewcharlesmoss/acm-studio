@@ -1460,7 +1460,7 @@ test("layer dragging shows a visible insertion line and clears it", () => {
 });
 
 test("design tool selection uses a neutral active colour", () => {
-  const css = readFileSync(new URL("../../acm-ribbon/src/styles.css", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../packages/acm-ribbon/src/styles.css", import.meta.url), "utf8");
   assert.match(css, /\.acm-ribbon-button:hover:not\(:disabled\), \.acm-ribbon-button:focus-visible, \.acm-ribbon-button\.is-active \{ background: var\(--acm-ribbon-hover\); border-color: var\(--acm-ribbon-border\); outline: none; \}/);
   assert.doesNotMatch(css, /#f9e1e1|#d89b9b|#9c2525/);
 });
@@ -1508,10 +1508,10 @@ test("narrow workspaces preserve the three-column design", () => {
 
 test("design ribbon keeps tab targets mounted and supports keyboard navigation", () => {
   const [ribbon, editor] = [
-    readFileSync(new URL("../../acm-ribbon/src/index.tsx", import.meta.url), "utf8"),
+    readFileSync(new URL("../packages/acm-ribbon/src/index.tsx", import.meta.url), "utf8"),
     readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8"),
   ];
-  const ribbonCss = readFileSync(new URL("../../acm-ribbon/src/styles.css", import.meta.url), "utf8");
+  const ribbonCss = readFileSync(new URL("../packages/acm-ribbon/src/styles.css", import.meta.url), "utf8");
   const designCss = readFileSync(new URL("../app/studio/design.css", import.meta.url), "utf8");
   assert.match(ribbon, /onKeyDown=\{\(event\) => handleTabKeyDown\(event, index\)\}/);
   assert.match(ribbon, /event\.key !== "ArrowRight" && event\.key !== "ArrowLeft" && event\.key !== "Home" && event\.key !== "End"/);

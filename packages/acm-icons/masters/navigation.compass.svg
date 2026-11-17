@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Navigation</title>
+<desc>Identify website navigation and menus</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 19.82 12 C 19.82 16.318 16.318 19.82 12 19.82 C 7.682 19.82 4.18 16.318 4.18 12 C 4.18 7.682 7.682 4.18 12 4.18 C 16.318 4.18 19.82 7.682 19.82 12 Z" />
+<path d="M 15.496 8.044 L 13.656 13.656 L 8.044 15.956 L 10.252 10.252 Z" />
+<path d="M 15.496 8.044 L 13.656 13.656 L 10.252 10.252 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 20.5 12 C 20.5 16.694 16.694 20.5 12 20.5 C 7.306 20.5 3.5 16.694 3.5 12 C 3.5 7.306 7.306 3.5 12 3.5 C 16.694 3.5 20.5 7.306 20.5 12 Z" />
+<path d="M 15.8 7.7 L 13.8 13.8 L 7.7 16.3 L 10.1 10.1 Z" />
+<path d="M 15.8 7.7 L 13.8 13.8 L 10.1 10.1 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 20.797 12 C 20.797 16.858 16.858 20.797 12 20.797 C 7.142 20.797 3.203 16.858 3.203 12 C 3.203 7.142 7.142 3.203 12 3.203 C 16.858 3.203 20.797 7.142 20.797 12 Z" />
+<path d="M 15.933 7.55 L 13.863 13.863 L 7.55 16.451 L 10.034 10.034 Z" />
+<path d="M 15.933 7.55 L 13.863 13.863 L 10.034 10.034 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

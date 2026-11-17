@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Redaction</title>
+<desc>Cover a sensitive area in rendered output</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.63 5.49 L 13.86 5.49 M 3.63 18.51 L 17.58 18.51" />
+<path d="M 3.63 9.21 L 20.37 9.21 L 20.37 14.79 L 3.63 14.79 Z" fill="currentColor" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 5 L 14 5 M 3 19 L 18 19" />
+<path d="M 3 9 L 21 9 L 21 15 L 3 15 Z" fill="currentColor" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.73 4.79 L 14.06 4.79 M 2.73 19.21 L 18.18 19.21" />
+<path d="M 2.73 8.91 L 21.27 8.91 L 21.27 15.09 L 2.73 15.09 Z" fill="currentColor" />
+</g>
+</svg>

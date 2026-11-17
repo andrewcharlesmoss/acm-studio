@@ -238,7 +238,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(read("app/globals.css"), /--gutenberg-accent: #3858e9/);
   assert.match(studioStyles, /\.acm-button\.studio-text-action \{[^}]*--acm-action-color: color-mix\(in srgb, var\(--acm-ui-color-action-accent\) 80%, black\)/);
   assert.doesNotMatch(studioStyles, /\.studio-clear-action/);
-  const actionStyles = read("../acm-styles/src/styles.css");
+  const actionStyles = read("packages/acm-styles/src/styles.css");
   assert.match(actionStyles, /\.acm-button\.acm-button-text:focus-visible/);
   assert.match(actionStyles, /\.acm-button\.acm-button-text:disabled/);
   assert.match(studioStyles, /\.paragraph-gradient-angle-dial span::after \{[^}]*background: var\(--gutenberg-accent\)/);
@@ -372,7 +372,7 @@ test("keyboard inspector exposes each selected key's artwork provenance and avai
   assert.match(keyboard, /const artwork = iconMetadata\[asset\.key\.icon\]/);
   assert.match(keyboard, /<summary>Artwork provenance and licensing<\/summary>/);
   assert.match(keyboard, /\{artwork\.provenance\}/);
-  assert.match(keyboard, /acm-icons\/masters\/\{asset\.key\.icon\}\.svg/);
+  assert.match(keyboard, /acm-studio\/packages\/acm-icons\/masters\/\{asset\.key\.icon\}\.svg/);
   assert.match(keyboard, /artwork\.licenceNotice &&/);
   assert.match(keyboard, /<summary>Full licence notice<\/summary>/);
   assert.match(keyboard, /<pre>\{artwork\.licenceNotice\}<\/pre>/);

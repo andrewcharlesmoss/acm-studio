@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Space Between Vertically</title>
+<desc>Distribute layout content between vertical edge guides</desc>
+<g id="Regular-S" stroke-width="2">
+<path fill="currentColor" stroke="none" d="M 4 3.1 L 4 4.9 L 20 4.9 L 20 3.1 Z M 4 19.1 L 4 20.9 L 20 20.9 L 20 19.1 Z M 9 10 L 9 14 L 15 14 L 15 10 Z" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path fill="currentColor" stroke="none" d="M 3.75 3 L 3.75 4.5 L 20.25 4.5 L 20.25 3 Z M 3.75 19.5 L 3.75 21 L 20.25 21 L 20.25 19.5 Z M 9 10 L 9 14 L 15 14 L 15 10 Z" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path fill="currentColor" stroke="none" d="M 3.5 2.8 L 3.5 4.2 L 20.5 4.2 L 20.5 2.8 Z M 3.5 19.8 L 3.5 21.2 L 20.5 21.2 L 20.5 19.8 Z M 8.75 9.75 L 8.75 14.25 L 15.25 14.25 L 15.25 9.75 Z" />
+</g>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Rotate</title>
+<desc>Turn the selected object around its centre</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 4.5 8 C 6.5 3 15.5 3 19 8 M 19 4 L 19 8 L 15 8" />
+<path d="M 6 10.5 L 14.5 9 L 16.5 18.5 L 8 20 Z" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4 7.75 C 6 2.25 15.5 2.25 20 7.75 M 20 3.25 L 20 7.75 L 15.5 7.75" />
+<path d="M 5.5 10.75 L 14 9.25 L 16 18.5 L 7.5 20 Z" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 3.75 7.5 C 5.75 2 15.75 1.75 20.25 7.5 M 20.25 3 L 20.25 7.5 L 15.75 7.5" />
+<path d="M 5.25 10.75 L 14 9 L 16.25 18.5 L 7.5 20.25 Z" />
+</g>
+</svg>

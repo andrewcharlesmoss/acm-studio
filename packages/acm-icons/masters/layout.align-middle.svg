@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Align Middle</title>
+<desc>Centre layout content vertically</desc>
+<g id="Regular-S" stroke-width="2">
+<path fill="currentColor" stroke="none" d="M 4 11.1 L 4 12.9 L 20 12.9 L 20 11.1 Z M 9 5.5 L 9 18.5 L 15 18.5 L 15 5.5 Z" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path fill="currentColor" stroke="none" d="M 3.75 11.25 L 3.75 12.75 L 20.25 12.75 L 20.25 11.25 Z M 9 5.25 L 9 18.75 L 15 18.75 L 15 5.25 Z" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path fill="currentColor" stroke="none" d="M 3.5 11.3 L 3.5 12.7 L 20.5 12.7 L 20.5 11.3 Z M 8.75 5 L 8.75 19 L 15.25 19 L 15.25 5 Z" />
+</g>
+</svg>

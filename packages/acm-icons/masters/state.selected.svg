@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Selected</title>
+<desc>Indicate the selected choice</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 4.56 12 L 9.21 16.65 L 19.44 6.42" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4 12 L 9 17 L 20 6" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 3.76 12 L 8.91 17.15 L 20.24 5.82" />
+</g>
+</svg>

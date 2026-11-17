@@ -46,6 +46,8 @@
 
 ### Changed
 
+- Keep shared ACM package sources in Studio for reproducible builds.
+
 - Use the website outline action text colour for the example content link on the Style Guide page.
 
 - Offer Outline and Filled previews for supported Block Library symbols.

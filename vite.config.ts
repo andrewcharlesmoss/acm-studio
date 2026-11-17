@@ -12,7 +12,7 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
 const { d1, r2 } = hostingConfig;
-const sharedStylesRoot = fileURLToPath(new URL("../acm-styles/src/", import.meta.url));
+const sharedStylesRoot = fileURLToPath(new URL("./packages/acm-styles/src/", import.meta.url));
 const governanceRoot = fileURLToPath(new URL("../workspace-governance/", import.meta.url));
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.

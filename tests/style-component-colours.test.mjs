@@ -15,7 +15,7 @@ const styleConsumers = [
   "app/studio/ui/styles/canonical-source-lines.css",
   "app/studio/ui/styles/interface-style-sandbox.css",
   "app/studio/ui/styles/website-layout-preview.css",
-  "../acm-styles/src/styles.css",
+  "packages/acm-styles/src/styles.css",
 ];
 function sourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {

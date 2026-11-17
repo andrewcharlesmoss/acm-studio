@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Letter L</title>
+ <desc>UK keyboard legend drawn as Inter outlines</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 8.887 17.5 L 8.887 6.5 L 10.7161 6.5 L 10.7161 15.9448 L 15.6347 15.9448 L 15.6347 17.5 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 8.9427 17.5 L 8.9427 6.5 L 10.6298 6.5 L 10.6298 16.0498 L 15.6068 16.0498 L 15.6068 17.5 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 8.9986 17.5 L 8.9986 6.5 L 10.5434 6.5 L 10.5434 16.1548 L 15.5789 16.1548 L 15.5789 17.5 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

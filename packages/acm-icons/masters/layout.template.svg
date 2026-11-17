@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Template Layout</title>
+<desc>Identify a page template or structural layout</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5.1 4.64 L 18.9 4.64 Q 19.36 4.64 19.36 5.1 L 19.36 18.9 Q 19.36 19.36 18.9 19.36 L 5.1 19.36 Q 4.64 19.36 4.64 18.9 L 4.64 5.1 Q 4.64 4.64 5.1 4.64 Z" />
+<path d="M 4.64 9.24 L 19.36 9.24 M 10.16 9.24 L 10.16 19.36" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 4.5 4 L 19.5 4 Q 20 4 20 4.5 L 20 19.5 Q 20 20 19.5 20 L 4.5 20 Q 4 20 4 19.5 L 4 4.5 Q 4 4 4.5 4 Z" />
+<path d="M 4 9 L 20 9 M 10 9 L 10 20" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 4.238 3.72 L 19.762 3.72 Q 20.28 3.72 20.28 4.238 L 20.28 19.762 Q 20.28 20.28 19.762 20.28 L 4.238 20.28 Q 3.72 20.28 3.72 19.762 L 3.72 4.238 Q 3.72 3.72 4.238 3.72 Z" />
+<path d="M 3.72 8.895 L 20.28 8.895 M 9.93 8.895 L 9.93 20.28" />
+</g>
+</svg>

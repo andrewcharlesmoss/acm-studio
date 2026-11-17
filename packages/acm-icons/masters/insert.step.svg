@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Numbered Step</title>
+<desc>Mark a numbered step</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.63 12 C 3.63 7.38 7.38 3.63 12 3.63 C 16.62 3.63 20.37 7.38 20.37 12 C 20.37 16.62 16.62 20.37 12 20.37 C 7.38 20.37 3.63 16.62 3.63 12 Z" />
+<path d="M 9.21 9.21 L 12 7.35 L 12 16.65 M 9.21 16.65 L 14.79 16.65" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 12 C 3 7.032 7.032 3 12 3 C 16.968 3 21 7.032 21 12 C 21 16.968 16.968 21 12 21 C 7.032 21 3 16.968 3 12 Z" />
+<path d="M 9 9 L 12 7 L 12 17 M 9 17 L 15 17" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.73 12 C 2.73 6.883 6.883 2.73 12 2.73 C 17.117 2.73 21.27 6.883 21.27 12 C 21.27 17.117 17.117 21.27 12 21.27 C 6.883 21.27 2.73 17.117 2.73 12 Z" />
+<path d="M 8.91 8.91 L 12 6.85 L 12 17.15 M 8.91 17.15 L 15.09 17.15" />
+</g>
+</svg>

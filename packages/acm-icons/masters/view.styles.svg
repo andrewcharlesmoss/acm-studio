@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Styles</title>
+<desc>Open appearance and style controls</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 12 4 C 16.418300000000002 4 20 7.5817 20 12 C 20 16.418300000000002 16.418300000000002 20 12 20 C 7.5817 20 4 16.418300000000002 4 12 C 4 7.5817 7.5817 4 12 4 Z" />
+<path d="M 12 4 L 12 20 C 7.5817 20 4 16.418300000000002 4 12 C 4 7.5817 7.5817 4 12 4 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 12 3 C 16.9706 3 21 7.0294 21 12 C 21 16.9706 16.9706 21 12 21 C 7.0294 21 3 16.9706 3 12 C 3 7.0294 7.0294 3 12 3 Z" />
+<path d="M 12 3 L 12 21 C 7.0294 21 3 16.9706 3 12 C 3 7.0294 7.0294 3 12 3 Z" fill="currentColor" stroke="none" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 12 2.75 C 17.1086 2.75 21.25 6.8914 21.25 12 C 21.25 17.1086 17.1086 21.25 12 21.25 C 6.8914 21.25 2.75 17.1086 2.75 12 C 2.75 6.8914 6.8914 2.75 12 2.75 Z" />
+<path d="M 12 2.75 L 12 21.25 C 6.8914 21.25 2.75 17.1086 2.75 12 C 2.75 6.8914 6.8914 2.75 12 2.75 Z" fill="currentColor" stroke="none" />
+</g>
+</svg>

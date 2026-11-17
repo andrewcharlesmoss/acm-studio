@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Indent</title>
+<desc>Nest the selected list item under the preceding item</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 10 5 L 21 5 M 10 12 L 16 12 M 10 19 L 21 19" />
+<path d="M 3 9 L 7 12 L 3 15 M 2 12 L 7 12" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 9.5 5 L 21 5 M 9.5 12 L 16 12 M 9.5 19 L 21 19" />
+<path d="M 3 9 L 7.5 12 L 3 15 M 2 12 L 7.5 12" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 9 5 L 21 5 M 9 12 L 16 12 M 9 19 L 21 19" />
+<path d="M 3 9 L 7.5 12 L 3 15 M 2 12 L 7.5 12" />
+</g>
+</svg>

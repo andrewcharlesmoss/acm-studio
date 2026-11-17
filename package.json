@@ -18,10 +18,10 @@
     "test:browser": "playwright test"
   },
   "dependencies": {
-    "@acm/icons": "file:../acm-icons",
-    "@acm/panel": "file:../acm-panel",
-    "@acm/ribbon": "file:../acm-ribbon",
-    "@acm/styles": "file:../acm-styles",
+    "@acm/icons": "file:./packages/acm-icons",
+    "@acm/panel": "file:./packages/acm-panel",
+    "@acm/ribbon": "file:./packages/acm-ribbon",
+    "@acm/styles": "file:./packages/acm-styles",
     "highlight.js": "^11.11.1",
     "katex": "^0.18.9",
     "onnxruntime-web": "1.30.0",

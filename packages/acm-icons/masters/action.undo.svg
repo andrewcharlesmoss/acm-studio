@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Undo</title>
+<desc>Reverse the last change</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 8.28 5.49 L 3.63 10.14 L 8.28 14.79 M 3.63 10.14 L 12.93 10.14 C 17.58 10.14 20.37 12.93 20.37 16.65 L 20.37 18.51" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 8 5 L 3 10 L 8 15 M 3 10 L 13 10 C 18 10 21 13 21 17 L 21 19" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 7.88 4.79 L 2.73 9.94 L 7.88 15.09 M 2.73 9.94 L 13.03 9.94 C 18.18 9.94 21.27 13.03 21.27 17.15 L 21.27 19.21" />
+</g>
+</svg>

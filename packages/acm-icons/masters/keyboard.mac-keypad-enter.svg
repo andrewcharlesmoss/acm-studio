@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Mac Keypad Enter</title>
+<desc>Original ACM Mac keyboard symbol</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 7.2 9.12 L 16.8 9.12 M 7.2 15.84 L 12 12 L 16.8 15.84" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 7 9 L 17 9 M 7 16 L 12 12 L 17 16" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 6.8 8.88 L 17.2 8.88 M 6.8 16.16 L 12 12 L 17.2 16.16" />
+</g>
+</svg>

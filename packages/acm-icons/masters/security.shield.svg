@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Shield</title>
+<desc>Represent protection and security</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 12 3.388 L 19.636 6.297 L 18.667 13.891 C 18.184 17.127 14.839 19.636 12 20.612 C 9.161 19.636 5.816 17.127 5.333 13.891 L 4.364 6.297 Z" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 12 3 L 20 6 L 19 14 C 18.5 17.4 15 20 12 21 C 9 20 5.5 17.4 5 14 L 4 6 Z" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 12 2.778 L 20.208 5.83 L 19.19 14.062 C 18.68 17.556 15.092 20.208 12 21.222 C 8.908 20.208 5.32 17.556 4.81 14.062 L 3.792 5.83 Z" />
+</g>
+</svg>

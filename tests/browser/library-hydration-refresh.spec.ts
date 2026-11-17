@@ -22,8 +22,6 @@ test('Library direct entry hydrates during a development refresh', async ({ brow
     // Exercise the candidate source, including changes not committed yet.
     await writeFile(path.join(checkout, hostPath), await readFile(path.join(sourceRoot, hostPath)));
     await symlink(path.join(sourceRoot, 'node_modules'), path.join(checkout, 'node_modules'), 'dir');
-    await mkdir(path.join(tempRoot, 'acm-styles'));
-    await cp(path.join(sourceRoot, '../acm-styles/src'), path.join(tempRoot, 'acm-styles/src'), { recursive: true });
     await mkdir(path.join(tempRoot, 'workspace-governance'));
     await cp(path.join(sourceRoot, '../workspace-governance/STYLE_GUIDE.md'), path.join(tempRoot, 'workspace-governance/STYLE_GUIDE.md'));
     const port = await new Promise<number>((resolve, reject) => {

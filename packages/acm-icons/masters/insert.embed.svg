@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Embed</title>
+<desc>A folded content frame with code chevrons</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 8.5 4.5 L 19.5 4.5 L 19.5 19.5 L 4.5 19.5 L 4.5 8.5 Z M 4.5 8.5 L 8.5 8.5 L 8.5 4.5 M 10 10 L 8 12 L 10 14 M 14 10 L 16 12 L 14 14" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 8.5 4 L 20 4 L 20 20 L 4 20 L 4 8.5 Z M 4 8.5 L 8.5 8.5 L 8.5 4 M 10 10 L 8 12 L 10 14 M 14 10 L 16 12 L 14 14" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 8.5 3.5 L 20.5 3.5 L 20.5 20.5 L 3.5 20.5 L 3.5 8.5 Z M 3.5 8.5 L 8.5 8.5 L 8.5 3.5 M 10 10 L 8 12 L 10 14 M 14 10 L 16 12 L 14 14" />
+</g>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Verse</title>
+<desc>Represent poetry or verse content</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 5.333 19.636 C 8.21 11.055 10.109 5.333 19.636 3.388 C 19.636 10.109 16.744 15.79 9.161 15.79 M 8.21 15.79 L 15.79 8.21 M 5.333 21.594 L 11.055 21.594" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 5 20 C 8 11 10 5 20 3 C 20 10 17 16 9 16 M 8 16 L 16 8 M 5 22 L 11 22" />
+<path d="M 12 12 L 17 12" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 4.81 20.208 C 7.88 10.969 9.938 4.81 20.208 2.778 C 20.208 9.938 17.146 16.12 8.908 16.12 M 7.88 16.12 L 16.12 7.88 M 4.81 22.232 L 10.969 22.232" />
+<path d="M 12 12 L 17.146 12" />
+</g>
+</svg>
