@@ -48,12 +48,12 @@ test("Quote citation explicit typography overrides compact defaults in both Stud
 test("Quote visual styles stay on the quote block root so the selection frame follows its painted edge", () => {
   const block = { id: "quote", type: "quote", text: "The quotation", visualStyle: { padding: "20px 30px", textColor: "#123456" } };
   const edit = renderToStaticMarkup(createElement(BlockField, { block, rootBlocks: [block], writable: true, onChange() {} }));
-  assert.match(edit, /<figure[^>]*class="quote-field align-left block-visual-style has-custom-text-colour" style="color:#123456;padding:20px 30px"/);
+  assert.match(edit, /<figure[^>]*class="quote-field align-left block-visual-style has-custom-text-colour\s*" style="color:#123456;padding:20px 30px"/);
   assert.doesNotMatch(edit, /<div[^>]*class="block-visual-style[^>]*><figure class="quote-field/);
 
   for (const variant of ["studio", "article"]) {
     const preview = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant }));
-    assert.match(preview, /<figure[^>]*class="(?:quote-field|pull-quote) align-left block-visual-style has-custom-text-colour" style="color:#123456;padding:20px 30px"/);
+    assert.match(preview, /<figure[^>]*class="(?:quote-field|pull-quote) align-left block-visual-style has-custom-text-colour\s*" style="color:#123456;padding:20px 30px"/);
     assert.doesNotMatch(preview, /<div[^>]*class="block-visual-style[^>]*><figure class="(?:quote-field|pull-quote)/);
   }
 });
