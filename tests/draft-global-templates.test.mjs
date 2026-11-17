@@ -125,6 +125,6 @@ test('backup rejects absent global image attachments when saved defaults referen
   const library = globals.validateGlobalTemplateLibrary(original);
   library.websiteDesignDefaults = { identity: { logo: { id: 'image', name: 'Logo', altText: '', src: '/media/acm-11111111-1111-4111-8111-111111111111-' + 'a'.repeat(64) + '.png' } }, styles: {} };
   const document = { ...editor.createDocument('post', 'draft'), categoryIds: [] };
-  const value = { format: 'acm-studio-backup', version: 41, exportedAt: new Date().toISOString(), workspace: { version: 25, documents: [document], categories: [], bin: [], activeDocumentId: document.id }, templates: source, globalTemplates: library, publications: null, media: { folders: [], assets: [] } };
+  const value = { format: 'acm-studio-backup', version: 42, exportedAt: new Date().toISOString(), workspace: { version: 25, documents: [document], categories: [], bin: [], activeDocumentId: document.id }, templates: source, globalTemplates: library, publications: null, media: { folders: [], assets: [] } };
   assert.throws(() => backup.validateStudioBackup(value), /image backup is incomplete/);
 });
