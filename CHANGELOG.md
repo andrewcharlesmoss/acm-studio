@@ -10,6 +10,8 @@
 
 ### Changed
 
+- Use the website outline action text colour for the example content link on the Style Guide page.
+
 - Offer Outline and Filled previews for supported Block Library symbols.
 
 - Add eye-controlled visibility and order editing with Done to the native SwiftUI preview; keep example visibility and ordering in temporary Undo/Redo history.

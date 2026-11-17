@@ -115,7 +115,7 @@
 .sg-preview.acm-universal-style-preset .sg-type-subsection > h2 { font-size: var(--acm-type-h2-size); font-weight: var(--acm-type-h2-weight); line-height: var(--acm-type-h2-line-height); }
 .sg-preview.acm-universal-style-preset .sg-type-subsection > h3 { font-size: var(--acm-type-h3-size); font-weight: var(--acm-type-h3-weight); line-height: var(--acm-type-h3-line-height); }
 .sg-type-subsection > p { margin-block: .75em; }
-.sg-type-samples a { color: var(--acm-color-accent); text-decoration: underline; text-underline-offset: .16em; }
+.sg-type-samples a { color: var(--acm-button-outline-foreground); text-decoration: underline; text-underline-offset: .16em; }
 .sg-list-specimens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .sg-list-specimens ul, .sg-list-specimens ol { margin-block: .5em .85em; padding-inline-start: 1.5em; }
 .sg-list-specimens ul { list-style-type: disc; }
