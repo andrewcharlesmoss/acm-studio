@@ -160,7 +160,7 @@ test("shared toggles retain native keyboard/disabled semantics and style choices
 function box(value, layout, state = null) {
   const writes = [], stateChanges = [];
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", {
-    react: { ...require("react"), useState: initial => [state ?? (typeof initial === "function" ? initial() : initial), next => stateChanges.push(next)] },
+    react: { ...require("react"), useContext: context => context._currentValue, useState: initial => [state ?? (typeof initial === "function" ? initial() : initial), next => stateChanges.push(next)] },
     "@acm/icons/react": { AcmIcon() {} }, "./studio-icons": { StudioIcon() {} },
   });
   const tree = BoxLengthSetting({ label: "Margin", value, layout, min: -100, max: 200, onChange: value => writes.push(value) });

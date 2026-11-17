@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
-import { createHostModuleEvaluator, createIsolatedModuleLoader, evaluateProductionModule, loadProductionModule } from "./production-module.mjs";
+import { createHostModuleEvaluator, createIsolatedModuleLoader, evaluateProductionModule, loadProductionModule, loadViteModule } from "./production-module.mjs";
 
 async function fixture(t, files) {
   const root = await mkdtemp(path.join(os.tmpdir(), "studio module loader "));
@@ -16,6 +16,13 @@ async function fixture(t, files) {
   }
   return root;
 }
+
+test("Vite server fixtures ignore side-effect styles but retain raw CSS", async t => {
+  const css = "span { color: red; }";
+  const root = await fixture(t, { "entry.js": 'import "./styles.css"; import text from "./styles.css?raw"; export { text };', "styles.css": css });
+  const { module } = await loadViteModule(path.join(root, "entry.js"), { root, configFile: false });
+  assert.equal(module.text, css);
+});
 
 test("ESM and isolated loaders share raw text, TSX fallback, native modules and style handling", async t => {
   const text = 'A "quoted" guide\nwith `ticks`, ${literal} and an em dash — intact.';

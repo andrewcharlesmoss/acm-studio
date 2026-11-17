@@ -181,6 +181,7 @@ const { scheduleBlockCommandFocus } = await load('../app/studio/block-command-fo
 const { editBlockSiblings } = await load('../app/studio/block-sibling-operations.ts');
 const { findBlockById } = await import('../app/studio/studio-command-operations.mjs');
 const alignment = await load("../app/content/block-alignment.ts");
+const { groupBlockCanAlign } = await load('../app/studio/blocks/group-layout-contract.ts');
 const { BlockToolbar } = await load("../app/studio/blocks/block-toolbar.tsx");
 const { resolveBlockToolbar } = await load("../app/studio/blocks/toolbar-registry.ts");
 const source = readFileSync(new URL('../app/studio/studio-canvas.tsx', import.meta.url), 'utf8');
@@ -192,7 +193,7 @@ const compiledControls = ts.transpileModule(`${renderControls.getText(tree)};glo
 function controlsFixture(selection, writable = true, presentation) {
   const root = list(['One', 'Two']);
   const scope = { exports: {}, require: () => jsxRuntime, activeDocument: { id: 'document', blocks: [root] }, findBlockById,
-    ...alignment, BlockToolbar, CanvasInserterButton: 'inserter-fixture', resolveBlockToolbar, previewing: false, selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
+    ...alignment, groupBlockCanAlign, BlockToolbar, CanvasInserterButton: 'inserter-fixture', resolveBlockToolbar, previewing: false, selectedBlockId: 'root', activeListItems: { root: selection }, validListItemSelection: structure.validListItemSelection, listTextRange: null, parentOfNestedBlock: () => null,
     presentation, writable, blockDrag: { handleProps: () => ({}), start() {} }, transformMenuBlockId: null, BlockTransformControl: 'transform-fixture', StudioHoverIcon: 'icon-fixture',
     ListToolbarControls, ListItemSwitcher, ListItemActions, richTextMenuBlockId: null, textMarkState: () => false, formatSelectedText() {}, finishBlockDrag() {}, blockLabel: () => 'List', canMove: () => true, isBlockAlignedBlock: () => true, isEditableTextBlock: () => false,
     isEditableRichTextBlock: () => true, preserveTextSelection() {}, blockMenuItems: () => [], blockMenuBlockId: null, blockAlignmentMenuBlockId: null, blockAlignmentMenuRef: { current: null }, blockAlignmentTriggerRef: { current: null }, blockAlignmentMenuOpenedByPointer: { current: false }, blockAlignmentIcon: () => "align", blockAlignmentLabel: () => "Align",

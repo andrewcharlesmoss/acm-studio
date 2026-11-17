@@ -28,15 +28,16 @@ export function createHostModuleEvaluator(parameters, source) {
 
 /** Vite-specific source-package and deduplication settings remain with the integration fixture. */
 export async function loadViteModule(specifier, options) {
-  const quoteStyles = {
-    name: "test-quote-css-side-effect",
+  // Server-side fixtures do not apply styles; keep raw CSS and CSS modules intact.
+  const sideEffectStyles = {
+    name: "test-css-side-effect",
     enforce: "pre",
-    resolveId(source, importer) {
-      if (source === "./quote-content.css" && importer?.endsWith("/quote-content.tsx")) return "\0test-quote-css-side-effect";
+    resolveId(source) {
+      if (source.endsWith(".css") && !source.endsWith(".module.css")) return "\0test-css-side-effect";
     },
-    load(id) { if (id === "\0test-quote-css-side-effect") return "export default {};"; },
+    load(id) { if (id === "\0test-css-side-effect") return "export default {};"; },
   };
-  return (await import("vite")).runnerImport(specifier, { ...options, plugins: [...(options?.plugins ?? []), quoteStyles] });
+  return (await import("vite")).runnerImport(specifier, { ...options, plugins: [...(options?.plugins ?? []), sideEffectStyles] });
 }
 
 /** One cache per harness/tab; mocks, browser globals and source mutations stay with the caller. */

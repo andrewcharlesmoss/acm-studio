@@ -26,7 +26,7 @@ function component(name, bindings, file = "../app/studio/project-local-links.tsx
   const ast = ts.createSourceFile("links.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === name);
   assert.ok(declaration);
-  const scope = { exports: {}, require: () => jsxRuntime, useContext: () => null, useEffect: () => {}, SitesDisclosureContext: {}, ...bindings };
+  const scope = { exports: {}, require: () => jsxRuntime, useContext: () => null, useEffect: () => {}, useState: initial => [typeof initial === "function" ? initial() : initial, () => {}], useRef: initial => ({ current: initial }), useStudioNavigationVisibility: () => null, SitesDisclosureContext: {}, ...bindings };
   runInNewContext(ts.transpileModule(`${declaration.getText(ast)};globalThis.component = ${name};`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, scope);
   return scope.component;
 }
@@ -43,7 +43,7 @@ test("unconfigured staging keeps the disabled Edit and Visit icon buttons", () =
 
 test("Sites includes ACM Studio before Test1 and Test2 without changing fixture contexts", () => {
   const calls = [];
-  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
+  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, ready: true, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
   const tree = list({ selectedSite: "test2", libraryKind: "templates", onSelectSite: id => calls.push(id) });
   const cards = nodes(tree).filter(node => node.type === production.ProjectLocalSiteNavigation);
   assert.deepEqual(cards.map(node => node.props.id), ["acm-studio", "test", "test2"]);
@@ -135,7 +135,7 @@ test("Sites collapse cancels the production library drag contract without commit
       reordering.rowProps("acm-studio").onPointerMove(harness.pointer(130));
     }
     reordering = harness.render(); assert.ok(reordering.line);
-    const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering, status: "" }) });
+    const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, ready: true, reordering, status: "" }) });
     const tree = list({selectedSite:"test",libraryKind:"page"});
     const section = nodes(tree).find(node => node.type === accordions.InspectorAccordionSection);
     assert.ok(section);
@@ -155,7 +155,7 @@ test("Sites collapse cancels the production library drag contract without commit
 });
 
 for (const studioSection of ["content", "templates"]) for (const libraryKind of ["post", "page", "templates"]) test(`confirmed Local Edit links retain ${studioSection}/${libraryKind} in both fixture contexts`, () => {
-  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
+  const list = component("LocalFixtureSiteNavigation", { ...registry, ...fixtures, ...navigation, ...indicator, ...icons, ...accordions, ProjectLocalSiteNavigation: production.ProjectLocalSiteNavigation, useSiteOrdering: ids => ({ order: ids, ready: true, reordering: { rowProps: () => ({}), canReorder: true, message: "" }, status: "" }) });
   const link = component("ProjectLocalLink", { useProjectLocalVisit: () => ({ local: true, canVisit: false, opening: false }), ...fixtures, StudioIcon: () => null });
   const cards = nodes(list({ libraryKind, studioSection })).filter(node => node.type === production.ProjectLocalSiteNavigation && fixtures.isLocalFixtureSiteId(node.props.id));
   assert.equal(cards.length, 2);

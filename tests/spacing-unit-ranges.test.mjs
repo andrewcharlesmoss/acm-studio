@@ -18,7 +18,7 @@ function nodes(element) {
 }
 function fixture(value = "300px", { corners = false, negative = false, single = false, props = {} } = {}) {
   let states = [], cursor = 0; const changes = [];
-  const react = { ...require("react"), useId: () => "spacing-unit-test", useState(initial) { const index = cursor++; if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial; return [states[index], next => { states[index] = typeof next === "function" ? next(states[index]) : next; }]; } };
+  const react = { ...require("react"), useId: () => "spacing-unit-test", useContext: context => context._currentValue, useState(initial) { const index = cursor++; if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial; return [states[index], next => { states[index] = typeof next === "function" ? next(states[index]) : next; }]; } };
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", react);
   const tree = BoxLengthSetting({ label: corners ? "Radius" : "Padding", value, layout: single ? "single" : "all", corners, presets: corners ? undefined : [0, 8, 16, 24, 32, 48, 64, 96], min: negative ? -100 : 0, max: corners ? 100 : 160, onChange: next => changes.push(next), ...props });
   const row = nodes(tree).find(node => typeof node.type === "function" && node.type.name === "BoxLengthRow");
@@ -95,7 +95,7 @@ test("spacing units can be restricted without changing existing consumers or leg
   const defaultOptions = nodes(defaults.control(defaults.render(), "select")).filter(node => node.type === "option");
   assert.ok(defaultOptions.some(node => node.props.value === "ch" && !node.props.disabled));
   const six = ["px", "%", "em", "rem", "vw", "vh"];
-  const react = { ...require("react"), useId: () => "restricted-unit-test", useState: initial => [typeof initial === "function" ? initial() : initial, () => {}] };
+  const react = { ...require("react"), useId: () => "restricted-unit-test", useContext: context => context._currentValue, useState: initial => [typeof initial === "function" ? initial() : initial, () => {}] };
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", react);
   for (const value of ["2rem", "2ch"]) {
     const tree = BoxLengthSetting({ label: "Spacing", value, layout: "single", compact: true, unitOptions: six, min: 0, max: 160, onChange() {} });

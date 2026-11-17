@@ -46,7 +46,12 @@ function inspect(name, source) {
         }
       }
     }
-    if (ts.isImportDeclaration(node) && node.moduleSpecifier.text === "vite") report(node, "Use loadViteModule for Vite integration fixtures.");
+    if (ts.isImportDeclaration(node) && node.moduleSpecifier.text === "vite") {
+      const clause = node.importClause;
+      const configOnly = !clause?.name && clause?.namedBindings && ts.isNamedImports(clause.namedBindings)
+        && clause.namedBindings.elements.every(item => (item.propertyName?.text ?? item.name.text) === "resolveConfig");
+      if (!configOnly) report(node, "Use loadViteModule for Vite integration fixtures.");
+    }
     ts.forEachChild(node, visit);
   }
   visit(tree);
@@ -81,4 +86,6 @@ test("the loader guard rejects private compilers, host/VM evaluators, data modul
   ]) assert.ok(inspect("private-loader.test.mjs", source).failures.length > 0, source);
   assert.deepEqual(inspect("list-boundary.test.mjs", 'vm.runInNewContext(extractedCallback, context);').failures, []);
   assert.deepEqual(inspect("site-publication-runtime.test.mjs", 'vm.runInContext(generatedBrowserScript, context);').failures, []);
+  assert.deepEqual(inspect("dev-server-cors.test.mjs", 'import { resolveConfig } from "vite";').failures, []);
+  assert.ok(inspect("private-loader.test.mjs", 'import { resolveConfig, runnerImport } from "vite";').failures.length > 0);
 });

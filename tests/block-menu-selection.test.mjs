@@ -52,7 +52,7 @@ function canvasScope(blocks, selectedIds, appearance = null) {
     reconcileFootnoteBlocks, canRemoveFootnoteOwners, preservesReferencedFootnotes, groupAllowsChild, findBlockById, normaliseBlockSelection, orderedBlockEntries,
     structuredClone, crypto: { randomUUID: () => `created-${++sequence}` },
     cloneClipboardBlocks: items => cloneBlocksForInsertion(items, prefix => `${prefix}-${++sequence}`),
-    activeDocument: document, currentDocumentRef: { current: document }, writable: true, writableRef: { current: true },
+    activeDocument: document, currentDocumentRef: { current: document }, targetLabel: undefined, writable: true, writableRef: { current: true },
     validSelectionIds: selectedIds, copiedAppearance: appearance, allowHtmlEditing: true,
     setBlockMenuBlockId: () => {}, onSetPublishFeedback: () => {},
     onApplyDocumentCode: next => committed.push(next), focusInsertedBlock: id => focused.push(id),
