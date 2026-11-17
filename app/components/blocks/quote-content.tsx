@@ -9,10 +9,10 @@ export function QuoteContent({ block, studio, children, citation, visualFrame }:
   studio: boolean;
   children: ReactNode;
   citation?: ReactNode;
-  visualFrame?: { id: string | undefined; className: string; style: CSSProperties };
+  visualFrame?: { id: string | undefined; className: string; style: CSSProperties; rowChildSizing?: boolean };
 }) {
   const className = `${studio ? "quote-field" : "pull-quote"} align-${block.align ?? "left"}${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}${block.type === "pullquote" ? " is-pullquote" : ""}${block.quoteStyle === "plain" ? " is-style-plain" : ""}${visualFrame ? ` ${visualFrame.className}` : ""}`;
-  return <figure id={visualFrame?.id} className={className} style={visualFrame?.style}>
+  return <figure id={visualFrame?.id} className={className} style={visualFrame?.style} data-row-child-sizing={visualFrame?.rowChildSizing || undefined}>
     <blockquote>{children}</blockquote>
     {citation ? <figcaption className="quote-citation">{citation}</figcaption> : null}
   </figure>;

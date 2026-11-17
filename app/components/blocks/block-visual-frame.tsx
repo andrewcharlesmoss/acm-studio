@@ -28,6 +28,7 @@ export function BlockVisualFrame({ block, mediaUrls = {}, layoutParent, children
     ...gridItemSizingStyle(style.gridItemSizing),
   };
   const itemLayoutStyle = { ...legacyItemLayoutStyle, ...(layoutParent ? { ...groupChildFlexItemStyle(layoutParent, layoutItemStyle), ...groupGridItemStyle(layoutParent, layoutItemStyle) } : {}) };
+  const rowChildSizing = layoutParent?.layout === "row" && itemLayoutStyle.flexBasis !== undefined;
   const css = { ...(block.type === "table" ? tablePresentation(style).wrapper : block.type === "image" || block.type === "cover" ? imageWrapperStyle(block) : block.type === "button" ? buttonWrapperCss(style) : paragraphStyleToCss(style, backgroundImageUrl)), ...itemLayoutStyle } as CSSProperties & Record<string, string | number | undefined>;
   if (block.type === "cover") {
     // Cover's background colour and gradient belong to its image overlay, not
@@ -49,17 +50,18 @@ export function BlockVisualFrame({ block, mediaUrls = {}, layoutParent, children
     ? ` cover-image-visual-style-frame${style.borderRadius || style.borderStyle !== undefined ? " has-cover-image-frame-override" : ""}`
     : block.type === "cover" ? " cover-visual-style-frame" : "";
   if ((block.type === "quote" || block.type === "pullquote") && isValidElement(children)) {
-    return cloneElement(children as ReactElement<{ visualFrame?: { id: string | undefined; className: string; style: CSSProperties } }>, {
+    return cloneElement(children as ReactElement<{ visualFrame?: { id: string | undefined; className: string; style: CSSProperties; rowChildSizing?: boolean } }>, {
       visualFrame: {
         id: paragraphStyleAnchor(style),
         className: `${visualStyleClassName(style)}${coverFrameClass} ${gridClass}`,
         style: css as CSSProperties,
+        rowChildSizing,
       },
     });
   }
   if (block.type === "code") {
     const presentation = codeFramePresentation(css as Record<string, string>);
-    return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)} code-visual-style-frame ${gridClass}`} data-block-align={block.blockAlign} style={presentation.frame}><CodePresentationContext.Provider value={presentation.surface}>{children}</CodePresentationContext.Provider></div>;
+    return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)} code-visual-style-frame ${gridClass}`} data-row-child-sizing={rowChildSizing || undefined} data-block-align={block.blockAlign} style={presentation.frame}><CodePresentationContext.Provider value={presentation.surface}>{children}</CodePresentationContext.Provider></div>;
   }
-  return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)}${coverFrameClass} ${gridClass}`} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} style={css}>{children}</div>;
+  return <div id={paragraphStyleAnchor(style)} className={`${visualStyleClassName(style)}${coverFrameClass} ${gridClass}`} data-row-child-sizing={rowChildSizing || undefined} data-block-align={"blockAlign" in block ? block.blockAlign : undefined} style={css}>{children}</div>;
 }

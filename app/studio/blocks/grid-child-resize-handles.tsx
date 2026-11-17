@@ -124,7 +124,7 @@ export function GridEditableChild({ parent, child, selected, hovered = false, wr
   const gridItem = parent.type === "group" && parent.layout === "grid";
   const showHandles = selected && writable && gridItem;
 
-  return <div className={`studio-nested-block${showHandles ? " grid-editable-child" : ""} ${groupGridItemClassName(parent, { gridItemSizing: applied })}`} style={{ ...style, ...(gridItem ? { gridColumn: `span ${column}`, gridRow: `span ${row}` } : {}) }} data-studio-insertion-position={insertionPosition ? "true" : undefined} data-block-align={blockAlign} data-studio-nested-block-id={child.id} data-studio-selected={selected} data-studio-hovered={hovered} tabIndex={-1}>
+  return <div className={`studio-nested-block${showHandles ? " grid-editable-child" : ""} ${groupGridItemClassName(parent, { gridItemSizing: applied })}`} style={{ ...style, ...(gridItem ? { gridColumn: `span ${column}`, gridRow: `span ${row}` } : {}) }} data-row-child-sizing={parent.type === "group" && parent.layout === "row" && style?.flexBasis !== undefined ? "true" : undefined} data-studio-insertion-position={insertionPosition ? "true" : undefined} data-block-align={blockAlign} data-studio-nested-block-id={child.id} data-studio-selected={selected} data-studio-hovered={hovered} tabIndex={-1}>
     {children}
     {showHandles ? <>
       <span className="visually-hidden" id={instructionsId}>Drag to resize the span. Use arrow keys to change it, or press Enter or Space to increase it by one track.</span>

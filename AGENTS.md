@@ -1135,6 +1135,13 @@ v29, template v0.43.0, clipboard v15, backup v9, Test/Test2 source v21 and
 global template library v14; older envelopes remain readable when they do not
 contain this field and reject it otherwise.
 
+When a Row stacks at its configured breakpoint, suspend its direct children's
+Row width sizing so it does not become a height. Preserve separately authored
+flex CSS on children without Row sizing, and restore the Row sizing when the
+layout becomes horizontal again.
+Columns-to-Row conversion preserves Column widths and the original stacking
+breakpoint without changing the defaults for newly inserted Rows.
+
 Column widths support px, em, rem, vw and vh fixed tracks alongside legacy
 proportional flexible widths. The field requires workspace v38, publication v30,
 template v0.44.0, clipboard v16, backup v10, Test/Test2 source v22 and global

@@ -936,6 +936,8 @@
 
 ### Fixed
 
+- Preserve Column widths when converting to a Row, and keep stacked Row children at their natural height on narrow screens.
+
 - Restore Studio's internal anchor guidance without an external WordPress link.
 
 - Preserve concurrent global-template edits when a successful save includes changes from another tab, and keep conflicting drafts available for review.

@@ -318,7 +318,8 @@ function transformColumnsLayout(block: ColumnsBlock, transform: BlockTransform):
     ...(block.siteRole ? { siteRole: block.siteRole } : {}),
     ...(block.blockAlign ? { blockAlign: block.blockAlign } : {}),
     ...options,
-    ...(layout === "row" ? {} : { gridMode: "manual", columns: children.length }),
+    // Preserve the original Column widths and avoid wrapping before stacking.
+    ...(layout === "row" ? { allowSizingOnChildren: true, allowWrap: false } : { gridMode: "manual", columns: children.length }),
   };
 }
 
