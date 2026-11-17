@@ -271,11 +271,11 @@ test("shared visual settings render around text blocks in Studio and public view
   ];
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
-    assert.match(html, /id="heading-link" class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456;--studio-heading-own-color:#123456"/);
-    assert.match(html, /class="block-visual-style has-custom-background custom-list" style="background-color:#f2f2f7;padding:12px"/);
-    assert.match(html, /class="block-visual-style code-visual-style-frame"><pre[^>]*style="border-style:solid;border-width:2px;border-color:#123456"/);
-    assert.doesNotMatch(html, /class="block-visual-style code-visual-style-frame" style="[^"]*border-/);
-    assert.match(html, /class="block-visual-style has-custom-font-size has-custom-text-colour" style="font-size:20px;color:#123456"><section class="article-footnotes"/);
+    assert.match(html, /id="heading-link" class="block-visual-style has-custom-font-size has-custom-text-colour\s*" style="font-size:20px;color:#123456;--studio-heading-own-color:#123456"/);
+    assert.match(html, /class="block-visual-style has-custom-background custom-list\s*" style="background-color:#f2f2f7;padding:12px"/);
+    assert.match(html, /class="block-visual-style code-visual-style-frame\s*"><pre[^>]*style="border-style:solid;border-width:2px;border-color:#123456"/);
+    assert.doesNotMatch(html, /class="block-visual-style code-visual-style-frame\s*" style="[^"]*border-/);
+    assert.match(html, /class="block-visual-style has-custom-font-size has-custom-text-colour\s*" style="font-size:20px;color:#123456"><section class="article-footnotes"/);
     const orphan = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [blocks.at(-1)], variant }));
     assert.doesNotMatch(orphan, /article-footnotes|Source note/, "unreferenced recovery notes are omitted from Preview");
     assert.match(blockToHtml(blocks.at(-1)), /Source note/, "orphan notes remain recoverable in portable source");
@@ -344,8 +344,8 @@ test("Additional CSS reaches mapped visual targets for Image and Spacer", () => 
     { id: "spacer-css", type: "spacer", height: 32, visualStyle: { additionalCss: "opacity: 0.5;" } },
   ];
   const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant: "studio" }));
-  assert.match(html, /class="block-visual-style" style="outline:2px solid red"/);
-  assert.match(html, /class="block-visual-style" style="opacity:0.5"><div class="content-spacer" style="height:32px;width:100%"/);
+  assert.match(html, /class="block-visual-style\s*" style="outline:2px solid red"/);
+  assert.match(html, /class="block-visual-style\s*" style="opacity:0.5"><div class="content-spacer" style="height:32px;width:100%"/);
 });
 
 test("image display settings and decorative text reach both renderers", () => {
@@ -393,8 +393,8 @@ test("Spacer dimensions and Embed spacing render in both views and survive HTML 
   ];
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks, variant }));
-    assert.match(html, /id="section-gap" class="block-visual-style custom-gap" style="margin:12px"><div class="content-spacer" style="height:2em;width:100%"/);
-    assert.match(html, /id="reference-card" class="block-visual-style" style="padding:12px;margin:20px;min-height:240px;min-width:320px"/);
+    assert.match(html, /id="section-gap" class="block-visual-style custom-gap\s*" style="margin:12px"><div class="content-spacer" style="height:2em;width:100%"/);
+    assert.match(html, /id="reference-card" class="block-visual-style\s*" style="padding:12px;margin:20px;min-height:240px;min-width:320px"/);
     assert.match(html, /<figcaption>A useful &lt;resource&gt;<\/figcaption>/);
   }
   assert.match(blockToHtml(blocks[0]), /data-spacer-height="2" data-spacer-height-unit="em" data-spacer-width="8" data-spacer-width-unit="rem"/);
@@ -642,7 +642,7 @@ test("root Group sticky position validates and renders in Studio preview", () =>
   assert.equal(validContentBlocks([{ ...group, position: "fixed" }]), false);
   assert.equal(validContentBlocks([{ ...section, position: "sticky" }]), false);
   const rendered = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [group], variant: "studio" }));
-  assert.match(rendered, /class="content-group layout-stack" style="position:sticky;top:0px;/);
+  assert.match(rendered, /class="content-group layout-stack" style="[^"]*position:sticky;top:0px;/);
 });
 
 test("Cover Image border and shadow styles render in Studio and article previews", () => {
@@ -650,7 +650,7 @@ test("Cover Image border and shadow styles render in Studio and article previews
   const document = { kind: "post", slug: "cover-example", title: "Cover example", coverImage: { src: "https://example.com/cover.jpg", alt: "A cover" } };
   for (const variant of ["studio", "article"]) {
     const html = renderToStaticMarkup(createElement(BlockRenderer, { blocks: [block], variant, document }));
-    assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override" style="[^"]*border-style:solid;border-width:2px;border-color:#123456;border-radius:12px;box-shadow:/);
+    assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override\s*" style="[^"]*border-style:solid;border-width:2px;border-color:#123456;border-radius:12px;box-shadow:/);
     const imageStyle = html.match(/<img[^>]*style="([^"]+)"/)?.[1] ?? "";
     assert.doesNotMatch(imageStyle, /border-style|border-width|border-color|border-radius|box-shadow/);
     for (const property of ["border-style:", "border-radius:", "box-shadow:"]) {
@@ -683,7 +683,7 @@ test("Cover Image editor renders one styled frame without changing its canvas ma
     onLinkActivate() {},
     onChange() {},
   }));
-  assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override" style="[^"]*border-style:solid/);
+  assert.match(html, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override\s*" style="[^"]*border-style:solid/);
   assert.match(html, /cover-image-visual-style-frame[^>]*><div class="canvas-cover-wrap document-dynamic-cover[^>]*><span class="document-featured-image-frame"[^>]*><img class="document-featured-image"/);
   const imageStyle = html.match(/<img[^>]*style="([^"]+)"/)?.[1] ?? "";
   assert.doesNotMatch(imageStyle, /border-style|border-width|border-color|border-radius|box-shadow/);
@@ -701,10 +701,10 @@ test("Cover Image editor renders one styled frame without changing its canvas ma
     onChange() {},
   }));
   const shadowOnly = renderCover({ shadow: "soft" });
-  assert.match(shadowOnly, /class="block-visual-style cover-image-visual-style-frame" style="box-shadow:/);
+  assert.match(shadowOnly, /class="block-visual-style cover-image-visual-style-frame\s*" style="box-shadow:/);
   assert.doesNotMatch(shadowOnly, /has-cover-image-frame-override/);
   const noBorder = renderCover({ borderStyle: "none" });
-  assert.match(noBorder, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override"/);
+  assert.match(noBorder, /class="block-visual-style cover-image-visual-style-frame has-cover-image-frame-override\s*"/);
 });
 
 test("Social Icons serialize style, spacing, alignment and per-icon link metadata", () => {
