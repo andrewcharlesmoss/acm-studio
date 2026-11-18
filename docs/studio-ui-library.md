@@ -677,8 +677,8 @@ covers retained Controls drafts and returning to direct block routes.
 ## UK keyboard collection
 
 The Icons section groups interface icons and the complete common UK ISO Keyboard
-collection at `/studio/ui/icons?collection=keyboard`. It presents 171 key
-identities across 161 active keyboard symbols: letters, platform-specific
+collection at `/studio/ui/icons?collection=keyboard`. It presents 176 key
+identities across 165 active keyboard symbols: letters, platform-specific
 number-row and punctuation
 legends, modifiers, editing/navigation keys, function keys, numeric keypad,
 Mac-specific legends and optional Windows hardware keys. The Mac British/Irish
@@ -2067,7 +2067,13 @@ keyboard has a silver case and rounded outer key corners; exports remain
 transparent outside it and inside keys when Transparent Fill is selected.
 Selected upper punctuation legends are enlarged in the full Mac layout to
 follow the reference while retaining the shared standalone key artwork.
-Hardware legends and dimensions vary.
+The Windows specimen takes its slim silver case, close-spaced key groups and
+short function row from the supplied US Surface Keyboard (2nd Edition) photo.
+It uses UK ISO positions and legends, including tall Enter, short left Shift,
+and £ on 3. Its Windows shortcut legends are illustrative and include Fn,
+Copilot, Calculator, Widgets, Expressive Input, Lock and Keypad Clear. All
+standalone key assets remain available, including alternatives such as Right
+Windows. Hardware legends and dimensions vary.
 Hover or tap a key in the full keyboard to select its asset; keyboard users can
 focus the keyboard and use arrow keys to move between keys. Selection remains
 visible in the inspector even when catalogue filters hide the selected card.

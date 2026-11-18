@@ -46,6 +46,8 @@
 
 ### Changed
 
+- Refine the full-size UK Windows keyboard with a slim silver case, compact spacing and Windows shortcut keys.
+
 - Keep shared ACM package sources in Studio for reproducible builds.
 
 - Use the website outline action text colour for the example content link on the Style Guide page.

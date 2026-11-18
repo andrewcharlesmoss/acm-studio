@@ -165,9 +165,9 @@ export function KeyboardCatalogue() {
               const corner = keyboardPlatform === "mac" ? ({ "mac-escape": "tl", "mac-f19": "tr", "fn-globe": "bl", "mac-keypad-enter": "br" } as Record<string, string>)[key.id] : undefined;
               const tl = corner === "tl" ? 17 : radius, tr = corner === "tr" ? 17 : radius;
               const bl = corner === "bl" ? 17 : radius, br = corner === "br" ? 17 : radius;
-              const outline = key.id === "enter"
+              const outline = key.outline ?? (key.id === "enter"
                 ? `M 10 3 H ${right - radius} Q ${right} 3 ${right} 10 V ${bottom - radius} Q ${right} ${bottom} ${right - radius} ${bottom} H ${notch + radius} Q ${notch} ${bottom} ${notch} ${bottom - radius} V ${step + 3} Q ${notch} ${step} ${notch - 3} ${step} H 10 Q 3 ${step} 3 ${step - radius} V 10 Q 3 3 10 3 Z`
-                : `M ${3 + tl} 3 H ${right - tr} Q ${right} 3 ${right} ${3 + tr} V ${bottom - br} Q ${right} ${bottom} ${right - br} ${bottom} H ${3 + bl} Q 3 ${bottom} 3 ${bottom - bl} V ${3 + tl} Q 3 3 ${3 + tl} 3 Z`;
+                : `M ${3 + tl} 3 H ${right - tr} Q ${right} 3 ${right} ${3 + tr} V ${bottom - br} Q ${right} ${bottom} ${right - br} ${bottom} H ${3 + bl} Q 3 ${bottom} 3 ${bottom - bl} V ${3 + tl} Q 3 3 ${3 + tl} 3 Z`);
               return <path key={`${index}-${key.id}`} ref={element => { keyboardKeyRefs.current[index] = element; }} className="kb-full-key-hit" transform={`translate(${key.x} ${key.y})`} d={outline} role="button" aria-label={info.label} aria-pressed={selected === key.id} tabIndex={index === focusedKeyIndex ? 0 : -1} onPointerEnter={event => { if (event.pointerType !== "touch") select(); }} onClick={select} onFocus={() => { setFocusedKeyIndex(index); select(); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); } }} />;
             })}
           </svg>
@@ -175,7 +175,7 @@ export function KeyboardCatalogue() {
       </div>
       <div className="kb-full-actions"><button type="button" onClick={() => void downloadKeyboard("svg")}><AcmIcon name="action.download" size={18} />Download SVG</button><button type="button" onClick={() => void downloadKeyboard("png")}><AcmIcon name="action.download" size={18} />Download PNG</button></div>
       <p role="status" aria-live="polite">{keyboardStatus}</p>
-      <p>Keys use the colours selected below. The Mac case is silver; exports are transparent outside the keyboard.</p>
+      <p>Keys use the colours selected below. The case is silver. Exports are transparent outside the keyboard.</p>
     </section>
     <div className="kb-toolbar">
       <label>Platform<SelectControl value={platform} onChange={(event) => {
