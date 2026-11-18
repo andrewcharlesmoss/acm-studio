@@ -123,9 +123,8 @@ function windowsKeyArtwork({ id, width, height, outline }, { colour, borderColou
     legend = paths(glyph, 16 - 12 * scale, pictogramY, scale, pictogram)
       + paths(asset.glyph, 29, 15, 0.62);
   } else if (id === 'print-screen') {
-    // The photographed shortcut shows just the display outline, without its stand.
-    const display = iconGeometry['device.desktop']['Regular-M'];
-    legend = paths(display, width / 2 - 7.2, 9, 0.6, [display.paths[0]])
+    const snip = iconGeometry['keyboard.windows-snip']['Regular-M'];
+    legend = paths(snip, width / 2 - 7.2, 9, 0.6)
       + caption(windowsLayoutCaptions[id], width - 16, 22, 0.7);
   } else if (secondary || id === 'keypad-5') {
     legend = caption(windowsLayoutCaptions[id], width / 2, 14);

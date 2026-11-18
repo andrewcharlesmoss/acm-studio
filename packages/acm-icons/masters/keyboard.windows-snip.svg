@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Screen Snip</title>
+<desc>Open screen outline with a small plus in its lower right corner.</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 21 10.5 L 21 5 Q 21 3 19 3 L 5 3 Q 3 3 3 5 L 3 15 Q 3 17 5 17 L 12 17" />
+<path d="M 15.5 17 L 21 17 M 18.25 14.25 L 18.25 19.75" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 21 11.75 L 21 4.5 Q 21 2.5 19 2.5 L 5 2.5 Q 3 2.5 3 4.5 L 3 15 Q 3 17 5 17 L 12.5 17" />
+<path d="M 16 17 L 21 17 M 18.5 14.5 L 18.5 19.5" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 21.25 12 L 21.25 4.5 Q 21.25 2.25 19 2.25 L 5 2.25 Q 2.75 2.25 2.75 4.5 L 2.75 15 Q 2.75 17.25 5 17.25 L 13 17.25" />
+<path d="M 16.25 17.25 L 21.25 17.25 M 18.75 14.75 L 18.75 19.75" />
+</g>
+</svg>

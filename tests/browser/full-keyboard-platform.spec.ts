@@ -94,6 +94,22 @@ test('the compact Windows specimen selects UK keys and exports the same drawing'
   const print = layout.keys.find(key => key.id === 'print-screen')!;
   const printLegends = legendBounds.find(key => key.id === print.id)!.legends;
   expect(printLegends).toHaveLength(2);
+  const capturePaths = page.locator(`svg > g[transform="translate(${print.x} ${print.y})"] > g:first-of-type > path`);
+  await expect(capturePaths).toHaveCount(2);
+  const capture = await capturePaths.evaluateAll(elements => {
+    const [frame, plus] = elements as SVGPathElement[];
+    const box = plus.getBBox();
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    const corners = frame.getBBox();
+    const start = frame.getPointAtLength(0), end = frame.getPointAtLength(frame.getTotalLength());
+    return {
+      open: Math.hypot(end.x - start.x, end.y - start.y) > 3,
+      lowerRight: x > corners.x + corners.width / 2 && y > corners.y + corners.height / 2,
+      crossed: [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]].every(([dx, dy]) =>
+        plus.isPointInStroke(new DOMPoint(x + dx * box.width, y + dy * box.height))),
+    };
+  });
+  expect(capture).toEqual({ open: true, lowerRight: true, crossed: true });
   const [screen, label] = printLegends;
   expect((screen.left + screen.right) / 2).toBeCloseTo(print.width / 2, 1);
   expect(label.left - screen.right).toBeGreaterThan(3);

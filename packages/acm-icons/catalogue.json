@@ -5899,5 +5899,19 @@
     ],
     "golden": false,
     "provenance": "Original ACM geometry informed by the supplied Surface Keyboard second edition photo. No third-party paths."
+  },
+  {
+    "name": "keyboard.windows-snip",
+    "label": "Screen snip",
+    "description": "Screen capture outline with a plus at the lower right",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "snipping",
+      "print screen",
+      "screenshot"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
   }
 ]
