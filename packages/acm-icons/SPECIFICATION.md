@@ -837,3 +837,20 @@ outline remains the default. Filled appearance rejects colour variants until tho
 combinations have defined paint treatments. `@acm/icons/filled` exposes
 capability discovery and a matching portable SVG export. Other icons retain
 their existing default artwork and reject a filled request. IDs remain stable.
+
+## Full-size UK Windows keyboard — Unreleased
+
+The supplied straight-on US Surface Keyboard (2nd Edition) photo informs the
+silver case, shallow function row, close key spacing and shortcut positions.
+The illustration retains UK ISO Enter, left Shift and UK number and punctuation
+legends. Shortcut pictograms use original ACM artwork, with the existing licensed
+Copilot mark. The shortcut assignment is representative. Short legends such as ScrLk, Pause,
+NumLk, PgUp and PgDn use pinned Inter outlines in the full-size drawing.
+Existing standalone keys remain available, including alternative Windows
+and modifier keys.
+
+The full keyboard preview and exports share the Windows key outlines with
+Studio's selection targets. Transparent Fill also clears the case beneath
+each key. Both the full keyboard and individual keys retain their colour controls.
+
+Individual Windows layout selections reuse the printed key frame and legends for preview and export. F11 carries a heart over a rounded tile and the Menu legend has an enclosing frame. The standalone catalogue retains its generic function keys.

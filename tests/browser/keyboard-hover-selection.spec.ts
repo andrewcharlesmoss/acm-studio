@@ -68,3 +68,43 @@ test('rounded outer corners do not select a key from the surrounding case', asyn
   await escape.hover();
   await expect(inspector.getByRole('heading', { name: 'Mac Escape', exact: true })).toBeVisible();
 });
+
+test('Windows layout selection keeps the printed artwork in the inspector and its download', async ({ page }) => {
+  await page.goto('/studio/ui/icons?collection=keyboard');
+  const keyboard = page.getByRole('group', { name: 'Select a keyboard key' });
+  const inspector = page.getByLabel('Keyboard Asset Inspector');
+  await expect(async () => {
+    await page.getByRole('radio', { name: 'Windows', exact: true }).click();
+    await expect(keyboard.getByRole('button', { name: 'F12', exact: true })).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  const board = page.getByRole('img', { name: 'Illustrative full-size UK Windows keyboard' });
+  for (const name of ['F11', 'F12', 'Context Menu']) {
+    const key = keyboard.getByRole('button', { name, exact: true });
+    if (name === 'F12') await key.focus();
+    else await key.hover();
+    await expect(inspector.getByRole('heading', { name, exact: true })).toBeVisible();
+    const transform = await key.getAttribute('transform');
+    const printed = await board.evaluate((image, transform) => {
+      const doc = new DOMParser().parseFromString(decodeURIComponent((image as HTMLImageElement).src.split(',')[1]), 'image/svg+xml');
+      // XML serialisation adds a namespace to each detached child.
+      return doc.querySelector(`svg > g[transform="${transform}"]`)!.innerHTML.replaceAll(' xmlns="http://www.w3.org/2000/svg"', '');
+    }, transform);
+    const preview = inspector.getByRole('img', { name: `Windows keyboard: ${name}` });
+    await expect(preview).toBeVisible();
+    const svg = decodeURIComponent((await preview.getAttribute('src'))!.split(',')[1]);
+    expect(svg).toContain(printed);
+    if (name === 'F12') {
+      const [download] = await Promise.all([page.waitForEvent('download'), inspector.getByRole('button', { name: 'Download SVG' }).click()]);
+      expect(Buffer.concat(await (await download.createReadStream()).toArray()).toString()).toBe(svg);
+      await page.getByRole('radio', { name: 'Symbols', exact: true }).check();
+      const symbol = decodeURIComponent((await preview.getAttribute('src'))!.split(',')[1]);
+      expect(symbol).toContain(printed.slice(printed.indexOf('<g')));
+      expect(symbol).not.toContain(printed);
+      await page.getByRole('radio', { name: 'Keycaps', exact: true }).check();
+    }
+  }
+  await page.getByLabel('Find a key').fill('F12');
+  await page.locator('.kb-card').filter({ has: page.getByText('F12', { exact: true }) }).click();
+  await expect(inspector.locator('.kb-large svg')).toBeVisible();
+  await expect(keyboard.getByRole('button', { name: 'F12', exact: true })).toHaveAttribute('aria-pressed', 'false');
+});

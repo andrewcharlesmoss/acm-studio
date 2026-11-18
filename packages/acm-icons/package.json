@@ -13,6 +13,7 @@
     "src/keyboard-react.js",
     "src/keyboard-react.d.ts",
     "src/keyboard-modifier-captions.js",
+    "src/keyboard-windows-captions.js",
     "sources/inter/LICENSE.txt",
     "sources/copilot",
     "src/social-brand.js",

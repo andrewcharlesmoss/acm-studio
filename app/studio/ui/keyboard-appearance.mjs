@@ -28,6 +28,7 @@ export const KEYBOARD_APPEARANCE_PRESETS = Object.freeze({
 export function createKeyboardCatalogueState() {
   return {
     selected: "command",
+    windowsLayout: false,
     platform: "all",
     mode: "keycap",
     height: 128,
@@ -56,7 +57,7 @@ export function getKeyboardColourControlKey(name, resetRevision) {
 export function keyboardCatalogueReducer(state, action) {
   switch (action.type) {
     case "select-key":
-      return { ...state, selected: action.value, status: "" };
+      return { ...state, selected: action.value, windowsLayout: action.windowsLayout === true, status: "" };
     case "set-platform":
       return { ...state, platform: action.value, status: "" };
     case "set-mode":

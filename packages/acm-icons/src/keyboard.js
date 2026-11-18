@@ -112,6 +112,11 @@ export const keyboardKeys = [
     key("mac-keypad-enter", "mac-keypad-enter", "Mac Keypad Enter", ["mac"], "tall", "Numeric keypad", "Symbolic keypad Enter on the supplied Mac reference."),
   ],
   key("mac-punct-minus", "mac-punct-minus", "- / _", ["mac"], "square", "Punctuation", "UK Mac minus and underscore key."),
+    key("windows-calculator", "windows-calculator", "Calculator", ["windows"], "square", "Windows keys", "Opens Calculator on some Windows keyboards."),
+    key("windows-expressive-input", "windows-expressive-input", "Expressive Input", ["windows"], "square", "Windows keys", "Opens expressive input such as emoji on some Windows keyboards."),
+    key("windows-widgets", "windows-widgets", "Widgets", ["windows"], "square", "Windows keys", "Opens Windows Widgets on some keyboards."),
+    key("windows-lock", "windows-lock", "Lock", ["windows"], "square", "Windows keys", "Locks the computer on some Windows keyboards."),
+    key("windows-keypad-clear", "clear", "Keypad Clear", ["windows"], "square", "Numeric keypad", "Clear key on some Windows numeric keypads."),
 ];
 
 const makeFrame = (width, height, d) => ({ width, height, x: (width - 24) / 2, y: (height - 24) / 2, d });

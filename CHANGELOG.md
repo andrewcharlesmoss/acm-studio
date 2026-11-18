@@ -938,6 +938,8 @@
 
 ### Fixed
 
+- Windows keyboard selections now preview and export the printed key, including the shortcut on F11 and the framed Menu legend.
+
 - Show the shared artwork source for Outline and Filled icons.
 
 - Stack Rows according to the available document or embedded pane width.

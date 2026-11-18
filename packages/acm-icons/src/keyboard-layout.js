@@ -1,5 +1,6 @@
-import { keyboardAsset } from './keyboard.js';
-import { iconMetadata } from '../dist/index.js';
+import { createKeyboardSvg, keyboardAsset } from './keyboard.js';
+import { windowsLayoutCaptions, windowsStackedLayoutCaptions } from './keyboard-windows-captions.js';
+import { iconGeometry, iconMetadata } from '../dist/index.js';
 
 // The photographed Mac keys use more prominent shifted punctuation; keep the
 // shared legends intact for other keyboard models and standalone exports.
@@ -39,30 +40,155 @@ export function fullKeyboardLayout(platform) {
     add('mac-keypad-enter', 22, 4.4, 1, 2, 'bottom-centre');
     row([['keypad-0', 2], 'keypad-decimal'], 19, 5.4);
   } else {
-    row(['escape', ...(mac ? ['mac-brightness-down', 'mac-brightness-up', 'mac-mission-control', 'mac-spotlight', 'mac-dictation', 'mac-focus', 'mac-media-previous', 'mac-media-play', 'mac-media-next', 'mac-mute', 'mac-volume-down', 'mac-volume-up'] : Array.from({length: 12}, (_, i) => `f${i + 1}`))], 0, 0);
-    if (mac) row(['mac-f16', 'mac-f17', 'mac-f18', 'touch-id'], 19, 0);
-    row(mac ? ['mac-f13', 'mac-f14', 'mac-f15'] : ['print-screen', 'scroll-lock', 'pause-break'], 15.5, 0);
-    row([mac ? 'mac-punct-section' : 'punct-backtick', 'digit-one', mac ? 'mac-digit-two' : 'digit-two', mac ? 'mac-digit-three' : 'digit-three', 'digit-four', 'digit-five', 'digit-six', 'digit-seven', 'digit-eight', 'digit-nine', 'digit-zero', 'punct-minus', 'punct-equals', [mac ? 'mac-delete' : 'backspace', 2]], 0, 1.4);
-    row([['tab', 1.5], ...letters('qwertyuiop'), 'punct-left-bracket', 'punct-right-bracket'], 0, 2.4);
-    row([['caps-lock', 1.5], ...letters('asdfghjkl'), 'punct-semicolon', mac ? 'mac-punct-apostrophe' : 'punct-apostrophe', mac ? 'mac-punct-backtick' : 'punct-hash'], 0, 3.4);
-    add('enter', 13.5, 2.4, 1.5, 2);
-    row([[mac ? 'mac-shift-left' : 'windows-shift-left', 1.25], 'punct-backslash', ...letters('zxcvbnm'), 'punct-comma', 'punct-period', 'punct-slash', [mac ? 'mac-shift-right' : 'windows-shift-right', 2.75]], 0, 4.4);
-    row(mac ? [['mac-control', 1.25], ['mac-option-left', 1.25], ['mac-command-left', 1.5], ['space', 6.75], ['mac-command-right', 1.5], ['mac-option-right', 1.25], ['mac-control-right', 1.5]] : [['windows-control-left', 1.25], ['windows-left', 1.25], ['windows-alt-left', 1.25], ['space', 6.25], ['windows-altgr', 1.25], ['windows-right', 1.25], ['windows-menu', 1.25], ['windows-control-right', 1.25]], 0, 5.4);
-    row(mac ? ['fn-globe', 'home', 'page-up'] : ['insert', 'home', 'page-up'], 15.5, 1.4);
-    row([mac ? 'mac-forward-delete' : 'delete-forward', 'end', 'page-down'], 15.5, 2.4);
-    add('arrow-up', 16.5, 4.4); row(['arrow-left', 'arrow-down', 'arrow-right'], 15.5, 5.4);
-    const keypadX = 19;
-    row([mac ? 'mac-keypad-clear' : 'num-lock', 'keypad-divide', 'keypad-multiply', 'keypad-subtract'], keypadX, 1.4);
-    row(['keypad-7', 'keypad-8', 'keypad-9'], keypadX, 2.4); add('keypad-add', keypadX + 3, 2.4, 1, 2);
-    row(['keypad-4', 'keypad-5', 'keypad-6'], keypadX, 3.4);
-    row(['keypad-1', 'keypad-2', 'keypad-3'], keypadX, 4.4); add('keypad-enter', keypadX + 3, 4.4, 1, 2);
-    row([['keypad-0', 2], 'keypad-decimal'], keypadX, 5.4);
-  }
-  if (mac) {
+    const typingTop = 2 / 3;
+    const navigationX = 15;
+    const keypadX = 18;
+    add('escape', 0, 0, 1.25, typingTop);
+    for (let index = 0; index < 12; index++) add(`f${index + 1}`, 1.25 + index, 0, 1, typingTop);
+    add('print-screen', 13.25, 0, 1.75, typingTop);
+    ['scroll-lock', 'pause-break', 'num-lock', 'windows-calculator', 'windows-widgets', 'windows-expressive-input', 'windows-lock'].forEach(
+      (id, index) => add(id, navigationX + index, 0, 1, typingTop),
+    );
+
+    row(['punct-backtick', 'digit-one', 'digit-two', 'digit-three', 'digit-four', 'digit-five', 'digit-six', 'digit-seven', 'digit-eight', 'digit-nine', 'digit-zero', 'punct-minus', 'punct-equals', ['backspace', 2]], 0, typingTop);
+    row([['tab', 1.5], ...letters('qwertyuiop'), 'punct-left-bracket', 'punct-right-bracket'], 0, typingTop + 1);
+    row([['caps-lock', 1.75], ...letters('asdfghjkl'), 'punct-semicolon', 'punct-apostrophe', 'punct-hash'], 0, typingTop + 2);
+    add('enter', 13.5, typingTop + 1, 1.5, 2);
+    row([['windows-shift-left', 1.25], 'punct-backslash', ...letters('zxcvbnm'), 'punct-comma', 'punct-period', 'punct-slash', ['windows-shift-right', 2.75]], 0, typingTop + 3);
+    row([['windows-control-left', 1.5], 'windows-fn', 'windows-left', 'windows-alt-left', ['space', 6], 'windows-altgr', 'copilot', 'windows-menu', ['windows-control-right', 1.5]], 0, typingTop + 4);
+    row(['insert', 'home', 'page-up'], navigationX, typingTop);
+    row(['delete-forward', 'end', 'page-down'], navigationX, typingTop + 1);
+    add('arrow-up', navigationX + 1, typingTop + 3);
+    row(['arrow-left', 'arrow-down', 'arrow-right'], navigationX, typingTop + 4);
+    row(['windows-keypad-clear', 'keypad-divide', 'keypad-multiply', 'keypad-subtract'], keypadX, typingTop);
+    row(['keypad-7', 'keypad-8', 'keypad-9'], keypadX, typingTop + 1);
+    add('keypad-add', keypadX + 3, typingTop + 1, 1, 2);
+    row(['keypad-4', 'keypad-5', 'keypad-6'], keypadX, typingTop + 2);
+    row(['keypad-1', 'keypad-2', 'keypad-3'], keypadX, typingTop + 3);
+    add('keypad-enter', keypadX + 3, typingTop + 3, 1, 2);
+    row([['keypad-0', 2], 'keypad-decimal'], keypadX, typingTop + 4);
+
     const inset = 6;
-    return { width: 22.25 * 48 + inset * 2, height: 6 * 48 + inset * 2, keys: keys.map(key => ({ ...key, x: key.x + inset - (key.x >= 19 * 48 ? 36 : 0), y: Math.round((key.y + inset - (key.y > 0 ? 0.4 * 48 : 0)) * 1000) / 1000 })) };
+    return {
+      width: 22 * 48 + inset * 2,
+      height: 5 * 48 + 32 + inset * 2,
+      keys: keys.map(key => ({ ...key, x: key.x + inset, y: Math.round(key.y) + inset, outline: windowsKeyOutline(key) })),
+    };
   }
-  return { width: 23 * 48, height: 6.4 * 48, keys };
+  const inset = 6;
+  return { width: 22.25 * 48 + inset * 2, height: 6 * 48 + inset * 2, keys: keys.map(key => ({ ...key, x: key.x + inset - (key.x >= 19 * 48 ? 36 : 0), y: Math.round((key.y + inset - (key.y > 0 ? 0.4 * 48 : 0)) * 1000) / 1000 })) };
+}
+
+// Shared by the drawn key, transparent case opening and Studio hit area.
+function windowsKeyOutline({ id, width, height }) {
+  const inset = 3, radius = 4;
+  const right = width - inset, bottom = height - inset;
+  const near = inset + radius, far = right - radius;
+  const firstRowBottom = height / 2 - inset;
+  const leadingEdge = id === 'enter'
+    ? `H 19 Q 15 ${bottom} 15 ${bottom - radius} V ${firstRowBottom + radius} Q 15 ${firstRowBottom} 11 ${firstRowBottom} H ${near} Q 3 ${firstRowBottom} 3 ${firstRowBottom - radius}`
+    : `H ${near} Q 3 ${bottom} 3 ${bottom - radius}`;
+  return `M ${near} 3 H ${far} Q ${right} 3 ${right} ${near} V ${bottom - radius} Q ${right} ${bottom} ${far} ${bottom} ${leadingEdge} V ${near} Q 3 3 ${near} 3 Z`;
+}
+
+const windowsFunctionIcons = [
+  'keyboard.mac-dictation', 'keyboard.mac-mute', 'keyboard.mac-volume-down', 'keyboard.mac-volume-up',
+  'device.desktop', 'keyboard.mac-media-previous', 'keyboard.mac-media-play', 'keyboard.mac-media-next',
+  'keyboard.mac-brightness-down', 'keyboard.mac-brightness-up', 'keyboard.windows-favourites', 'action.settings',
+];
+const windowsKeypadSecondaryLegends = {
+  'keypad-7': 'home', 'keypad-8': 'arrow-up', 'keypad-9': 'page-up',
+  'keypad-4': 'arrow-left', 'keypad-6': 'arrow-right', 'keypad-1': 'end',
+  'keypad-2': 'arrow-down', 'keypad-3': 'page-down', 'keypad-0': 'insert', 'keypad-decimal': 'keypad-delete-caption',
+};
+
+function windowsKeyArtwork({ id, width, height, outline }, { colour, borderColour, fillColour }) {
+  const asset = keyboardAsset(id, { mode: 'symbol', colour, borderColour, fillColour });
+  const paths = (glyph, x, y, scale, geometry = glyph.paths) =>
+    `<g transform="translate(${x} ${y}) scale(${scale})" fill="none" stroke="${colour}" stroke-width="${glyph.strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${geometry.map(({ d, fill, fillRule, stroke }) => `<path d="${d}"${fill ? ` fill="${colour}"` : ''}${fillRule ? ` fill-rule="${fillRule}"` : ''}${stroke ? ` stroke="${stroke}"` : ''}/>`).join('')}</g>`;
+  const caption = (d, centreX, centreY, scale = 1) =>
+    paths({ strokeWidth: 0, paths: [{ d, fill: 'currentColor', stroke: 'none' }] },
+      centreX - 12 * scale, centreY - 12 * scale, scale);
+  const smallTopRow = height === 32;
+  const number = /^f(\d+)$/.exec(id);
+  const secondary = windowsKeypadSecondaryLegends[id];
+  let legend = '';
+  if (number) {
+    const icon = windowsFunctionIcons[Number(number[1]) - 1];
+    const glyph = iconGeometry[icon]['Regular-M'];
+    const pictogram = icon.startsWith('keyboard.mac-') ? glyph.paths.slice(0, -1) : glyph.paths;
+    // Interface icons fill more of the canvas than the keyboard pictograms.
+    const scale = icon.startsWith('keyboard.mac-') ? 0.78 : 0.57;
+    const pictogramY = icon.startsWith('keyboard.mac-') ? 7.5 : 4.5;
+    legend = paths(glyph, 16 - 12 * scale, pictogramY, scale, pictogram)
+      + paths(asset.glyph, 29, 15, 0.62);
+  } else if (id === 'print-screen') {
+    // The photographed shortcut shows just the display outline, without its stand.
+    const display = iconGeometry['device.desktop']['Regular-M'];
+    legend = paths(display, width / 2 - 7.2, 9, 0.6, [display.paths[0]])
+      + caption(windowsLayoutCaptions[id], width - 16, 22, 0.7);
+  } else if (secondary || id === 'keypad-5') {
+    legend = caption(windowsLayoutCaptions[id], width / 2, 14);
+    if (secondary && Object.hasOwn(windowsLayoutCaptions, secondary)) {
+      legend += caption(windowsLayoutCaptions[secondary], width / 2, 32, 0.72);
+    } else if (secondary) {
+      const arrow = keyboardAsset(secondary, { mode: 'symbol' }).glyph;
+      legend += paths(arrow, (width - 15.6) / 2, 24.2, 0.65);
+    }
+  } else if (Object.hasOwn(windowsStackedLayoutCaptions, id)) {
+    legend = caption(windowsStackedLayoutCaptions[id], width / 2, height / 2);
+  } else if (Object.hasOwn(windowsLayoutCaptions, id)) {
+    legend = caption(windowsLayoutCaptions[id], width / 2, height / 2);
+  } else if (id !== 'space') {
+    const compactMark = ['windows-left', 'copilot', 'windows-menu'].includes(id);
+    const scale = smallTopRow || compactMark || id === 'enter' ? 0.72 : id.startsWith('letter-') ? 0.86 : 1;
+    const legendX = id === 'enter' ? 33 : (width - 24 * scale) / 2;
+    const legendY = id === 'enter' ? 56 : (height - 24 * scale) / 2;
+    legend = paths(asset.glyph, legendX, legendY, scale);
+  }
+  const tactile = ['letter-f', 'letter-j', 'keypad-5'].includes(id)
+    ? `<path d="M ${width / 2 - 3} ${id === 'keypad-5' ? 32 : 36} h 6" stroke="${colour}" stroke-width="1.2" stroke-linecap="round"/>`
+    : '';
+  return {
+    frame: `<path d="${outline}" stroke="${asset.borderColour}" stroke-width="1.1" fill="${fillColour}"/>`,
+    legend: legend + tactile,
+    notice: iconMetadata[asset.key.icon].licenceNotice,
+  };
+}
+
+// Individual layout specimens use exactly the same frame, legends and optical placement as the board.
+export function windowsLayoutKeyAsset(id, { height = 128, mode = 'keycap', colour = '#1C1C1E', borderColour, fillColour = 'none' } = {}) {
+  if (!Number.isInteger(height) || height < 24 || height > 512 || !['keycap', 'symbol'].includes(mode)) {
+    throw new Error('Choose a valid artwork mode and a height from 24 to 512 pixels.');
+  }
+  const key = fullKeyboardLayout('windows').keys.find(entry => entry.id === id);
+  if (!key) throw new Error('Choose a key from the Windows layout.');
+  if (id === 'space' && mode === 'symbol') {
+    return { svg: createKeyboardSvg(id, { mode, height, colour }), width: height, height };
+  }
+  const { frame, legend, notice } = windowsKeyArtwork(key, { colour, borderColour, fillColour });
+  const width = Math.round(height * key.width / key.height);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${key.width} ${key.height}"><title>UK Windows keyboard: ${id}</title>${keyboardMetadata(notice ? [notice] : [])}${mode === 'keycap' ? frame : ''}${legend}</svg>\n`;
+  return { svg, width, height };
+}
+
+function windowsKeyboardArtwork(layout, colours, notices) {
+  const { fillColour } = colours;
+  const parts = layout.keys.map(key => {
+    const { frame, legend, notice } = windowsKeyArtwork(key, colours);
+    if (notice) notices.add(notice);
+    return `<g transform="translate(${key.x} ${key.y})">${frame}${legend}</g>`;
+  }).join('');
+
+  const mask = fillColour === 'none'
+    ? `<defs><mask id="windows-keyboard-case-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${layout.width}" height="${layout.height}" style="mask-type:luminance"><rect width="${layout.width}" height="${layout.height}" fill="#fff"/>${layout.keys.map(({ outline, x, y }) => `<path d="${outline}" transform="translate(${x} ${y})" fill="#000"/>`).join('')}</mask></defs>`
+    : '';
+  const casework = `${mask}<g${mask ? ' mask="url(#windows-keyboard-case-mask)"' : ''}><rect x="0.75" y="0.75" width="${layout.width - 1.5}" height="${layout.height - 1.5}" rx="13" fill="#9B9DA2" stroke="#9B9DA2" stroke-width="1.5"/><rect x="0.75" y="0.75" width="${layout.width - 1.5}" height="${layout.height - 5}" rx="12" fill="#C2C4C8" stroke="#9B9DA2" stroke-width="1.5"/></g>`;
+  return { casework, parts };
+}
+
+function keyboardMetadata(notices) {
+  return [...notices].map(notice => `<metadata>${notice.replace(/[<>&"']/g, char => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[char]))}</metadata>`).join('');
 }
 
 export function createFullKeyboardSvg(platform, options = {}) {
@@ -70,6 +196,15 @@ export function createFullKeyboardSvg(platform, options = {}) {
   if (!Number.isInteger(height) || height < 64 || height > 2048) throw new Error('Choose a height from 64 to 2048 pixels.');
   const layout = fullKeyboardLayout(platform);
   const notices = new Set();
+  const { casework, parts } = platform === 'windows'
+    ? windowsKeyboardArtwork(layout, { colour, borderColour, fillColour }, notices)
+    : macKeyboardArtwork(layout, { colour, borderColour, fillColour }, notices);
+  const metadata = keyboardMetadata(notices);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(height * layout.width / layout.height)}" height="${height}" viewBox="0 0 ${layout.width} ${layout.height}"><title>Full-size UK ${platform === 'mac' ? 'Mac' : 'Windows'} keyboard</title>${metadata}${casework}${parts}</svg>\n`;
+}
+
+function macKeyboardArtwork(layout, { colour, borderColour, fillColour }, notices) {
+  const platform = 'mac';
   const caseCutouts = [];
   const parts = layout.keys.map(({ id, x, y, width, height: keyHeight, legendPlacement }) => {
     const asset = keyboardAsset(id, { colour, borderColour, fillColour });
@@ -118,8 +253,7 @@ export function createFullKeyboardSvg(platform, options = {}) {
     const tactile = platform === 'mac' && ['letter-f', 'letter-j', 'keypad-5'].includes(id) ? `<path d="M ${width / 2 - 2} ${keyHeight - 6} L ${width / 2 + 2} ${keyHeight - 6}" stroke="${colour}" stroke-width="1.2" stroke-linecap="round"/>` : '';
     return `<g transform="translate(${x} ${y})">${frame} stroke-width="1.5" stroke="${asset.borderColour}" fill="${asset.fillColour}"/><g transform="translate(${glyphX} ${glyphY})${referenceScale ? ` translate(${referenceOffsetX} ${referenceOffsetY}) translate(12 12) scale(${referenceScale}) translate(-12 -12)` : commandKey || optionKey ? ' scale(0.8)' : extendedFunction ? ' scale(0.59)' : macReturn ? ' scale(0.5)' : id === 'mac-caps-lock' ? ' scale(0.75)' : ''}" fill="none" stroke="${colour}" stroke-width="${asset.glyph.strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${paths}</g>${caption}${capsIndicator}${tactile}</g>`;
   }).join('');
-  const metadata = [...notices].map(notice => `<metadata>${notice.replace(/[<>&"']/g, char => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[char]))}</metadata>`).join('');
   const caseMask = caseCutouts.length ? `<defs><mask id="mac-keyboard-case-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${layout.width}" height="${layout.height}" style="mask-type:luminance"><rect width="${layout.width}" height="${layout.height}" fill="#fff"/>${caseCutouts.join('')}</mask></defs>` : '';
   const casework = platform === 'mac' ? `${caseMask}<rect x="0.75" y="0.75" width="${layout.width - 1.5}" height="${layout.height - 1.5}" rx="22" fill="#C7C7C9" stroke="#A3A3A5" stroke-width="1.5"${caseMask ? ' mask="url(#mac-keyboard-case-mask)"' : ''}/>` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(height * layout.width / layout.height)}" height="${height}" viewBox="0 0 ${layout.width} ${layout.height}"><title>Full-size UK ${platform === 'mac' ? 'Mac' : 'Windows'} keyboard</title>${metadata}${casework}${parts}</svg>\n`;
+  return { casework, parts };
 }

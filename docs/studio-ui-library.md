@@ -706,7 +706,7 @@ borders on an off-white keycap. The space outside the keycap stays transparent.
 Choose Outline or Dark, or edit a colour to enter the automatically detected
 Custom state. Use Reset to Default to restore the palette and light preview
 surface without changing the selected key, platform, artwork mode or export
-size. Switching keys retains your palette. The Dark preset selects dark keys on the light preview surface. Dark Specimens
+size. Hovering, focusing or tapping a key on the Windows keyboard selects its printed layout artwork for the inspector and downloads. Selecting a catalogue card opens the standalone asset. Switching keys retains your palette. The Dark preset selects dark keys on the light preview surface. Dark Specimens
 swaps the symbol and fill colours, and toggling it again restores their order.
 When starting from a transparent keycap, Dark Specimens temporarily restores a
 solid fill; toggling it off restores transparency. Bare light symbols and

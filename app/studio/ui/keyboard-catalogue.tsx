@@ -8,7 +8,7 @@ import { useId, useReducer, useRef, useState } from "react";
 import { iconMetadata } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyGroup, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@acm/icons/keyboard";
-import { createFullKeyboardSvg, fullKeyboardLayout } from "@acm/icons/keyboard/layout";
+import { createFullKeyboardSvg, fullKeyboardLayout, windowsLayoutKeyAsset } from "@acm/icons/keyboard/layout";
 import { AcmKeycap } from "@acm/icons/keyboard/react";
 import { createSvgPng, downloadIconFile } from "./icon-download.mjs";
 import { createKeyboardCatalogueState, getKeyboardAppearancePresetName, getKeyboardColourControlKey, keyboardCatalogueReducer } from "./keyboard-appearance.mjs";
@@ -24,6 +24,7 @@ type KeyboardAppearance = {
 };
 type KeyboardCatalogueState = {
   selected: KeyboardKeyId;
+  windowsLayout: boolean;
   platform: KeyboardPlatform | "all";
   mode: KeyboardMode;
   height: number;
@@ -32,7 +33,7 @@ type KeyboardCatalogueState = {
   status: string;
 };
 type KeyboardCatalogueAction =
-  | { type: "select-key"; value: KeyboardKeyId }
+  | { type: "select-key"; value: KeyboardKeyId; windowsLayout?: boolean }
   | { type: "set-platform"; value: KeyboardPlatform | "all" }
   | { type: "set-mode"; value: KeyboardMode }
   | { type: "set-dark"; value: boolean }
@@ -74,16 +75,17 @@ export function KeyboardCatalogue() {
     (currentState: KeyboardCatalogueState, action: KeyboardCatalogueAction) => keyboardCatalogueReducer(currentState, action) as KeyboardCatalogueState,
     createKeyboardCatalogueState() as KeyboardCatalogueState,
   );
-  const { selected, platform, mode, height, appearance, resetRevision, status } = state;
+  const { selected, windowsLayout, platform, mode, height, appearance, resetRevision, status } = state;
   const keys = keyboardKeys.filter((key) => platform === "all" || key.platforms.includes(platform));
   const groups = [...new Set(keys.map((key) => key.group))];
   const visibleKeys = keys.filter((key) => (group === "all" || key.group === group) && `${key.label} ${key.id} ${key.note} ${key.aliases?.join(" ") ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()));
   const current = keyboardKeys.find((key) => key.id === selected) ?? keys[0];
   const asset = keyboardAsset(current.id, { mode });
   const artwork = iconMetadata[asset.key.icon];
-  const width = Math.round(height * asset.width / asset.height);
   const { colour, borderColour, matchBorder, fillColour, transparent, dark } = appearance;
   const resolvedAppearance = { colour, borderColour: matchBorder ? colour : borderColour, fillColour: transparent ? "none" : fillColour };
+  const layoutAsset = windowsLayout ? windowsLayoutKeyAsset(current.id, { height, mode, ...resolvedAppearance }) : undefined;
+  const width = layoutAsset?.width ?? Math.round(height * asset.width / asset.height);
   const preset = getKeyboardAppearancePresetName(appearance);
   const keyboardSvg = createFullKeyboardSvg(keyboardPlatform, { height: 256, ...resolvedAppearance });
   const keyboardLayout = fullKeyboardLayout(keyboardPlatform);
@@ -103,9 +105,9 @@ export function KeyboardCatalogue() {
   async function download(format: "svg" | "png") {
     const key = current;
     try {
-      const svg = createKeyboardSvg(key.id, { mode, height, ...resolvedAppearance });
+      const svg = layoutAsset?.svg ?? createKeyboardSvg(key.id, { mode, height, ...resolvedAppearance });
       const blob = format === "svg" ? new Blob([svg], { type: "image/svg+xml;charset=utf-8" }) : await createSvgPng(svg, width, height);
-      downloadIconFile(blob, `uk-${key.id}-${mode}-${height}px-${colour.slice(1).toLowerCase()}${mode === "keycap" ? `-${resolvedAppearance.borderColour.slice(1).toLowerCase()}-${transparent ? "clear" : fillColour.slice(1).toLowerCase()}` : ""}.${format}`);
+      downloadIconFile(blob, `uk-${windowsLayout ? "windows-layout-" : ""}${key.id}-${mode}-${height}px-${colour.slice(1).toLowerCase()}${mode === "keycap" ? `-${resolvedAppearance.borderColour.slice(1).toLowerCase()}-${transparent ? "clear" : fillColour.slice(1).toLowerCase()}` : ""}.${format}`);
       dispatch({ type: "set-status", value: `${key.label} ${format.toUpperCase()} download started.` });
     } catch {
       dispatch({ type: "set-status", value: `Could not prepare the ${format.toUpperCase()} download. Try again.` });
@@ -129,7 +131,7 @@ export function KeyboardCatalogue() {
     <div className="kb-intro"><div><p className="rl-eyebrow">KEYBOARD COLLECTION</p><h2>UK Mac and Windows keys.</h2></div><p>Common UK ISO legends, full-size key families and platform-specific keys.</p></div>
     <section className="kb-full-keyboard" aria-label="Full-size keyboards">
       <div className="kb-full-header"><div><h3>Full-size keyboards</h3><p>Illustrative UK ISO layouts with numeric keypads. Hardware and legends vary.</p></div>
-        <RadioGroup label="Platform" hideLabel presentation="buttons" value={keyboardPlatform} onChange={value => { setKeyboardPlatform(value as KeyboardPlatform); setFocusedKeyIndex(0); }} options={[
+        <RadioGroup label="Platform" hideLabel presentation="buttons" value={keyboardPlatform} onChange={value => { setKeyboardPlatform(value as KeyboardPlatform); setFocusedKeyIndex(0); if (windowsLayout) dispatch({ type: "select-key", value: selected }); }} options={[
           { value: "mac", label: <AcmIcon name="brand.apple" size={24} />, accessibleName: "Mac", title: "Mac" },
           { value: "windows", label: <AcmIcon name="keyboard.windows" size={24} />, accessibleName: "Windows", title: "Windows" },
         ]} /></div>
@@ -159,7 +161,7 @@ export function KeyboardCatalogue() {
           }}>
             {keyboardLayout.keys.map((key, index) => {
               const info = keyboardKeys.find(item => item.id === key.id)!;
-              const select = () => dispatch({ type: "select-key", value: key.id });
+              const select = () => dispatch({ type: "select-key", value: key.id, windowsLayout: keyboardPlatform === "windows" });
               const right = key.width - 3, bottom = key.height - 3, radius = 7;
               const notch = Math.round(key.width * 0.32), step = Math.round(key.height * 0.44);
               const corner = keyboardPlatform === "mac" ? ({ "mac-escape": "tl", "mac-f19": "tr", "fn-globe": "bl", "mac-keypad-enter": "br" } as Record<string, string>)[key.id] : undefined;
@@ -168,7 +170,7 @@ export function KeyboardCatalogue() {
               const outline = key.outline ?? (key.id === "enter"
                 ? `M 10 3 H ${right - radius} Q ${right} 3 ${right} 10 V ${bottom - radius} Q ${right} ${bottom} ${right - radius} ${bottom} H ${notch + radius} Q ${notch} ${bottom} ${notch} ${bottom - radius} V ${step + 3} Q ${notch} ${step} ${notch - 3} ${step} H 10 Q 3 ${step} 3 ${step - radius} V 10 Q 3 3 10 3 Z`
                 : `M ${3 + tl} 3 H ${right - tr} Q ${right} 3 ${right} ${3 + tr} V ${bottom - br} Q ${right} ${bottom} ${right - br} ${bottom} H ${3 + bl} Q 3 ${bottom} 3 ${bottom - bl} V ${3 + tl} Q 3 3 ${3 + tl} 3 Z`);
-              return <path key={`${index}-${key.id}`} ref={element => { keyboardKeyRefs.current[index] = element; }} className="kb-full-key-hit" transform={`translate(${key.x} ${key.y})`} d={outline} role="button" aria-label={info.label} aria-pressed={selected === key.id} tabIndex={index === focusedKeyIndex ? 0 : -1} onPointerEnter={event => { if (event.pointerType !== "touch") select(); }} onClick={select} onFocus={() => { setFocusedKeyIndex(index); select(); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); } }} />;
+              return <path key={`${index}-${key.id}`} ref={element => { keyboardKeyRefs.current[index] = element; }} className="kb-full-key-hit" transform={`translate(${key.x} ${key.y})`} d={outline} role="button" aria-label={info.label} aria-pressed={selected === key.id && (keyboardPlatform !== "windows" || windowsLayout)} tabIndex={index === focusedKeyIndex ? 0 : -1} onPointerEnter={event => { if (event.pointerType !== "touch") select(); }} onClick={select} onFocus={() => { setFocusedKeyIndex(index); select(); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); } }} />;
             })}
           </svg>
         </div>
@@ -191,19 +193,26 @@ export function KeyboardCatalogue() {
     </div>
     <div className="kb-workspace">
       <div className="kb-grid" aria-label="Keyboard Assets">
-        {visibleKeys.length ? visibleKeys.map((key) => <button type="button" className={"kb-card" + (key.shape === "spacebar" ? " kb-card--spacebar" : key.shape === "keypad-zero" ? " kb-card--keypad-zero" : "")} key={key.id} aria-pressed={current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
+        {visibleKeys.length ? visibleKeys.map((key) => <button type="button" className={"kb-card" + (key.shape === "spacebar" ? " kb-card--spacebar" : key.shape === "keypad-zero" ? " kb-card--keypad-zero" : "")} key={key.id} aria-pressed={!windowsLayout && current.id === key.id} onClick={() => dispatch({ type: "select-key", value: key.id })}>
           <span className={"kb-card-art" + (dark && (mode === "symbol" || transparent) ? " kb-symbol-dark" : "")}><AcmKeycap name={key.id} mode={mode} {...resolvedAppearance} height={mode === "keycap" && (key.shape === "iso" || key.shape === "tall") ? 112 : 96} /></span>
           <strong>{key.label}</strong><span>{key.platforms.length === 2 ? "Mac + Windows" : key.platforms[0] === "mac" ? "Mac" : "Windows"}</span>
         </button>) : <p className="kb-empty">No keys match this search.</p>}
       </div>
       <aside className="kb-inspector" aria-label="Keyboard Asset Inspector">
         <p className="rl-eyebrow">SELECTED ASSET</p><h2>{current.label}</h2>
-        <div className={"kb-large" + (dark && (mode === "symbol" || transparent) ? " kb-symbol-dark" : "")} style={{ color: colour }}><AcmKeycap name={current.id} mode={mode} {...resolvedAppearance} height={128} /></div>
+        <div className={"kb-large" + (dark && (mode === "symbol" || transparent) ? " kb-symbol-dark" : "")} style={{ color: colour }}>
+          {layoutAsset ? (
+            // The shared renderer supplies the same self-contained SVG for preview and download.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img alt={`Windows keyboard: ${current.label}`} src={`data:image/svg+xml,${encodeURIComponent(layoutAsset.svg)}`} width={128 * width / height} />
+          ) : <AcmKeycap name={current.id} mode={mode} {...resolvedAppearance} height={128} />}
+        </div>
         <p>{current.note}</p>
         <details className="kb-artwork-info">
           <summary>Artwork provenance and licensing</summary>
+          {windowsLayout && <p>Windows layout artwork by ACM, based on the supplied Surface Keyboard photo.</p>}
           <p>{artwork.provenance}</p>
-          <code>acm-studio/packages/acm-icons/masters/{asset.key.icon}.svg</code>
+          <code>{windowsLayout ? "acm-studio/packages/acm-icons/src/keyboard-layout.js" : `acm-studio/packages/acm-icons/masters/${asset.key.icon}.svg`}</code>
           {artwork.licenceNotice && <details>
             <summary>Full licence notice</summary>
             <pre>{artwork.licenceNotice}</pre>

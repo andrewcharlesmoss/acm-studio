@@ -9,7 +9,7 @@ import { AcmKeycap } from "../src/keyboard-react.js";
 
 test("UK inventory covers the common ISO legends, full key families and platform variants", () => {
   const uniqueIcons = [...new Set(keyboardKeys.map((key) => key.icon))];
-  assert.equal(keyboardKeys.length, 171);
+  assert.equal(keyboardKeys.length, 176);
   assert.equal(new Set(keyboardKeys.map((key) => key.id)).size, keyboardKeys.length);
   assert.deepEqual(iconNames.filter(name => uniqueIcons.includes(name)), uniqueIcons);
   assert.deepEqual(iconNames.filter(name => ["keyboard.command", "keyboard.option", "keyboard.delete-backward"].includes(name)), ["keyboard.command", "keyboard.option", "keyboard.delete-backward"]);

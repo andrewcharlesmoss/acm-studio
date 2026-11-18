@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { fullKeyboardLayout, createFullKeyboardSvg } from '../src/keyboard-layout.js';
+import { fullKeyboardLayout, createFullKeyboardSvg, windowsLayoutKeyAsset } from '../src/keyboard-layout.js';
 import { keyboardKeys, keyboardAsset } from '../src/keyboard.js';
-import { iconGeometry } from '../dist/index.js';
+import { iconGeometry, iconMetadata } from '../dist/index.js';
 
 const pitch = 48;
-const atRow = (layout, y) => layout.keys.filter(key => Math.abs((key.y - (layout.width === 23 * pitch ? 0 : 6)) / pitch - y) < 0.001).sort((a, b) => a.x - b.x).map(key => key.id);
+const atRow = (layout, y) => layout.keys.filter(key => Math.abs((key.y - 6) / pitch - y) < 0.001).sort((a, b) => a.x - b.x).map(key => key.id);
 const keyAt = (layout, id) => layout.keys.find(key => key.id === id);
 
 test('Mac keyboard case and outer key corners follow the reference', () => {
@@ -78,10 +78,15 @@ test('full keyboard layouts contain platform-correct keys without painted overla
     for (let i = 0; i < layout.keys.length; i++) for (const b of layout.keys.slice(i + 1)) {
       const a = layout.keys[i];
       const separate = a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
-      if (!separate && platform === 'mac' && [a.id, b.id].includes('enter') && [a.id, b.id].includes('punct-backslash')) {
+      if (!separate && [a.id, b.id].includes('enter') && [a.id, b.id].includes(platform === 'mac' ? 'punct-backslash' : 'punct-hash')) {
         const enter = a.id === 'enter' ? a : b;
-        const slash = a.id === 'punct-backslash' ? a : b;
-        assert.ok(slash.x + slash.width <= enter.x + Math.round(enter.width * 0.32), 'the backslash key fits the ISO Return notch');
+        const companion = a === enter ? b : a;
+        if (platform === 'mac') {
+          assert.ok(companion.x + companion.width <= enter.x + Math.round(enter.width * 0.32), 'the backslash key fits the ISO Return notch');
+        } else {
+          const innerEdge = Number(enter.outline.match(/H \d+ Q (\d+) \d+ \1 \d+ V \d+ Q \1/)[1]);
+          assert.ok(companion.x + companion.width < enter.x + innerEdge, 'the Hash key clears the ISO Enter notch');
+        }
       } else assert.ok(separate, `${platform}: ${a.id} overlaps ${b.id}`);
     }
     const svg = createFullKeyboardSvg(platform, { height: 512, colour: '#123456', fillColour: '#ABCDEF' });
@@ -92,10 +97,50 @@ test('full keyboard layouts contain platform-correct keys without painted overla
   assert.throws(() => fullKeyboardLayout('other'));
 });
 
-test('Windows keyboard layout and artwork remain backwards compatible', () => {
+test('Windows uses the compact reference arrangement with UK ISO keys', () => {
+  const layout = fullKeyboardLayout('windows');
+  const key = id => keyAt(layout, id);
+  assert.ok(Math.abs(layout.width / layout.height - 3.74) < 0.04);
+  assert.equal(key('escape').height, 32);
+  assert.equal(key('digit-three').y, key('escape').y + key('escape').height);
+  assert.equal(key('enter').height, 2 * pitch);
+  assert.equal(key('windows-shift-left').width, 1.25 * pitch);
+  assert.equal(key('punct-backslash').x, key('windows-shift-left').x + key('windows-shift-left').width);
+  assert.equal(key('punct-hash').y, key('enter').y + pitch);
+  assert.equal(keyboardAsset('digit-three').key.label, '3 / £');
+  assert.equal(keyboardAsset('digit-two').key.label, '2 / "');
+  assert.equal(key('insert').x, key('enter').x + key('enter').width);
+  assert.equal(key('windows-keypad-clear').x, key('page-up').x + pitch);
+  const bottom = ['windows-control-left', 'windows-fn', 'windows-left', 'windows-alt-left', 'space', 'windows-altgr', 'copilot', 'windows-menu', 'windows-control-right'];
+  assert.deepEqual(layout.keys.filter(item => item.y === key('space').y && item.x < key('insert').x).map(item => item.id), bottom);
+  for (const id of ['windows-right', 'windows-alt-right', 'keypad-equals', 'f12']) assert.equal(keyboardAsset(id).key.id, id);
+  const utilities = ['scroll-lock', 'pause-break', 'num-lock', 'windows-calculator', 'windows-widgets', 'windows-expressive-input', 'windows-lock'];
+  assert.deepEqual(atRow(layout, 0).slice(-utilities.length), utilities);
+});
+
+test('Windows exports reuse the selectable key shapes and honour transparent fill', () => {
+  const layout = fullKeyboardLayout('windows');
+  const svg = createFullKeyboardSvg('windows');
+  const mask = svg.match(/<mask id="windows-keyboard-case-mask"[^>]*>([\s\S]*?)<\/mask>/)?.[1];
+  assert.ok(mask);
+  assert.equal((mask.match(/fill="#000"/g) ?? []).length, layout.keys.length);
+  for (const { x, y, outline } of layout.keys) {
+    assert.ok(mask.includes(`<path d="${outline}" transform="translate(${x} ${y})"`));
+    assert.ok(svg.includes(`<g transform="translate(${x} ${y})"><path d="${outline}"`));
+  }
+  const solid = createFullKeyboardSvg('windows', { fillColour: '#F2F2F7' });
+  assert.doesNotMatch(solid, /<mask/);
+  assert.match(solid, /fill="#F2F2F7"/);
+  const escapedNotice = iconMetadata['keyboard.copilot'].licenceNotice
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&apos;');
+  assert.ok(svg.includes(`<metadata>${escapedNotice}</metadata>`));
+});
+
+test('Mac layout and default SVG remain byte-for-byte compatible', () => {
   const hash = value => createHash('sha256').update(value).digest('hex');
-  assert.equal(hash(JSON.stringify(fullKeyboardLayout('windows'))), 'f52273bc714b9a0792af1ee1e7bbd8209532f222a5eb92926b41db617a90bfa8');
-  assert.equal(hash(createFullKeyboardSvg('windows')), '1d24d1b20bf889444c4d58553a2600cd91049536d9e29b8dcc2ac47c55d25231');
+  assert.equal(hash(JSON.stringify(fullKeyboardLayout('mac'))), 'c68010bf6f5aaca83150b8bbc5c2aadc0c98855c272307f2efa6b819df5ddc79');
+  assert.equal(hash(createFullKeyboardSvg('mac')), '07e2f0566e47e13ec1b5106e79b6563ab55f2feb5cd84d26ce594607bb9012fc');
 });
 
 test('Mac full keyboard reuses the shared Fn, Touch ID and reference key artwork', () => {
@@ -236,4 +281,24 @@ test('Mac reference sizing preserves function labels and fits the smaller naviga
   }
   for (const id of ['mac-arrow-up', 'mac-arrow-down', 'mac-arrow-left', 'mac-arrow-right']) assert.match(keyArtwork(id), /scale\(0\.45\)/);
   for (const id of ['letter-f', 'letter-j', 'keypad-5']) assert.ok(keyArtwork(id).includes(`M 22 42 L 26 42`), `${id} retains a compact tactile mark`);
+});
+
+test('Windows key specimens reproduce the frame and legends from every board position', () => {
+  const options = { fillColour: '#FEFAFA', height: 128 };
+  const board = createFullKeyboardSvg('windows', options);
+  for (const key of fullKeyboardLayout('windows').keys) {
+    const { svg, width } = windowsLayoutKeyAsset(key.id, options);
+    const metadata = svg.match(/<metadata>.*?<\/metadata>/s)?.[0] ?? '';
+    if (key.id === 'copilot') assert.ok(metadata && board.includes(metadata));
+    const art = svg.slice(svg.indexOf('</title>') + '</title>'.length, svg.lastIndexOf('</svg>')).replace(metadata, '');
+    assert.ok(board.includes(`<g transform="translate(${key.x} ${key.y})">${art}</g>`), key.id);
+    assert.equal(width, Math.round(128 * key.width / key.height));
+  }
+  for (const [key, icon] of [['f11', 'keyboard.windows-favourites'], ['f12', 'action.settings'], ['windows-menu', 'keyboard.context-menu']]) {
+    const { svg } = windowsLayoutKeyAsset(key, { mode: 'symbol' });
+    for (const path of iconGeometry[icon]['Regular-M'].paths) assert.ok(svg.includes(path.d), key);
+    assert.ok(!svg.includes('stroke-width="1.1"'), 'symbol export omits the keycap border');
+  }
+  assert.ok(windowsLayoutKeyAsset('space', { mode: 'symbol' }).svg.includes(keyboardAsset('space', { mode: 'symbol' }).glyph.paths[0].d));
+  assert.throws(() => windowsLayoutKeyAsset('mac-f19'));
 });

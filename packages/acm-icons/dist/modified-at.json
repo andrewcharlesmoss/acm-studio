@@ -221,7 +221,7 @@
   "keyboard.print-screen": "2026-09-26T21:13:36+01:00",
   "keyboard.scroll-lock": "2026-09-26T21:13:36+01:00",
   "keyboard.pause-break": "2026-09-26T21:13:36+01:00",
-  "keyboard.context-menu": "2026-09-26T19:56:57+01:00",
+  "keyboard.context-menu": "2026-11-18T15:04:39+00:00",
   "keyboard.function-one": "2026-09-26T19:56:57+01:00",
   "keyboard.function-two": "2026-09-26T19:56:57+01:00",
   "keyboard.function-three": "2026-09-26T19:56:57+01:00",
@@ -459,6 +459,11 @@
   "keyboard.mac-keypad-multiply": "2026-11-11T21:45:42+00:00",
   "keyboard.mac-keypad-enter": "2026-11-10T19:21:24+00:00",
   "keyboard.mac-punct-minus": "2026-11-10T20:40:44+00:00",
+  "keyboard.windows-calculator": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-expressive-input": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-widgets": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-lock": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-favourites": "2026-11-18T15:04:39+00:00",
   "brand.linkedin": "2026-10-30T22:25:36+00:00",
   "brand.tiktok": "2026-10-30T22:25:36+00:00"
 }

@@ -459,6 +459,11 @@
   "keyboard.mac-keypad-multiply": "2026-11-10T18:43:38+00:00",
   "keyboard.mac-keypad-enter": "2026-11-10T18:43:38+00:00",
   "keyboard.mac-punct-minus": "2026-11-10T20:40:44+00:00",
+  "keyboard.windows-calculator": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-expressive-input": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-widgets": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-lock": "2026-11-18T12:15:26+00:00",
+  "keyboard.windows-favourites": "2026-11-18T15:04:39+00:00",
   "brand.linkedin": "2026-09-28T18:40:03+01:00",
   "brand.tiktok": "2026-09-28T18:40:03+01:00"
 }

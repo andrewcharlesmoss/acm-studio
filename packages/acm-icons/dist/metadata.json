@@ -2822,7 +2822,7 @@
       "menu"
     ],
     "golden": false,
-    "provenance": "Original ACM vector construction informed by the supplied UK Mac keyboard reference; no third-party paths or glyph artwork."
+    "provenance": "Original ACM geometry informed by the supplied Surface Keyboard second edition photo. No third-party paths."
   },
   "keyboard.function-one": {
     "name": "keyboard.function-one",
@@ -5845,6 +5845,70 @@
     ],
     "golden": false,
     "provenance": "Original ACM geometric keyboard artwork based on the supplied key reference."
+  },
+  "keyboard.windows-calculator": {
+    "name": "keyboard.windows-calculator",
+    "label": "Calculator",
+    "description": "Calculator shortcut key",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "shortcut",
+      "calculator"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+  },
+  "keyboard.windows-expressive-input": {
+    "name": "keyboard.windows-expressive-input",
+    "label": "Expressive Input",
+    "description": "Expressive input shortcut key",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "shortcut",
+      "expressive input"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+  },
+  "keyboard.windows-widgets": {
+    "name": "keyboard.windows-widgets",
+    "label": "Widgets",
+    "description": "Windows Widgets shortcut key",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "widgets"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+  },
+  "keyboard.windows-lock": {
+    "name": "keyboard.windows-lock",
+    "label": "Lock",
+    "description": "Lock shortcut key",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "lock"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+  },
+  "keyboard.windows-favourites": {
+    "name": "keyboard.windows-favourites",
+    "label": "Favourites",
+    "description": "Heart on a tile for the Windows keyboard shortcut",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "favourites",
+      "heart",
+      "shortcut"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry informed by the supplied Surface Keyboard second edition photo. No third-party paths."
   },
   "brand.linkedin": {
     "name": "brand.linkedin",
