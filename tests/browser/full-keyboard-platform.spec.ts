@@ -55,7 +55,10 @@ test('the compact Windows specimen selects UK keys and exports the same drawing'
   expect(svg).toContain('Full-size UK Windows keyboard');
 
   await page.setContent(svg);
-  const keys = fullKeyboardLayout('windows').keys.filter(key => /^f\d+$|^keypad-[0-9]$/.test(key.id));
+  const navigation = ['insert', 'home', 'delete-forward', 'end'];
+  const modifiers = ['windows-control-left', 'windows-fn', 'windows-alt-left', 'windows-altgr', 'windows-control-right'];
+  const keys = fullKeyboardLayout('windows').keys.filter(key =>
+    /^f\d+$|^keypad-[0-9]$/.test(key.id) || navigation.includes(key.id) || modifiers.includes(key.id));
   const legendBounds = await page.evaluate(keys => keys.map(key => {
     const groups = document.querySelectorAll<SVGGElement>(`svg > g[transform="translate(${key.x} ${key.y})"] > g`);
     const legends = Array.from(groups, group => {
@@ -67,6 +70,7 @@ test('the compact Windows specimen selects UK keys and exports the same drawing'
         left: translate.e + bounds.x * scale - stroke,
         right: translate.e + (bounds.x + bounds.width) * scale + stroke,
         centreY: translate.f + (bounds.y + bounds.height / 2) * scale,
+        height: bounds.height * scale,
       };
     });
     return { id: key.id, legends };
@@ -76,4 +80,10 @@ test('the compact Windows specimen selects UK keys and exports the same drawing'
   }
   const keypadDigitCentres = legendBounds.filter(key => key.id.startsWith('keypad-')).map(key => key.legends[0].centreY);
   expect(Math.max(...keypadDigitCentres) - Math.min(...keypadDigitCentres)).toBeLessThan(1);
+  for (const family of [navigation, modifiers]) {
+    const captions = legendBounds.filter(key => family.includes(key.id)).map(key => key.legends[0]);
+    for (const caption of captions) expect(caption.centreY).toBeCloseTo(24, 1);
+    const heights = captions.map(caption => caption.height);
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1.4);
+  }
 });
