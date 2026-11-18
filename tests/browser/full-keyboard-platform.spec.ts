@@ -55,10 +55,26 @@ test('the compact Windows specimen selects UK keys and exports the same drawing'
   expect(svg).toContain('Full-size UK Windows keyboard');
 
   await page.setContent(svg);
+  const layout = fullKeyboardLayout('windows');
+  const frame = (id: string) => {
+    const key = layout.keys.find(key => key.id === id)!;
+    return page.locator(`svg > g[transform="translate(${key.x} ${key.y})"] > path:first-child`);
+  };
+  const bracketBottom = await frame('punct-right-bracket').evaluate(path => {
+    const box = (path as SVGPathElement).getBBox();
+    return box.y + box.height;
+  });
+  // At the Enter overhang, the edge should line up with the adjacent ] key.
+  const notch = await frame('enter').evaluate((element, y) => {
+    const path = element as SVGPathElement;
+    return [-0.25, 0.25].map(offset => path.isPointInFill(new DOMPoint(8, y + offset)));
+  }, bracketBottom);
+  expect.soft(notch).toEqual([true, false]);
+
   const navigation = ['insert', 'home', 'delete-forward', 'end'];
   const modifiers = ['windows-control-left', 'windows-fn', 'windows-alt-left', 'windows-altgr', 'windows-control-right'];
   const keys = fullKeyboardLayout('windows').keys.filter(key =>
-    /^f\d+$|^keypad-[0-9]$/.test(key.id) || navigation.includes(key.id) || modifiers.includes(key.id));
+    key.id === 'print-screen' || /^f\d+$|^keypad-[0-9]$/.test(key.id) || navigation.includes(key.id) || modifiers.includes(key.id));
   const legendBounds = await page.evaluate(keys => keys.map(key => {
     const groups = document.querySelectorAll<SVGGElement>(`svg > g[transform="translate(${key.x} ${key.y})"] > g`);
     const legends = Array.from(groups, group => {
@@ -75,6 +91,15 @@ test('the compact Windows specimen selects UK keys and exports the same drawing'
     });
     return { id: key.id, legends };
   }), keys);
+  const print = layout.keys.find(key => key.id === 'print-screen')!;
+  const printLegends = legendBounds.find(key => key.id === print.id)!.legends;
+  expect(printLegends).toHaveLength(2);
+  const [screen, label] = printLegends;
+  expect((screen.left + screen.right) / 2).toBeCloseTo(print.width / 2, 1);
+  expect(label.left - screen.right).toBeGreaterThan(3);
+  expect(label.centreY).toBeGreaterThan(screen.centreY + 4);
+  expect(print.width - label.right).toBeGreaterThan(4);
+  expect(print.width - label.right).toBeLessThan(10);
   for (const { id, legends: [pictogram, caption] } of legendBounds.filter(key => /^f\d+$/.test(key.id))) {
     expect(caption.left - pictogram.right, `${id} has space between its shortcut and F-number`).toBeGreaterThanOrEqual(3);
   }
