@@ -938,6 +938,8 @@
 
 ### Fixed
 
+- Match the UK Windows keyboard’s media controls, keypad and arrow legends, wide-key captions, indicators, and utility symbols to the Surface Keyboard reference.
+
 - Windows keyboard selections now preview and export the printed key, including the shortcut on F11 and the framed Menu legend.
 
 - Show the shared artwork source for Outline and Filled icons.

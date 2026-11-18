@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
 <title>Widgets</title>
-<desc>Windows Widgets shortcut key</desc>
-<g id="Regular-S" stroke-width="2">
-<path d="M 4.32 4.32 L 19.68 4.32 L 19.68 19.68 L 4.32 19.68 Z M 4.32 9.12 L 19.68 9.12 M 11.04 9.12 L 11.04 19.68 M 13.92 12.96 L 16.8 12.96 M 13.92 15.84 L 16.8 15.84" />
+<desc>Rounded tile with three inset panes</desc>
+<g id="Regular-S" stroke-width="1.5">
+<path d="M 5.28 3.36 L 18.72 3.36 Q 20.64 3.36 20.64 5.28 L 20.64 18.72 Q 20.64 20.64 18.72 20.64 L 5.28 20.64 Q 3.36 20.64 3.36 18.72 L 3.36 5.28 Q 3.36 3.36 5.28 3.36 Z M 7.2 7.2 L 11.04 7.2 L 11.04 16.8 L 7.2 16.8 Z M 14.88 7.2 L 16.8 7.2 L 16.8 11.04 L 14.88 11.04 Z M 14.88 13.92 L 16.8 13.92 L 16.8 16.8 L 14.88 16.8 Z" />
 </g>
 <g id="Regular-M" stroke-width="1.75">
-<path d="M 4 4 L 20 4 L 20 20 L 4 20 Z M 4 9 L 20 9 M 11 9 L 11 20 M 14 13 L 17 13 M 14 16 L 17 16" />
+<path d="M 5 3 L 19 3 Q 21 3 21 5 L 21 19 Q 21 21 19 21 L 5 21 Q 3 21 3 19 L 3 5 Q 3 3 5 3 Z M 7 7 L 11 7 L 11 17 L 7 17 Z M 15 7 L 17 7 L 17 11 L 15 11 Z M 15 14 L 17 14 L 17 17 L 15 17 Z" />
 </g>
 <g id="Regular-L" stroke-width="1.5">
-<path d="M 3.68 3.68 L 20.32 3.68 L 20.32 20.32 L 3.68 20.32 Z M 3.68 8.88 L 20.32 8.88 M 10.96 8.88 L 10.96 20.32 M 14.08 13.04 L 17.2 13.04 M 14.08 16.16 L 17.2 16.16" />
+<path d="M 4.72 2.64 L 19.28 2.64 Q 21.36 2.64 21.36 4.72 L 21.36 19.28 Q 21.36 21.36 19.28 21.36 L 4.72 21.36 Q 2.64 21.36 2.64 19.28 L 2.64 4.72 Q 2.64 2.64 4.72 2.64 Z M 6.8 6.8 L 10.96 6.8 L 10.96 17.2 L 6.8 17.2 Z M 15.12 6.8 L 17.2 6.8 L 17.2 10.96 L 15.12 10.96 Z M 15.12 14.08 L 17.2 14.08 L 17.2 17.2 L 15.12 17.2 Z" />
 </g>
 </svg>

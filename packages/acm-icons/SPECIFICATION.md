@@ -844,7 +844,7 @@ The supplied straight-on US Surface Keyboard (2nd Edition) photo informs the
 silver case, shallow function row, close key spacing and shortcut positions.
 The illustration retains UK ISO Enter, left Shift and UK number and punctuation
 legends. Shortcut pictograms use original ACM artwork, with the existing licensed
-Copilot mark. The shortcut assignment is representative. Short legends such as ScrLk, Pause,
+Copilot mark. The media row places Previous on F6, Next on F7, and Play/Pause on F8. The arrow cluster and the four directional keypad legends share a stemless chevron. Caps, Fn, ScrLk, and NumLk show static indicator dots, and End and Down have tactile bars. Short legends such as ScrLk, Pause,
 NumLk, PgUp and PgDn use pinned Inter outlines in the full-size drawing.
 Existing standalone keys remain available, including alternative Windows
 and modifier keys.

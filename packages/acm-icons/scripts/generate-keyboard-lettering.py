@@ -212,7 +212,7 @@ windows_captions.update({
     'windows-fn': ('Fn', 30), 'windows-alt-left': ('Alt', 30), 'windows-altgr': ('AltGr', 33),
     'windows-keypad-clear': ('Clear', 33), 'keypad-enter': ('Enter', 33),
     'keypad-add': ('+', 20), 'keypad-subtract': ('−', 20),
-    'keypad-multiply': ('×', 20), 'keypad-divide': ('/', 20),
+    'keypad-divide': ('/', 20),
     'keypad-delete-caption': ('Del', 32), 'keypad-decimal': ('.', 20),
 })
 windows_short_top = {'escape', 'print-screen', 'scroll-lock', 'pause-break', 'num-lock'}

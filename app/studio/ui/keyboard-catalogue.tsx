@@ -45,6 +45,10 @@ type KeyboardCatalogueAction =
   | { type: "reset-appearance" }
   | { type: "set-status"; value: string };
 
+function keyboardLegend(key: (typeof keyboardKeys)[number], windowsLayout: boolean) {
+  return windowsLayout && key.id === "keypad-multiply" ? "*" : key.label;
+}
+
 function ColourControl({ label, value, onChange, disabled = false }: { label: string; value: string; onChange: (value: string) => void; disabled?: boolean }) {
   const id = useId();
   const [draft, setDraft] = useState(value);
@@ -170,7 +174,7 @@ export function KeyboardCatalogue() {
               const outline = key.outline ?? (key.id === "enter"
                 ? `M 10 3 H ${right - radius} Q ${right} 3 ${right} 10 V ${bottom - radius} Q ${right} ${bottom} ${right - radius} ${bottom} H ${notch + radius} Q ${notch} ${bottom} ${notch} ${bottom - radius} V ${step + 3} Q ${notch} ${step} ${notch - 3} ${step} H 10 Q 3 ${step} 3 ${step - radius} V 10 Q 3 3 10 3 Z`
                 : `M ${3 + tl} 3 H ${right - tr} Q ${right} 3 ${right} ${3 + tr} V ${bottom - br} Q ${right} ${bottom} ${right - br} ${bottom} H ${3 + bl} Q 3 ${bottom} 3 ${bottom - bl} V ${3 + tl} Q 3 3 ${3 + tl} 3 Z`);
-              return <path key={`${index}-${key.id}`} ref={element => { keyboardKeyRefs.current[index] = element; }} className="kb-full-key-hit" transform={`translate(${key.x} ${key.y})`} d={outline} role="button" aria-label={info.label} aria-pressed={selected === key.id && (keyboardPlatform !== "windows" || windowsLayout)} tabIndex={index === focusedKeyIndex ? 0 : -1} onPointerEnter={event => { if (event.pointerType !== "touch") select(); }} onClick={select} onFocus={() => { setFocusedKeyIndex(index); select(); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); } }} />;
+              return <path key={`${index}-${key.id}`} ref={element => { keyboardKeyRefs.current[index] = element; }} className="kb-full-key-hit" transform={`translate(${key.x} ${key.y})`} d={outline} role="button" aria-label={keyboardLegend(info, keyboardPlatform === "windows")} aria-pressed={selected === key.id && (keyboardPlatform !== "windows" || windowsLayout)} tabIndex={index === focusedKeyIndex ? 0 : -1} onPointerEnter={event => { if (event.pointerType !== "touch") select(); }} onClick={select} onFocus={() => { setFocusedKeyIndex(index); select(); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(); } }} />;
             })}
           </svg>
         </div>
@@ -199,15 +203,15 @@ export function KeyboardCatalogue() {
         </button>) : <p className="kb-empty">No keys match this search.</p>}
       </div>
       <aside className="kb-inspector" aria-label="Keyboard Asset Inspector">
-        <p className="rl-eyebrow">SELECTED ASSET</p><h2>{current.label}</h2>
+        <p className="rl-eyebrow">SELECTED ASSET</p><h2>{keyboardLegend(current, windowsLayout)}</h2>
         <div className={"kb-large" + (dark && (mode === "symbol" || transparent) ? " kb-symbol-dark" : "")} style={{ color: colour }}>
           {layoutAsset ? (
             // The shared renderer supplies the same self-contained SVG for preview and download.
             // eslint-disable-next-line @next/next/no-img-element
-            <img alt={`Windows keyboard: ${current.label}`} src={`data:image/svg+xml,${encodeURIComponent(layoutAsset.svg)}`} width={128 * width / height} />
+            <img alt={`Windows keyboard: ${keyboardLegend(current, windowsLayout)}`} src={`data:image/svg+xml,${encodeURIComponent(layoutAsset.svg)}`} width={128 * width / height} />
           ) : <AcmKeycap name={current.id} mode={mode} {...resolvedAppearance} height={128} />}
         </div>
-        <p>{current.note}</p>
+        <p>{windowsLayout && current.id === "keypad-multiply" ? "Numeric keypad multiply." : current.note}</p>
         <details className="kb-artwork-info">
           <summary>Artwork provenance and licensing</summary>
           {windowsLayout && <p>Windows layout artwork by ACM, based on the supplied Surface Keyboard photo.</p>}

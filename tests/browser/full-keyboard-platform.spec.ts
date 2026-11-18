@@ -116,8 +116,37 @@ test('the compact Windows specimen selects UK keys and exports the same drawing'
   expect(label.centreY).toBeGreaterThan(screen.centreY + 4);
   expect(print.width - label.right).toBeGreaterThan(4);
   expect(print.width - label.right).toBeLessThan(10);
-  for (const { id, legends: [pictogram, caption] } of legendBounds.filter(key => /^f\d+$/.test(key.id))) {
-    expect(caption.left - pictogram.right, `${id} has space between its shortcut and F-number`).toBeGreaterThanOrEqual(3);
+  // Diagonally separated marks can share a bounding box. Measure the printed ink.
+  const functionInk = await page.evaluate(async keys => {
+    const scale = 4;
+    return Promise.all(keys.filter(key => /^f\d+$/.test(key.id)).map(async key => {
+      const group = document.querySelector(`svg > g[transform="translate(${key.x} ${key.y})"]`)!;
+      const [icon, label] = await Promise.all(Array.from(group.querySelectorAll(':scope > g'), async layer => {
+        const canvas = document.createElement('canvas');
+        canvas.width = key.width * scale;
+        canvas.height = key.height * scale;
+        const ctx = canvas.getContext('2d')!;
+        const image = new Image();
+        const drawing = new XMLSerializer().serializeToString(layer);
+        image.src = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${key.width} ${key.height}">${drawing}</svg>`);
+        await image.decode();
+        ctx.drawImage(image, 0, 0);
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const ink = [];
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i + 3] >= 128) ink.push({ x: ((i / 4) % canvas.width + 0.5) / scale, y: (Math.floor(i / 4 / canvas.width) + 0.5) / scale });
+        }
+        return ink;
+      }));
+      const xs = icon.map(p => p.x), ys = icon.map(p => p.y);
+      const clearance = Math.min(...icon.map(p => Math.min(...label.map(q => Math.hypot(p.x - q.x, p.y - q.y)))));
+      return { id: key.id, centreX: (Math.min(...xs) + Math.max(...xs)) / 2, centreY: (Math.min(...ys) + Math.max(...ys)) / 2, clearance };
+    }));
+  }, keys);
+  for (const key of functionInk) {
+    expect(Math.abs(key.centreX - 24), key.id).toBeLessThanOrEqual(1);
+    expect(Math.abs(key.centreY - 16), key.id).toBeLessThanOrEqual(1);
+    expect(key.clearance, key.id).toBeGreaterThanOrEqual(1.75);
   }
   const keypadDigitCentres = legendBounds.filter(key => key.id.startsWith('keypad-')).map(key => key.legends[0].centreY);
   expect(Math.max(...keypadDigitCentres) - Math.min(...keypadDigitCentres)).toBeLessThan(1);

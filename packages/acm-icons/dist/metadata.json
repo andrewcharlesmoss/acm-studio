@@ -5849,7 +5849,7 @@
   "keyboard.windows-calculator": {
     "name": "keyboard.windows-calculator",
     "label": "Calculator",
-    "description": "Calculator shortcut key",
+    "description": "Calculator with a display and six buttons",
     "keywords": [
       "keyboard",
       "windows",
@@ -5857,12 +5857,12 @@
       "calculator"
     ],
     "golden": false,
-    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
   },
   "keyboard.windows-expressive-input": {
     "name": "keyboard.windows-expressive-input",
     "label": "Expressive Input",
-    "description": "Expressive input shortcut key",
+    "description": "Speech bubble with two lines",
     "keywords": [
       "keyboard",
       "windows",
@@ -5870,31 +5870,31 @@
       "expressive input"
     ],
     "golden": false,
-    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
   },
   "keyboard.windows-widgets": {
     "name": "keyboard.windows-widgets",
     "label": "Widgets",
-    "description": "Windows Widgets shortcut key",
+    "description": "Rounded tile with three inset panes",
     "keywords": [
       "keyboard",
       "windows",
       "widgets"
     ],
     "golden": false,
-    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
   },
   "keyboard.windows-lock": {
     "name": "keyboard.windows-lock",
     "label": "Lock",
-    "description": "Lock shortcut key",
+    "description": "Padlock with a plain face",
     "keywords": [
       "keyboard",
       "windows",
       "lock"
     ],
     "golden": false,
-    "provenance": "Original ACM geometry for the illustrative UK Windows specimen. No third-party paths."
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
   },
   "keyboard.windows-favourites": {
     "name": "keyboard.windows-favourites",
@@ -5920,6 +5920,42 @@
       "snipping",
       "print screen",
       "screenshot"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
+  },
+  "keyboard.windows-mute": {
+    "name": "keyboard.windows-mute",
+    "label": "Mute",
+    "description": "Speaker with a mute cross",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "mute"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
+  },
+  "keyboard.windows-previous-track": {
+    "name": "keyboard.windows-previous-track",
+    "label": "Previous track",
+    "description": "Single left triangle with a leading stop bar",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "previous track"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."
+  },
+  "keyboard.windows-next-track": {
+    "name": "keyboard.windows-next-track",
+    "label": "Next track",
+    "description": "Single right triangle with a trailing stop bar",
+    "keywords": [
+      "keyboard",
+      "windows",
+      "next track"
     ],
     "golden": false,
     "provenance": "Original ACM geometry informed by the Microsoft Surface Keyboard (2nd Edition) product photo RW1nwCC. No third-party paths."

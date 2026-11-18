@@ -302,3 +302,25 @@ test('Windows key specimens reproduce the frame and legends from every board pos
   assert.ok(windowsLayoutKeyAsset('space', { mode: 'symbol' }).svg.includes(keyboardAsset('space', { mode: 'symbol' }).glyph.paths[0].d));
   assert.throws(() => windowsLayoutKeyAsset('mac-f19'));
 });
+
+test('Windows preserves every key outline and assigns the Surface media legends', () => {
+  assert.equal(createHash('sha256').update(JSON.stringify(fullKeyboardLayout('windows'))).digest('hex'),
+    '8619359be1afd83f5ec0aadbd9cc9d978fc1fd4cc982003b055c26a961610c3c');
+  const symbol = id => windowsLayoutKeyAsset(id, { mode: 'symbol' }).svg;
+  for (const [id, name] of Object.entries({
+    f2: 'keyboard.windows-mute', f5: 'insert.video', f6: 'keyboard.windows-previous-track',
+    f7: 'keyboard.windows-next-track', f8: 'keyboard.mac-media-play', 'keypad-multiply': 'keyboard.mac-keypad-multiply',
+  })) {
+    const glyph = iconGeometry[name]?.['Regular-M'];
+    assert.ok(glyph && symbol(id).includes(glyph.paths[0].d), id);
+  }
+  for (const id of ['arrow-left', 'arrow-up', 'arrow-right', 'arrow-down', 'keypad-4', 'keypad-8', 'keypad-6', 'keypad-2']) {
+    assert.ok(symbol(id).includes(iconGeometry['navigation.chevron-right']['Regular-M'].paths[0].d), id);
+  }
+  const marked = id => symbol(id).includes('<circle');
+  assert.deepEqual(fullKeyboardLayout('windows').keys.filter(key => marked(key.id)).map(key => key.id).sort(),
+    ['caps-lock', 'num-lock', 'scroll-lock', 'windows-fn']);
+  for (const id of ['end', 'arrow-down', 'letter-f', 'letter-j', 'keypad-5']) {
+    assert.match(symbol(id), /stroke-width="1.2" stroke-linecap="round"/, id);
+  }
+});

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+<title>Mute</title>
+<desc>Speaker with a mute cross</desc>
+<g id="Regular-S" stroke-width="2">
+<path d="M 3.36 9.12 L 7.2 9.12 L 12 5.28 L 12 18.72 L 7.2 14.88 L 3.36 14.88 Z M 15.84 9.12 L 21.6 14.88 M 21.6 9.12 L 15.84 14.88" />
+</g>
+<g id="Regular-M" stroke-width="1.75">
+<path d="M 3 9 L 7 9 L 12 5 L 12 19 L 7 15 L 3 15 Z M 16 9 L 22 15 M 22 9 L 16 15" />
+</g>
+<g id="Regular-L" stroke-width="1.5">
+<path d="M 2.64 8.88 L 6.8 8.88 L 12 4.72 L 12 19.28 L 6.8 15.12 L 2.64 15.12 Z M 16.16 8.88 L 22.4 15.12 M 22.4 8.88 L 16.16 15.12" />
+</g>
+</svg>

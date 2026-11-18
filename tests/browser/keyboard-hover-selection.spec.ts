@@ -78,7 +78,7 @@ test('Windows layout selection keeps the printed artwork in the inspector and it
     await expect(keyboard.getByRole('button', { name: 'F12', exact: true })).toBeVisible({ timeout: 1000 });
   }).toPass();
   const board = page.getByRole('img', { name: 'Illustrative full-size UK Windows keyboard' });
-  for (const name of ['F11', 'F12', 'Context Menu']) {
+  for (const name of ['F7', 'F8', 'F11', 'F12', '*', 'Expressive Input', 'Context Menu']) {
     const key = keyboard.getByRole('button', { name, exact: true });
     if (name === 'F12') await key.focus();
     else await key.hover();

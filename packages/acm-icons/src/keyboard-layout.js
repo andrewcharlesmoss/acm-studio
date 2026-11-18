@@ -92,10 +92,19 @@ function windowsKeyOutline({ id, width, height }) {
 }
 
 const windowsFunctionIcons = [
-  'keyboard.mac-dictation', 'keyboard.mac-mute', 'keyboard.mac-volume-down', 'keyboard.mac-volume-up',
-  'device.desktop', 'keyboard.mac-media-previous', 'keyboard.mac-media-play', 'keyboard.mac-media-next',
+  'keyboard.mac-dictation', 'keyboard.windows-mute', 'keyboard.mac-volume-down', 'keyboard.mac-volume-up',
+  'insert.video', 'keyboard.windows-previous-track', 'keyboard.windows-next-track', 'keyboard.mac-media-play',
   'keyboard.mac-brightness-down', 'keyboard.mac-brightness-up', 'keyboard.windows-favourites', 'action.settings',
 ];
+// Caption centres measured from the left edge (positive) or right edge (negative).
+const windowsCaptionEdgeCentres = {
+  escape: 20, tab: 21, 'caps-lock': 24,
+  'windows-shift-left': 22, 'windows-shift-right': -22,
+  'windows-control-left': 21, 'windows-control-right': -21,
+};
+const windowsChevronAngles = { 'arrow-right': 0, 'arrow-down': 90, 'arrow-left': 180, 'arrow-up': 270 };
+const windowsIndicatorKeys = new Set(['caps-lock', 'windows-fn', 'scroll-lock', 'num-lock']);
+const windowsTactileBarY = { 'letter-f': 36, 'letter-j': 36, 'keypad-5': 32, end: 40, 'arrow-down': 40 };
 const windowsKeypadSecondaryLegends = {
   'keypad-7': 'home', 'keypad-8': 'arrow-up', 'keypad-9': 'page-up',
   'keypad-4': 'arrow-left', 'keypad-6': 'arrow-right', 'keypad-1': 'end',
@@ -109,6 +118,11 @@ function windowsKeyArtwork({ id, width, height, outline }, { colour, borderColou
   const caption = (d, centreX, centreY, scale = 1) =>
     paths({ strokeWidth: 0, paths: [{ d, fill: 'currentColor', stroke: 'none' }] },
       centreX - 12 * scale, centreY - 12 * scale, scale);
+  const chevron = (direction, centreY) => {
+    const scale = 0.65;
+    const mark = paths(iconGeometry['navigation.chevron-right']['Regular-M'], -12.5 * scale, -12 * scale, scale);
+    return `<g transform="translate(${width / 2} ${centreY}) rotate(${windowsChevronAngles[direction]})">${mark}</g>`;
+  };
   const smallTopRow = height === 32;
   const number = /^f(\d+)$/.exec(id);
   const secondary = windowsKeypadSecondaryLegends[id];
@@ -116,11 +130,14 @@ function windowsKeyArtwork({ id, width, height, outline }, { colour, borderColou
   if (number) {
     const icon = windowsFunctionIcons[Number(number[1]) - 1];
     const glyph = iconGeometry[icon]['Regular-M'];
-    const pictogram = icon.startsWith('keyboard.mac-') ? glyph.paths.slice(0, -1) : glyph.paths;
+    let pictogram = icon.startsWith('keyboard.mac-') ? glyph.paths.slice(0, -1) : glyph.paths;
+    // The Surface screen key has an outlined play triangle inside the screen.
+    if (icon === 'insert.video') pictogram = glyph.paths.map(({ d }) => ({ d }));
     // Interface icons fill more of the canvas than the keyboard pictograms.
     const scale = icon.startsWith('keyboard.mac-') ? 0.78 : 0.57;
-    const pictogramY = icon.startsWith('keyboard.mac-') ? 7.5 : 4.5;
-    legend = paths(glyph, 16 - 12 * scale, pictogramY, scale, pictogram)
+    // Mac function masters reserve the space below y=7.6 for their own F-number.
+    const centreY = icon.startsWith('keyboard.mac-') ? 7.6 : 12;
+    legend = paths(glyph, width / 2 - 12 * scale, height / 2 - centreY * scale, scale, pictogram)
       + paths(asset.glyph, 29, 15, 0.62);
   } else if (id === 'print-screen') {
     const snip = iconGeometry['keyboard.windows-snip']['Regular-M'];
@@ -131,13 +148,17 @@ function windowsKeyArtwork({ id, width, height, outline }, { colour, borderColou
     if (secondary && Object.hasOwn(windowsLayoutCaptions, secondary)) {
       legend += caption(windowsLayoutCaptions[secondary], width / 2, 32, 0.72);
     } else if (secondary) {
-      const arrow = keyboardAsset(secondary, { mode: 'symbol' }).glyph;
-      legend += paths(arrow, (width - 15.6) / 2, 24.2, 0.65);
+      legend += chevron(secondary, 32);
     }
+  } else if (Object.hasOwn(windowsChevronAngles, id)) {
+    legend = chevron(id, height / 2);
+  } else if (id === 'keypad-multiply') {
+    legend = paths(iconGeometry['keyboard.mac-keypad-multiply']['Regular-M'], width / 2 - 12, height / 2 - 12, 1);
   } else if (Object.hasOwn(windowsStackedLayoutCaptions, id)) {
     legend = caption(windowsStackedLayoutCaptions[id], width / 2, height / 2);
   } else if (Object.hasOwn(windowsLayoutCaptions, id)) {
-    legend = caption(windowsLayoutCaptions[id], width / 2, height / 2);
+    const anchor = windowsCaptionEdgeCentres[id] ?? width / 2;
+    legend = caption(windowsLayoutCaptions[id], anchor < 0 ? width + anchor : anchor, height / 2);
   } else if (id !== 'space') {
     const compactMark = ['windows-left', 'copilot', 'windows-menu'].includes(id);
     const scale = smallTopRow || compactMark || id === 'enter' ? 0.72 : id.startsWith('letter-') ? 0.86 : 1;
@@ -145,12 +166,16 @@ function windowsKeyArtwork({ id, width, height, outline }, { colour, borderColou
     const legendY = id === 'enter' ? 56 : (height - 24 * scale) / 2;
     legend = paths(asset.glyph, legendX, legendY, scale);
   }
-  const tactile = ['letter-f', 'letter-j', 'keypad-5'].includes(id)
-    ? `<path d="M ${width / 2 - 3} ${id === 'keypad-5' ? 32 : 36} h 6" stroke="${colour}" stroke-width="1.2" stroke-linecap="round"/>`
+  const indicator = windowsIndicatorKeys.has(id)
+    ? `<circle cx="${width - 8}" cy="8" r="1.35" fill="${colour}"/>`
+    : '';
+  const barY = windowsTactileBarY[id];
+  const tactile = barY !== undefined
+    ? `<path d="M ${width / 2 - 3} ${barY} h 6" stroke="${colour}" stroke-width="1.2" stroke-linecap="round"/>`
     : '';
   return {
     frame: `<path d="${outline}" stroke="${asset.borderColour}" stroke-width="1.1" fill="${fillColour}"/>`,
-    legend: legend + tactile,
+    legend: legend + indicator + tactile,
     notice: iconMetadata[asset.key.icon].licenceNotice,
   };
 }
