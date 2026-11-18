@@ -936,6 +936,8 @@
 
 ### Fixed
 
+- Show the shared artwork source for Outline and Filled icons.
+
 - Stack Rows according to the available document or embedded pane width.
 
 - Preserve Column widths when converting to a Row, and keep stacked Row children at their natural height on narrow screens.
