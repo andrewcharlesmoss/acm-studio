@@ -13,7 +13,8 @@ import { DesignObjectArtwork } from "../../design-artwork";
 import type { DesignAsset, DesignObject } from "../../design-model";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../../resize-drag";
 import { shouldCommitResizeGesture } from "../../resize-gesture-policy";
-import { moveDesignObject, moveDesignObjectFromKey, resizeRotatedObject, resizeFromKey, resizeCursor, shouldKeepResizeRatio, type ResizeHandle } from "../../design-transform";
+import { beginCanvasMove, canvasMoveDelta, moveCanvasPlacement, type CanvasMove } from "../../canvas-move";
+import { moveDesignObjectFromKey, resizeRotatedObject, resizeFromKey, resizeCursor, shouldKeepResizeRatio, type ResizeHandle } from "../../design-transform";
 import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace-shortcuts.mjs";
 
 const positions: Array<[ResizeHandle, string]> = [["nw", "top left"], ["n", "top middle"], ["ne", "top right"], ["e", "right middle"], ["se", "bottom right"], ["s", "bottom middle"], ["sw", "bottom left"], ["w", "left middle"]];
@@ -32,7 +33,7 @@ function initialObject(type: "rectangle" | "image", rotation = 0): DesignObject 
   const base = { id: "resize-example", x: -80, y: -height / 2, width: 160, height, rotation, opacity: 1 };
   return type === "image" ? { ...base, type, assetId: "resize-example" } : { ...base, type, shape: "hexagon", fill: "#e0e7ff", stroke: "#3858e9", strokeWidth: 1 };
 }
-type Gesture = { mode: "resize" | "move" | "rotate"; startAngle: number; resize: ResizeDrag<DesignObject>; original: DesignObject; latest: DesignObject; start: { x: number; y: number }; handle: ResizeHandle; pointerId: number; centred: boolean };
+type Gesture = { drag: CanvasMove; mode: "resize" | "move" | "rotate"; startAngle: number; resize: ResizeDrag<DesignObject>; original: DesignObject; latest: DesignObject; handle: ResizeHandle; pointerId: number; centred: boolean };
 
 /** Sample state only; handles, artwork, geometry, cursors, and keyboard policy are production components. */
 export function ResizeHandlesSpecimen() {
@@ -124,14 +125,17 @@ function ObjectInteractionSpecimen({ type, manipulation = false }: { type: "rect
     if (readOnly || gesture.current || event.button !== 0) return;
     event.preventDefault(); event.stopPropagation();
     const start = point(event); if (!start) return;
-    gesture.current = { mode: action, startAngle: rotationPointerAngle(object, start), resize: beginResizeDrag(object, start, shouldKeepResizeRatio(object, handle, event.shiftKey)), original: object, latest: object, start, handle, pointerId: event.pointerId, centred: event.altKey };
+    gesture.current = { drag: beginCanvasMove(event.pointerId, start), mode: action, startAngle: rotationPointerAngle(object, start), resize: beginResizeDrag(object, start, shouldKeepResizeRatio(object, handle, event.shiftKey)), original: object, latest: object, handle, pointerId: event.pointerId, centred: event.altKey };
     svg.current?.setPointerCapture(event.pointerId); svg.current?.focus(); setActiveHandle(action === "resize" ? handle : null); setMode(action); setDraft(object);
   }
   function move(event: PointerEvent<SVGSVGElement>) {
     const active = gesture.current;
     if (!active || active.pointerId !== event.pointerId || readOnly) return;
     const p = point(event); if (!p) return;
-    if (active.mode === "move") active.latest = moveDesignObject(active.original, p.x - active.start.x, p.y - active.start.y);
+    if (active.mode === "move") {
+      const delta = canvasMoveDelta(active.drag, event.pointerId, p);
+      if (delta) active.latest = moveCanvasPlacement(active.original, delta);
+    }
     else if (active.mode === "rotate") { active.latest = { ...active.original, rotation: rotationFromPointer(active.original, active.startAngle, p) }; setCursor(p); }
     else active.latest = updateResizeDrag(active.resize, p, shouldKeepResizeRatio(active.original, active.handle, event.shiftKey), (basis, dx, dy, keepRatio) => resizeRotatedObject(basis, active.handle, dx, dy, keepRatio, active.centred));
     setDraft(active.latest);

@@ -50,6 +50,8 @@
 
 ### Changed
 
+- Share drag and arrow-key movement across Design Canvas, Motion Assets, and the object manipulation playground, with optional preview edge fitting.
+
 - Refine the full-size UK Windows keyboard with a slim silver case, compact spacing and Windows shortcut keys.
 
 - Keep shared ACM package sources in Studio for reproducible builds.

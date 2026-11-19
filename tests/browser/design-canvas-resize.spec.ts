@@ -108,6 +108,28 @@ test('Design Canvas keeps the opposite edge anchored as the page grows beyond th
   await expect.poll(() => canvas.boundingBox()).toEqual(during);
 });
 
+test('Design Canvas uses pointer movement and keyboard nudges with undo', async ({ page }) => {
+  await seedDesign(page);
+  const object = page.locator('.design-object[data-object-id="shape-resize-regression"] > rect').first();
+  const before = (await object.boundingBox())!;
+  const x = before.x + before.width / 2;
+  const y = before.y + before.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 30, y + 24, { steps: 5 });
+  await page.mouse.up();
+  const moved = (await object.boundingBox())!;
+  expect(moved.x).toBeGreaterThan(before.x);
+  expect(moved.y).toBeGreaterThan(before.y);
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect.poll(async () => (await object.boundingBox())!.x).toBeCloseTo(moved.x + 6, 0);
+  const undo = page.getByRole('button', { name: 'Undo', exact: true });
+  await undo.click();
+  await expect.poll(() => object.boundingBox()).toEqual(moved);
+  await undo.click();
+  await expect.poll(() => object.boundingBox()).toEqual(before);
+});
+
 test('Design Canvas side handles change one dimension without Shift', async ({ page }) => {
   await seedDesign(page);
   await page.locator('.design-object[data-object-id="shape-resize-regression"]').click();

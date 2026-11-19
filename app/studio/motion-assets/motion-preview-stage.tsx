@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { beginCanvasMove, canvasMoveDelta, canvasMoveKeyDelta, moveCanvasPlacement, type CanvasMove } from "../canvas-move";
 import { PageResizeHandles } from "../controls/page-resize-handles";
 import { commitPageResizePlacement, pageResizeLayout, type PageResizePlacement } from "../design-page-frame";
 import type { ResizeHandle } from "../design-transform";
@@ -19,10 +20,8 @@ type Gesture = {
 };
 
 type MoveGesture = {
-  pointerId: number;
-  startX: number;
-  startY: number;
-  origin: PageResizePlacement;
+  drag: CanvasMove;
+  placement: PageResizePlacement;
   previous: PageResizePlacement | null;
 };
 
@@ -72,15 +71,17 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     return { basis: { width: original.width, height: original.height }, x: (layout?.left ?? 0) / scale, y: (layout?.top ?? 0) / scale };
   }
 
-  function moveSketch(origin: PageResizePlacement, dx: number, dy: number) {
-    const target = { ...origin, x: origin.x + dx / scale, y: origin.y + dy / scale };
-    const { frame } = pageResizeLayout(size, scale * 100, null, { placement: target, fit });
-    setPlacement({ basis: origin.basis, x: frame.left / scale, y: frame.top / scale });
+  function moveSketch(origin: PageResizePlacement, delta: { x: number; y: number }) {
+    const next = moveCanvasPlacement(origin, delta, candidate => {
+      const { frame } = pageResizeLayout(size, scale * 100, null, { placement: candidate, fit });
+      return { ...candidate, x: frame.left / scale, y: frame.top / scale };
+    });
+    setPlacement(next);
   }
 
   function finishMove(artboard: HTMLDivElement, pointerId: number, reason: ResizeGestureEnd) {
     const current = moveGesture.current;
-    if (!current || current.pointerId !== pointerId) return;
+    if (!current || current.drag.pointerId !== pointerId) return;
     moveGesture.current = null;
     setMoving(false);
     if (!shouldCommitResizeGesture(reason)) setPlacement(current.previous);
@@ -142,38 +143,37 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
           event.preventDefault();
           event.currentTarget.focus({ preventScroll: true });
           moveGesture.current = {
-            pointerId: event.pointerId, startX: event.clientX, startY: event.clientY,
-            origin: displayedPlacement(), previous: placement,
+            drag: beginCanvasMove(event.pointerId, { x: event.clientX, y: event.clientY }),
+            placement: displayedPlacement(), previous: placement,
           };
           event.currentTarget.setPointerCapture(event.pointerId);
           setMoving(true);
         }}
         onPointerMove={event => {
           const current = moveGesture.current;
-          if (!scale || current?.pointerId !== event.pointerId) return;
-          moveSketch(current.origin, event.clientX - current.startX, event.clientY - current.startY);
+          if (!scale || !current) return;
+          const delta = canvasMoveDelta(current.drag, event.pointerId, { x: event.clientX, y: event.clientY });
+          if (delta) moveSketch(current.placement, { x: delta.x / scale, y: delta.y / scale });
         }}
         onPointerUp={event => finishMove(event.currentTarget, event.pointerId, "pointer-up")}
         onPointerCancel={event => finishMove(event.currentTarget, event.pointerId, "pointer-cancel")}
         onLostPointerCapture={event => finishMove(event.currentTarget, event.pointerId, "capture-loss")}
         onBlur={event => {
           const current = moveGesture.current;
-          if (current) finishMove(event.currentTarget, current.pointerId, "escape");
+          if (current) finishMove(event.currentTarget, current.drag.pointerId, "escape");
         }}
         onKeyDown={event => {
           const current = moveGesture.current;
           if (current && event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
-            finishMove(event.currentTarget, current.pointerId, "escape");
+            finishMove(event.currentTarget, current.drag.pointerId, "escape");
           }
           if (!scale || current || gesture.current || event.metaKey || event.ctrlKey || event.altKey) return;
-          const step = event.shiftKey ? 10 : 1;
-          const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
-          const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
-          if (!dx && !dy) return;
+          const delta = canvasMoveKeyDelta(event.key, event.shiftKey, 1 / scale);
+          if (!delta) return;
           event.preventDefault();
-          moveSketch(displayedPlacement(), dx, dy);
+          moveSketch(displayedPlacement(), delta);
         }}>
         <svg width={size.width} height={size.height} viewBox={`0 0 ${size.width} ${size.height}`} role="img" aria-label={`${asset.name} animation preview`}>
           {path ? <path d={path} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" /> : null}

@@ -1,9 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { moveDesignObject, moveDesignObjectFromKey } from "../app/studio/design-transform.ts";
+import { beginCanvasMove, canvasMoveDelta, canvasMoveKeyDelta, moveCanvasPlacement } from "../app/studio/canvas-move.ts";
 import { resizeSpecimenLayout } from "../app/studio/ui/controls/resize-specimen-layout.ts";
 
 const object = { id: "example", type: "image", assetId: "fixture", x: 20, y: 30, width: 160, height: 90, rotation: 45, opacity: 1 };
+
+test("pointer and keyboard movement use the same translation with optional bounds", () => {
+  const move = beginCanvasMove(1, { x: 70, y: 10 });
+  assert.equal(canvasMoveDelta(move, 2, { x: 90, y: 10 }), null);
+  const pointer = canvasMoveDelta(move, 1, { x: 90, y: 10 });
+  const keyboard = canvasMoveKeyDelta("ArrowRight", true, 2);
+  assert.deepEqual(pointer, keyboard);
+  assert.deepEqual(moveCanvasPlacement(object, pointer), { ...object, x: 40 });
+  assert.deepEqual(moveCanvasPlacement(object, keyboard, candidate => ({ ...candidate, x: Math.min(35, candidate.x) })), { ...object, x: 35 });
+});
 
 test("shared movement preserves artwork, dimensions, and rotation", () => {
   const moved = moveDesignObject(object, 80, -60);

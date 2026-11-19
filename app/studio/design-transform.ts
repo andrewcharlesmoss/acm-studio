@@ -1,3 +1,4 @@
+import { canvasMoveKeyDelta, moveCanvasPlacement } from "./canvas-move.ts";
 import { DESIGN_MAX_DIMENSION, type DesignObject } from "./design-model.ts";
 
 export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
@@ -71,11 +72,12 @@ export function resizeFromKey(object: DesignObject, handle: ResizeHandle, key: s
 
 /** Geometry only; hosts supply snapping, bounds, ownership, and transactions. */
 export function moveDesignObject<T extends { x: number; y: number }>(object: T, dx: number, dy: number, minimum = -Infinity): T {
-  return { ...object, x: Math.max(minimum, object.x + dx), y: Math.max(minimum, object.y + dy) };
+  return moveCanvasPlacement(object, { x: dx, y: dy }, candidate => ({
+    ...candidate, x: Math.max(minimum, candidate.x), y: Math.max(minimum, candidate.y),
+  }));
 }
 
 export function moveDesignObjectFromKey<T extends { x: number; y: number }>(object: T, key: string, shift: boolean): T | null {
-  if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)) return null;
-  const amount = shift ? 10 : 1;
-  return moveDesignObject(object, key === "ArrowLeft" ? -amount : key === "ArrowRight" ? amount : 0, key === "ArrowUp" ? -amount : key === "ArrowDown" ? amount : 0);
+  const delta = canvasMoveKeyDelta(key, shift);
+  return delta ? moveCanvasPlacement(object, delta) : null;
 }

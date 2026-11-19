@@ -27,6 +27,7 @@ import { inspectDesignImageBlob, validateDesignImportFileSize, validateDesignImp
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
 import type { BackgroundRemovalMode } from "./background-removal-models";
+import { beginCanvasMove, canvasMoveDelta, type CanvasMove } from "./canvas-move";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "./resize-drag";
 import { shouldCommitResizeGesture } from "./resize-gesture-policy";
 import { moveDesignObject, moveDesignObjectFromKey, resizeRotatedObject, rotationCursorCss, shouldKeepResizeRatio, resizeCursor, resizeFromKey } from "./design-transform";
@@ -69,7 +70,7 @@ type ActiveHandle =
   | { objectId: string; kind: "endpoint"; endpoint: "start" | "end" }
   | { objectId: string; kind: "bend"; bendIndex: number }
   | { objectId: null; kind: "page-resize"; handle: ResizeHandle };
-type Interaction = { resize?: ResizeDrag<DesignObject>; mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; pointerId?: number; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool; shapeKind?: DesignShapeKind };
+type Interaction = { move?: CanvasMove; resize?: ResizeDrag<DesignObject>; mode: InteractionMode; id: string; ids?: string[]; originals?: DesignObject[]; startX: number; startY: number; original: DesignObject; base: DesignProject; handle?: ResizeHandle; pointerId?: number; centred?: boolean; endpoint?: "start" | "end"; bendIndex?: number; startAngle?: number; drawTool?: DrawTool; shapeKind?: DesignShapeKind };
 type PagePlacements = ReadonlyMap<string, PageResizePlacement>;
 type DesignHistoryEntry = { design: DesignProject; placements: PagePlacements };
 type PageResizeInteraction = { resize: ResizeDrag<{ width: number; height: number }>; handle: ResizeHandle; pointerId: number; startClientX: number; startClientY: number; scaleX: number; scaleY: number; originalWidth: number; originalHeight: number; base: DesignProject };
@@ -1136,7 +1137,7 @@ export function DesignEditor() {
     const ids = selectedIds.includes(object.id) ? [...new Set([...selectedIds, ...groupIds])] : groupIds;
     if (groupIds.length > 1) selectObjects(ids);
     const originals = activePage.objects.filter((item) => ids.includes(item.id)).map((item) => cloneDesign(item));
-    interactionRef.current = { mode: "move", id: object.id, ids, originals, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design!) };
+    interactionRef.current = { mode: "move", move: beginCanvasMove(event.pointerId, point), id: object.id, ids, originals, startX: point.x, startY: point.y, original: cloneDesign(object), base: cloneDesign(design!) };
     (event.currentTarget.ownerSVGElement ?? event.currentTarget).setPointerCapture(event.pointerId);
   }
 
@@ -1336,8 +1337,12 @@ export function DesignEditor() {
     }
     if (!interaction || !design || !activePage) return;
     const point = getPoint(event);
+    const delta = interaction.move
+      ? canvasMoveDelta(interaction.move, event.pointerId, point)
+      : { x: point.x - interaction.startX, y: point.y - interaction.startY };
+    if (!delta) return;
     if (interaction.mode === "rotate" || interaction.mode === "move") setRotationCursor(point);
-    const dx = point.x - interaction.startX; const dy = point.y - interaction.startY;
+    const { x: dx, y: dy } = delta;
     let nextObject: DesignObject = moveDesignObject(interaction.original, dx, dy, 0);
     if (interaction.mode === "draw") {
       nextObject = drawObject(interaction.original, { x: interaction.startX, y: interaction.startY }, point, activePage);
@@ -1367,7 +1372,8 @@ export function DesignEditor() {
 
   function onCanvasPointerUp(pointerId: number) {
     const pageResize = pageResizeRef.current;
-    if (pageResize && pageResize.pointerId !== pointerId) return;
+    const objectMove = interactionRef.current?.move;
+    if ((pageResize && pageResize.pointerId !== pointerId) || (objectMove && objectMove.pointerId !== pointerId)) return;
     setActiveHandle(null);
     if (!designEditable) {
       interactionRef.current = null; pageResizeRef.current = null; selectionStartRef.current = null; panRef.current = null;

@@ -1317,9 +1317,10 @@ Workspace → Object manipulation playground
 (`/studio/ui/workspace#object-manipulation-playground`) combines movement, resizing,
 and rotation for temporary shapes and images. It shares the object canvas adapter
 with the focused Resize handles example, and inherits `RotationHandle`, its badge,
-cursor, and rotation geometry from Designs. Production move and keyboard geometry
-live in `design-transform.ts`; Designs retains snapping and bounds in its adapter,
-while this example allows free movement in its expanding scrollable canvas.
+cursor, and rotation geometry from Designs. Design Canvas, Motion Assets, and the
+object playground share pointer drag and arrow-key movement in `canvas-move.ts`.
+Motion Assets supplies optional edge fitting. Design Canvas applies its existing
+snapping and position rules, and the example allows free movement in its scrollable canvas.
 
 Drag the object to move it, or use arrow keys (Shift for 10px), including while a
 resize handle has focus. In this playground, resize handles resize by pointer;
