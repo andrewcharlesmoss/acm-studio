@@ -1686,6 +1686,30 @@
     "provenance": "Original ACM geometry; authored 2026-09-26; no third-party paths."
   },
   {
+    "name": "media.play",
+    "label": "Play",
+    "description": "Start or resume media playback",
+    "keywords": [
+      "play",
+      "media",
+      "playback"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry. No third-party paths."
+  },
+  {
+    "name": "media.pause",
+    "label": "Pause",
+    "description": "Pause media playback",
+    "keywords": [
+      "pause",
+      "media",
+      "playback"
+    ],
+    "golden": false,
+    "provenance": "Original ACM geometry. No third-party paths."
+  },
+  {
     "name": "action.archive",
     "label": "Archive",
     "description": "Store an item in the archive",

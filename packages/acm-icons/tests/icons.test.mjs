@@ -10,8 +10,8 @@ import { iconNames, iconGeometry, iconMetadata, svgAssetPath, resolveIconName } 
 import { AcmIcon } from "../src/react.js";
 const root = fileURLToPath(new URL("../", import.meta.url));
 test("every master has its documented optical geometry and matching standalone assets", () => {
-  assert.equal(iconNames.length, 469);
-  assert.equal(readdirSync(resolve(root, "dist/svg"), { recursive: true }).filter((path) => path.endsWith(".svg")).length, 1413);
+  assert.equal(iconNames.length, 471);
+  assert.equal(readdirSync(resolve(root, "dist/svg"), { recursive: true }).filter((path) => path.endsWith(".svg")).length, 1419);
   for (const name of iconNames) {
     assert.match(iconMetadata[name].provenance, /Microsoft Copilot brand artwork from Lobe Icons, MIT License|Inter v4\.1.*SIL OFL 1\.1|Original ACM/);
     if (name.startsWith("keyboard.") && /Inter v4\.1/.test(iconMetadata[name].provenance)) assert.match(iconMetadata[name].provenance, /SIL OFL 1\.1/, name + " must identify the Inter lettering licence");

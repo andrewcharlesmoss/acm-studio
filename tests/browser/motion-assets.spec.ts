@@ -74,6 +74,9 @@ test("autoplay is on by default, starts the chosen sketch after confirmation, an
   const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });
   const slider = page.getByRole("slider", { name: "Animation position" });
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const play = page.getByRole("button", { name: "Play", exact: true });
+  await expect(play).toHaveText("");
+  await expect(play.locator("svg")).toBeVisible();
   await expect(autoplay).toBeChecked();
   await setNumber(page, "Width (px)", "1200");
   await page.getByRole("button", { name: "Use Plus", exact: true }).press("Enter");
@@ -83,7 +86,9 @@ test("autoplay is on by default, starts the chosen sketch after confirmation, an
   await page.getByRole("button", { name: "Use Plus", exact: true }).click();
   await page.getByRole("button", { name: "Replace Project" }).click();
   await expect(page.getByRole("img", { name: "Plus animation preview" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  const pause = page.getByRole("button", { name: "Pause", exact: true });
+  await expect(pause).toHaveText("");
+  await expect(pause.locator("svg")).toBeVisible();
   await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(0);
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
   await expect(slider).toHaveValue("90");

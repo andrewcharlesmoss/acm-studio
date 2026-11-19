@@ -1,5 +1,6 @@
 "use client";
 
+import { AcmIcon } from "@acm/icons/react";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
 import { ColourPicker } from "../controls/colour-picker";
 import { NumberInput, TextInput } from "../controls/native-fields";
@@ -90,6 +91,7 @@ export function MotionPlayground() {
   const signature = useMemo(() => projectKey(asset), [asset]);
   const dirty = signature !== baseline;
   const frame = Math.min(position ?? model.frameCount, model.frameCount);
+  const playbackLabel = playback ? "Pause" : "Play";
   const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "sketch";
 
   useEffect(() => {
@@ -265,12 +267,12 @@ export function MotionPlayground() {
           </div>
         </div>
         <div className="motion-transport">
-          <button type="button" className="button-secondary" onClick={() => {
+          <button type="button" className="button-secondary motion-playback-button" aria-label={playbackLabel} title={playbackLabel} onClick={() => {
             if (playback) { setPlayback(null); return; }
             const startFrame = frame === model.frameCount ? 0 : frame;
             setPosition(startFrame);
             setPlayback({ startFrame });
-          }}>{playback ? "Pause" : "Play"}</button>
+          }}><AcmIcon name={playback ? "media.pause" : "media.play"} scale="Regular-S" size={20} /></button>
           <RangeControl min={0} max={model.frameCount} step={1} value={frame}
             aria-label="Animation position" aria-valuetext={`${formatSeconds(frame)} of ${formatSeconds(model.frameCount)}`}
             tooltipPlacement="above" tooltipText={formatSeconds(frame)} onChange={event => { setPlayback(null); setPosition(event.target.valueAsNumber); }} />
