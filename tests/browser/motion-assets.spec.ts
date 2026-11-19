@@ -113,6 +113,43 @@ test("browsing presets preserves edits, supports reset and respects autoplay", a
   await expect(slider).toHaveValue("90");
 });
 
+test("Space toggles playback from the preview and preserves native control shortcuts", async ({ page }) => {
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const preview = page.getByRole("region", { name: "Motion preview" });
+  const play = page.getByRole("button", { name: "Play", exact: true });
+  const pause = page.getByRole("button", { name: "Pause", exact: true });
+  const slider = page.getByRole("slider", { name: "Animation position" });
+  const wave = page.getByRole("button", { name: "Use Wave", exact: true });
+  await wave.click();
+  await expect(preview).toBeFocused();
+  await expect(pause).toBeVisible();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(0);
+  await page.keyboard.press("Space");
+  await expect(play).toBeVisible();
+  const pausedAt = Number(await slider.inputValue());
+  expect(pausedAt).toBeLessThan(90);
+  await page.keyboard.down("Space");
+  await page.keyboard.down("Space");
+  await page.keyboard.up("Space");
+  await expect(pause).toBeVisible();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(pausedAt);
+  await pause.press("Space");
+  await expect(play).toBeVisible();
+
+  const search = page.getByRole("searchbox", { name: "Search motion assets" });
+  await search.press("Space");
+  await expect(search).toHaveValue(" ");
+  await expect(play).toBeVisible();
+  await search.fill("");
+  const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });
+  await autoplay.press("Space");
+  await expect(autoplay).not.toBeChecked();
+  await wave.press("Space");
+  await expect(wave).toBeFocused();
+  await expect(play).toBeVisible();
+});
+
 test("editing draw or hold time updates the preview while the field is focused and playback is paused", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
@@ -375,6 +412,12 @@ test("round-trips a widened wave, protects imported edits, and rejects invalid S
   await expect(image).toHaveAttribute("viewBox", "0 0 1600 800");
   await slider.press("End");
   await page.screenshot({ path: info.outputPath("wide-wave.png") });
+  await setNumber(page, "Width (px)", "1400");
+  await page.getByRole("button", { name: "Use Circle" }).click();
+  await page.getByRole("button", { name: "Replace Project" }).click();
+  await expect(page.getByRole("region", { name: "Motion preview" })).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
 });
 
 for (const view of ["desktop", "tablet", "mobile"] as const) {

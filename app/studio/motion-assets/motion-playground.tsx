@@ -1,7 +1,7 @@
 "use client";
 
 import { AcmIcon } from "@acm/icons/react";
-import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
+import { memo, useContext, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
 import { ColourPicker } from "../controls/colour-picker";
 import { NumberInput, TextInput } from "../controls/native-fields";
 import { RangeControl } from "../controls/range-control";
@@ -9,6 +9,7 @@ import { ToggleSetting } from "../controls/toggle-setting";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane } from "../panes/pane-components";
 import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
+import { isNativeEditingTarget } from "../workspace-shortcuts.mjs";
 import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
 import { MotionPreviewStage } from "./motion-preview-stage";
@@ -92,12 +93,13 @@ export function MotionPlayground() {
   const [position, setPosition] = useState<number | null>(null);
   const [previewRevision, setPreviewRevision] = useState(0);
   const [resizeDraft, setResizeDraft] = useState<MotionSize | null>(null);
-  const [replacement, setReplacement] = useState<{ draft: MotionDraft; play: boolean }>();
+  const [replacement, setReplacement] = useState<{ draft: MotionDraft; play: boolean; focusPreview: boolean }>();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [movSupport, setMovSupport] = useState<{ available: boolean; error?: string }>();
   const [exporting, setExporting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const preview = useRef<HTMLElement>(null);
   const exportRequest = useRef<AbortController | null>(null);
   const inputSequence = useRef(0);
   const currentFileDirty = useRef(false);
@@ -117,6 +119,30 @@ export function MotionPlayground() {
   const frame = Math.min(position ?? model.frameCount, model.frameCount);
   const playbackLabel = playback ? "Pause" : "Play";
   const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "sketch";
+
+  function togglePlayback() {
+    if (playback) { setPlayback(null); return; }
+    const startFrame = frame === model.frameCount ? 0 : frame;
+    setPosition(startFrame);
+    setPlayback({ startFrame });
+  }
+
+  const onPlaybackShortcut = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key !== " " || event.defaultPrevented || event.isComposing
+      || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const target = event.target;
+    if (isNativeEditingTarget(target) || document.querySelector("dialog[open]")
+      || (target instanceof Element && target.closest('button, a[href], summary, [role="button"], [role="switch"], [role="tab"], [role="dialog"]'))) return;
+    event.preventDefault();
+    if (!event.repeat) togglePlayback();
+  });
+
+  useEffect(() => {
+    if (!active || !ready) return;
+    const listener = (event: KeyboardEvent) => onPlaybackShortcut(event);
+    document.addEventListener("keydown", listener);
+    return () => document.removeEventListener("keydown", listener);
+  }, [active, ready]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -176,11 +202,14 @@ export function MotionPlayground() {
     document.getElementById("motion-preview")?.scrollIntoView({ block: "start", behavior: "instant" });
   }
 
-  function requestReplacement(next: MotionDraft, play = false) {
+  function requestReplacement(next: MotionDraft, play = false, focusPreview = false) {
     if (!draft.preset && (currentFileDirty.current || hasPendingFieldEdit())) {
       inputSequence.current++;
-      setReplacement({ draft: next, play });
-    } else applyReplacement(next, play);
+      setReplacement({ draft: next, play, focusPreview });
+    } else {
+      applyReplacement(next, play);
+      if (focusPreview) preview.current?.focus({ preventScroll: true });
+    }
   }
 
   function resetPreview() {
@@ -284,7 +313,7 @@ export function MotionPlayground() {
         </div>
       </div>
       <div className="motion-catalogue-grid">
-        {visibleSketches.map(({ preset, sketch }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${sketch.name}`} aria-pressed={draft.preset === preset.name} onClick={() => requestReplacement(makeDraft(preset, { preset: preset.name }), autoplay)}>
+        {visibleSketches.map(({ preset, sketch }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${sketch.name}`} aria-pressed={draft.preset === preset.name} onClick={event => requestReplacement(makeDraft(preset, { preset: preset.name }), autoplay, event.detail > 0)}>
           <MotionThumbnail asset={sketch} />
           <strong>{sketch.name}</strong>
         </button>)}
@@ -292,7 +321,7 @@ export function MotionPlayground() {
       {!visibleSketches.length ? <p>No matching sketches.</p> : null}
     </section>
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
-      <section id="motion-preview" className="motion-preview" aria-label="Motion preview">
+      <section id="motion-preview" ref={preview} tabIndex={-1} className="motion-preview" aria-label="Motion preview">
         <div className="motion-toolbar">
           <h2>Preview</h2>
           <div className="motion-actions">
@@ -306,12 +335,7 @@ export function MotionPlayground() {
         </div>
         <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} path={previewModel.pathAt(frame)} onResize={changeAsset} onResizeDraft={setResizeDraft} />
         <div className="motion-transport">
-          <button type="button" className="button-secondary motion-playback-button" aria-label={playbackLabel} title={playbackLabel} onClick={() => {
-            if (playback) { setPlayback(null); return; }
-            const startFrame = frame === model.frameCount ? 0 : frame;
-            setPosition(startFrame);
-            setPlayback({ startFrame });
-          }}><AcmIcon name={playback ? "media.pause" : "media.play"} scale="Regular-S" size={20} /></button>
+          <button type="button" className="button-secondary motion-playback-button" aria-label={playbackLabel} title={`${playbackLabel} (Space)`} aria-keyshortcuts="Space" onClick={togglePlayback}><AcmIcon name={playback ? "media.pause" : "media.play"} scale="Regular-S" size={20} /></button>
           <RangeControl min={0} max={model.frameCount} step={1} value={frame}
             aria-label="Animation position" aria-valuetext={`${formatSeconds(frame)} of ${formatSeconds(model.frameCount)}`}
             tooltipPlacement="above" tooltipText={formatSeconds(frame)} onChange={event => { setPlayback(null); setPosition(event.target.valueAsNumber); }} />
@@ -358,7 +382,11 @@ export function MotionPlayground() {
       <p>Download the editable project first if you want to keep your changes.</p>
       <StudioDialogActions>
         <button type="button" className="button-secondary" onClick={() => setReplacement(undefined)}>Keep Editing</button>
-        <button type="button" className="button-primary" onClick={() => applyReplacement(replacement.draft, replacement.play)}>Replace Project</button>
+        <button type="button" className="button-primary" onClick={() => {
+          applyReplacement(replacement.draft, replacement.play);
+          // The dialog restores its opener's focus as it closes.
+          if (replacement.focusPreview) requestAnimationFrame(() => preview.current?.focus());
+        }}>Replace Project</button>
       </StudioDialogActions>
     </StudioDialog> : null}
   </>;
