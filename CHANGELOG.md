@@ -941,6 +941,8 @@
 
 ### Fixed
 
+- Keep Design Canvas pages in place when releasing a resize handle, using the shared resize placement from Motion Assets.
+
 - Keep the Motion Assets playback bar in place when resizing a sketch.
 
 - Match the UK Windows keyboard’s media controls, keypad and arrow legends, wide-key captions, indicators, and utility symbols to the Surface Keyboard reference.

@@ -27,11 +27,13 @@ for (const target of ['shape', 'image', 'page', 'workspace']) {
     await expect(status).not.toContainText(before);
     const displayed = (await status.innerText()).split(' · History position')[0];
     const canvas = specimen.locator('svg[tabindex="-1"]');
+    const placement = target === 'page' ? await canvas.boundingBox() : null;
     await expect.poll(() => canvas.evaluate(el => el.hasPointerCapture(1))).toBe(true);
     await canvas.evaluate(el => el.releasePointerCapture(1));
     await expect(status).toContainText(displayed);
     await page.mouse.up();
     await expect(status).toContainText(displayed);
+    if (placement) await expect.poll(() => canvas.boundingBox()).toEqual(placement);
     await specimen.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect(status).toContainText(before);
     await expect(specimen.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();

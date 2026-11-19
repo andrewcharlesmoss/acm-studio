@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadProductionModule } from "./production-module.mjs";
 
-const { pageResizeLayout, DesignPageFrame } = await loadProductionModule(new URL("../app/studio/design-page-frame.tsx", import.meta.url));
+const { commitPageResizePlacement, pageResizeLayout, DesignPageFrame } = await loadProductionModule(new URL("../app/studio/design-page-frame.tsx", import.meta.url));
 const original = { width: 600, height: 400 };
 const handles = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
@@ -40,16 +40,32 @@ for (const zoom of [25, 69, 100, 200]) {
   }
 }
 
-test("the production frame renders the fixed footprint and positioned page, then resumes normal layout after release", () => {
+test("the scrollable frame retains its placement and reserves room for the whole page after release", () => {
   const page = { width: 750, height: 500 };
-  const frame = DesignPageFrame({ page, zoom: 50, resize: { ...original, handle: "nw" }, children: "page" });
-  assert.deepEqual(frame.props.style, { width: 300, height: 200 });
+  const resize = { ...original, handle: "nw" };
+  const frame = DesignPageFrame({ page, zoom: 50, resize, children: "page" });
+  assert.deepEqual(frame.props.style, { width: 450, height: 300 });
   assert.equal(frame.props.className, "design-page-footprint");
-  assert.deepEqual(frame.props.children.props.style, { width: 375, height: 250, left: -75, top: -50 });
+  assert.deepEqual(frame.props.children.props.style, { width: 375, height: 250, left: 0, top: 0 });
   assert.equal(frame.props.children.props.className, "design-canvas-frame");
   assert.equal(frame.props.children.props.children, "page");
-  const released = DesignPageFrame({ page, zoom: 50, children: "page" });
-  assert.deepEqual(released.props.style, { width: 375, height: 250 });
-  assert.deepEqual(released.props.children.props.style, { width: 375, height: 250, left: 0, top: 0 });
-  assert.deepEqual(pageResizeLayout(original, 50).footprint, { width: 300, height: 200 });
+  const placement = commitPageResizePlacement(page, resize);
+  const released = DesignPageFrame({ page, zoom: 50, placement, children: "page" });
+  assert.deepEqual(released.props.style, frame.props.style);
+  assert.deepEqual(released.props.children.props.style, frame.props.children.props.style);
+});
+
+test("optional fitting retains the same visible frame through successive commits", () => {
+  const grown = { width: 800, height: 600 };
+  const first = commitPageResizePlacement(grown, { ...original, handle: "nw" });
+  const next = { width: 900, height: 1000 };
+  const resize = { ...grown, handle: "se" };
+  const fit = { width: 700, height: 500, margin: 10 };
+  const dragging = pageResizeLayout(next, 100, resize, { placement: first, fit });
+  const placement = commitPageResizePlacement(next, resize, first);
+  const released = pageResizeLayout(next, 100, null, { placement, fit });
+  assert.deepEqual(released, dragging);
+  assert.equal(released.frame.height, 480);
+  assert.equal(released.frame.top, -40);
+  assert.equal(pageResizeLayout(next, 100, null, { placement }).frame.height, 1000);
 });

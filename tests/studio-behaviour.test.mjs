@@ -1322,11 +1322,11 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /onReorder\(move\.id, move\.targetId, move\.edge\)/);
   assert.match(editor, /<StudioIcon name="drag-handle" size=\{16\}/);
   assert.match(editor, /className=\{`design-canvas-scroll\$\{allPagesVisible/);
-  assert.match(css, /\.design-canvas-scroll \{ align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; padding: 25px 25px 89px; \}/);
+  assert.match(css, /\.design-canvas-scroll \{ align-items: safe center; display: flex; justify-content: safe center; min-height: 0; overflow: auto; overflow-anchor: none; padding: 25px 25px 89px; \}/);
   assert.match(css, /@media \(max-width: 980px\) \{\s*\.design-workspace \{ grid-template-columns: var\(--design-pages-width\) minmax\(0, 1fr\) var\(--design-inspector-width\); \}/);
   assert.doesNotMatch(css, /@media \(max-width: 980px\) \{\s*\.design-workspace \{ --design-pages-width: 180px;/);
   assert.match(editor, /className=\{`design-all-page\$\{isActive/);
-  assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{\(isActive && pageResizeRef.current \? pageResizeRef.current.originalWidth : page.width\) \* zoom \/ 100\}px` \}\}/);
+  assert.match(editor, /className="design-all-page-heading" style=\{\{ width: `\$\{\(pagePlacements\.get\(page\.id\)\?\.basis\.width \?\? \(isActive \? pageResizeRef\.current\?\.originalWidth : undefined\) \?\? page\.width\) \* zoom \/ 100\}px` \}\}/);
   assert.match(editor, /const title = page\.name === `Page \$\{index \+ 1\}` \? "" : page\.name/);
   assert.match(editor, /<strong>Page \{index \+ 1\}<\/strong><span aria-hidden="true">-<\/span>/);
   assert.match(editor, /className=\{title \? "has-title" : "is-placeholder"\} value=\{isActive \? \(pageName === `Page \$\{index \+ 1\}` \? "" : pageName\) : title\}/);
@@ -1361,7 +1361,7 @@ test("design canvas keeps layers in the left pane and offers an all-pages view",
   assert.match(editor, /input\.className = "design-page-title-input"/);
   assert.match(editor, /keyEvent\.key === "Escape"/);
   assert.match(editor, /updateDesign\(\{ \.\.\.design, pages: design\.pages\.map/);
-  assert.match(editor, /<DesignPageFrame page=\{activePage\} zoom=\{zoom\} resize=/);
+  assert.match(editor, /<DesignPageFrame page=\{activePage\} zoom=\{zoom\} placement=\{pagePlacements.get\(activePage.id\)\} resize=/);
   assert.doesNotMatch(editor, />Edit Page<\/button>/);
   assert.match(editor, /event\.stopPropagation\(\); selectPage\(page\.id\)/);
   assert.match(editor, /aria-label=\{allPagesVisible \? "View single page" : "View all pages"\}/);
@@ -1613,7 +1613,7 @@ test("design image resizing uses corner proportions and side-handle axis sizing"
 
 test("design page resizing keeps proportions by default and uses Shift for freeform sizing", () => {
   const editor = readFileSync(new URL("../app/studio/design-editor.tsx", import.meta.url), "utf8");
-  assert.match(editor, /resizePageFromKey\(page, handle, event\.key, event\.shiftKey\)/);
+  assert.match(editor, /resizePageFromKey\(activePage, handle, event\.key, event\.shiftKey\)/);
   assert.match(editor, /updateResizeDrag\(pageResize.resize, \{ x: dx, y: dy \}, !event.shiftKey, \(basis, deltaX, deltaY, keepRatio\) => resizePage\(basis, pageResize.handle, deltaX, deltaY, keepRatio\)\)/);
 });
 
@@ -1680,7 +1680,7 @@ test("design objects expose corner and side-centre handles for direct resizing",
   assert.match(editor, /const heightDelta = handle\.includes\("s"\) \? dy : handle\.includes\("n"\) \? -dy : 0/);
   assert.match(editor, /cx=\{handle\.includes\("e"\) \? page\.width : handle\.includes\("w"\) \? 0 : page\.width \/ 2\}/);
   assert.match(editor, /cy=\{handle\.includes\("s"\) \? page\.height : handle\.includes\("n"\) \? 0 : page\.height \/ 2\}/);
-  assert.match(editor, /<CanvasHandle key=\{`page-\$\{handle\}`\} aria-label=\{label\}/);
+  assert.match(editor, /<CanvasHandle key=\{`page-\$\{handle\}`\} aria-label=\{label\.replace\("page", labelSubject\)\}/);
   assert.match(editor, /function onPageResizePointerDown\(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle\)/);
   assert.match(editor, /function onPageResizeKeyDown\(event: ReactKeyboardEvent<SVGCircleElement>, handle: ResizeHandle\)/);
 });

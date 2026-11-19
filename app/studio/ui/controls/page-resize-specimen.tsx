@@ -5,7 +5,7 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { HistoryActions } from "../../controls/history-actions";
 import { PageResizeHandles } from "../../controls/page-resize-handles";
 import { ToggleSetting } from "../../controls/toggle-setting";
-import { DesignPageFrame } from "../../design-page-frame";
+import { commitPageResizePlacement, DesignPageFrame, usePageResizeScroll, type PageResizePlacement } from "../../design-page-frame";
 import { resizeCursor, type ResizeHandle } from "../../design-transform";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../../resize-drag";
 import { shouldCommitResizeGesture } from "../../resize-gesture-policy";
@@ -15,23 +15,30 @@ import { isNativeEditingTarget, workspaceHistoryShortcut } from "../../workspace
 type PageSize = { width: number; height: number };
 type Gesture = { resize: ResizeDrag<PageSize>; original: PageSize; latest: PageSize; handle: ResizeHandle; pointerId: number; startX: number; startY: number; scaleX: number; scaleY: number; label: string | null };
 const initialPage: PageSize = { width: 320, height: 180 };
+type HistoryEntry = { page: PageSize; placement: PageResizePlacement | null };
 
 /** Fixtures and history stay in memory; page geometry, handles, and layout are production components. */
 export function PageResizeSpecimen() {
-  const [history, setHistory] = useState({ values: [initialPage], index: 0 });
+  const [history, setHistory] = useState<{ values: HistoryEntry[]; index: number }>({
+    values: [{ page: initialPage, placement: null }], index: 0,
+  });
   const [draft, setDraft] = useState<PageSize | null>(null);
   const [active, setActive] = useState<Gesture | null>(null);
   const [zoom, setZoom] = useState(100);
   const [readOnly, setReadOnly] = useState(false);
   const svg = useRef<SVGSVGElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
-  const page = draft ?? history.values[history.index];
+  const { page: savedPage, placement } = history.values[history.index];
+  const page = draft ?? savedPage;
+  usePageResizeScroll(stage, String(zoom), active !== null, placement);
 
-  function commit(next: PageSize) {
+  function commit(next: PageSize, handle: ResizeHandle) {
     setHistory(current => {
       const previous = current.values[current.index];
-      if (previous.width === next.width && previous.height === next.height) return current;
-      return { values: [...current.values.slice(0, current.index + 1), next], index: current.index + 1 };
+      if (previous.page.width === next.width && previous.page.height === next.height) return current;
+      const placement = commitPageResizePlacement(next, { ...previous.page, handle }, previous.placement);
+      return { values: [...current.values.slice(0, current.index + 1), { page: next, placement }], index: current.index + 1 };
     });
   }
   // Embedded browsers can lose capture before pointer-up. Retain the displayed
@@ -41,11 +48,11 @@ export function PageResizeSpecimen() {
     if (!current || (pointerId !== undefined && current.pointerId !== pointerId)) return;
     gesture.current = null;
     if (svg.current?.hasPointerCapture(current.pointerId)) svg.current.releasePointerCapture(current.pointerId);
-    if (!cancel && !readOnly) commit(current.latest);
+    if (!cancel && !readOnly) commit(current.latest, current.handle);
     setDraft(null); setActive(null);
     if (restoreFocus && current.label) queueMicrotask(() => {
       const handle = Array.from(svg.current?.querySelectorAll<SVGCircleElement>("[aria-label]") ?? []).find(element => element.getAttribute("aria-label") === current.label);
-      handle?.focus();
+      handle?.focus({ preventScroll: true });
     });
   }
   function begin(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
@@ -80,20 +87,20 @@ export function PageResizeSpecimen() {
       <ToggleSetting label="Read-only example" checked={readOnly} onChange={value => { finish(true, undefined, false); setReadOnly(value); }} />
       <HistoryActions presentation="labelled" canUndo={history.index > 0} canRedo={history.index < history.values.length - 1} disabled={readOnly || active !== null} onUndo={() => restore(-1)} onRedo={() => restore(1)} />
     </div>
-    <div className="ui-page-resize-stage">
-      <DesignPageFrame page={page} zoom={zoom} resize={active ? { ...active.original, handle: active.handle } : null}>
+    <div className="ui-page-resize-stage" ref={stage}>
+      <DesignPageFrame page={page} zoom={zoom} placement={placement} resize={active ? { ...active.original, handle: active.handle } : null}>
         <svg ref={svg} className="ui-page-resize-svg" viewBox={`0 0 ${page.width} ${page.height}`} role="group" tabIndex={-1} aria-label="Temporary page resize canvas" style={{ cursor: active ? resizeCursor(active.handle, 0) : undefined }} onPointerMove={move} onPointerUp={event => finish(!shouldCommitResizeGesture("pointer-up"), event.pointerId)} onPointerCancel={event => finish(!shouldCommitResizeGesture("pointer-cancel"), event.pointerId)} onLostPointerCapture={event => finish(!shouldCommitResizeGesture("capture-loss"), event.pointerId)}>
           <rect width={page.width} height={page.height} fill="var(--acm-color-surface, #fff)" />
           <text x="20" y="32" fill="currentColor" fontSize="16">Example page</text>
           <PageResizeHandles page={page} controlScale={100 / zoom} activeHandle={active?.handle} disabled={readOnly} onPointerDown={begin} onKeyDown={(event, handle) => {
             if (readOnly || gesture.current) return;
             const next = resizePageFromKey(page, handle, event.key, event.shiftKey);
-            if (next) { event.preventDefault(); event.stopPropagation(); commit(next); }
+            if (next) { event.preventDefault(); event.stopPropagation(); commit(next, handle); }
           }} />
         </svg>
       </DesignPageFrame>
     </div>
     <p role="status">Page size: {page.width} × {page.height} · Ratio: {(page.width / page.height).toFixed(3)} · History position {history.index} of {history.values.length - 1}.</p>
-    <p>Drag a page edge or corner. The opposite edge stays anchored during the drag; the page recentres on release. Hold Shift to stretch. Arrow keys resize by 1; Shift+Arrow resizes freely by 10. Escape cancels a drag. Undo/Redo and their standard shortcuts affect only this example.</p>
+    <p>Drag a page edge or corner. The page keeps its position when you release the handle. Hold Shift to stretch. Arrow keys resize by 1 pixel. Shift+Arrow resizes freely by 10 pixels. Escape cancels a drag. Undo and Redo restore this example’s size and placement.</p>
   </div>;
 }

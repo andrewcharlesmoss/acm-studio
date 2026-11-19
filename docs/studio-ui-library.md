@@ -1242,8 +1242,12 @@ Controls → Resize handles (`/studio/ui/controls#resize-handles`) reuses
 `CanvasHandle`, `DesignObjectArtwork`, and the production resize geometry,
 proportion policy, cursors, and keyboard calculations in `design-transform.ts`.
 The Page target also shares `PageResizeHandles`, `DesignPageFrame`, its anchored
-layout styles, and `page-resize.ts` with Designs. Its opposite edge or corner
-stays fixed during a drag and the page recentres on release. Page sizing uses
+layout styles, and `page-resize.ts` with Designs. The shared frame layout retains
+the displayed placement on release. Design Canvas and the Page example use the
+scrollable frame at the selected zoom and restore placement with Undo and Redo.
+Design Canvas keeps placement in the current editing session. Motion Assets uses
+the same placement calculation and supplies optional preview bounds to keep the
+handles within its fixed stage. Page sizing uses
 the same 120–4096 pixel limits and keyboard steps as Designs. Rotation and Alt
 centre resizing apply to objects. All shape/image/page fixtures, coordinate
 conversion, pointer capture, temporary history, and preview controls are

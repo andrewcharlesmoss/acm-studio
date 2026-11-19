@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { PageResizeHandles } from "../controls/page-resize-handles";
-import { pageResizeLayout } from "../design-page-frame";
+import { commitPageResizePlacement, pageResizeLayout, type PageResizePlacement } from "../design-page-frame";
 import type { ResizeHandle } from "../design-transform";
 import { resizePageFromKey } from "../page-resize";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../resize-drag";
@@ -30,7 +30,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   const [renderWidth, setRenderWidth] = useState(0);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [liveResize, setLiveResize] = useState<Gesture | null>(null);
-  const [placement, setPlacement] = useState<{ basis: MotionSize; x: number; y: number } | null>(null);
+  const [placement, setPlacement] = useState<PageResizePlacement | null>(null);
 
   useLayoutEffect(() => {
     const element = footprint.current;
@@ -52,22 +52,8 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   const original = placement?.basis ?? liveResize?.original ?? asset;
   const scale = renderWidth / original.width;
   const layout = placement || liveResize ? pageResizeLayout(size, scale * 100,
-    liveResize ? { ...liveResize.original, handle: liveResize.handle } : null).frame : undefined;
-  if (layout && placement) {
-    layout.left += placement.x * scale;
-    layout.top += placement.y * scale;
-  }
-  if (layout && stageSize.width && stageSize.height) {
-    const handleMargin = 10;
-    const fit = Math.min(1, (stageSize.width - 2 * handleMargin) / layout.width,
-      (stageSize.height - 2 * handleMargin) / layout.height);
-    const minLeft = handleMargin - (stageSize.width - renderWidth) / 2;
-    const minTop = handleMargin - (stageSize.height - original.height * scale) / 2;
-    layout.width *= fit;
-    layout.height *= fit;
-    layout.left = Math.max(minLeft, Math.min(layout.left, minLeft + stageSize.width - 2 * handleMargin - layout.width));
-    layout.top = Math.max(minTop, Math.min(layout.top, minTop + stageSize.height - 2 * handleMargin - layout.height));
-  }
+    liveResize ? { ...liveResize.original, handle: liveResize.handle } : null,
+    { placement, fit: { ...stageSize, margin: 10 } }).frame : undefined;
   const displayWidth = layout?.width ?? renderWidth;
   const displayHeight = layout?.height ?? displayWidth * size.height / size.width;
 
@@ -96,12 +82,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   }
 
   function commitResize(previous: MotionSize, next: MotionSize, handle: ResizeHandle) {
-    const { left, top } = pageResizeLayout(next, 100, { ...previous, handle }).frame;
-    setPlacement(current => ({
-      basis: current?.basis ?? { width: previous.width, height: previous.height },
-      x: (current?.x ?? 0) + left,
-      y: (current?.y ?? 0) + top,
-    }));
+    setPlacement(current => commitPageResizePlacement(next, { ...previous, handle }, current));
     onResize(next);
   }
 
