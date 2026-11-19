@@ -1389,6 +1389,9 @@ clamping run; step buttons apply immediately. Blank values stay unset and
 external history changes resynchronise the draft without remounting.
 The disabled specimen covers all three controls. The Site Editor uses this
 variant; existing paragraph and list inspectors retain the legacy text field.
+Motion Assets uses the same `NumberStepper` component and shared button sizes
+for dimensions, stroke thickness, and timing. Its settings commit valid input
+immediately so the playback preview stays in sync.
 
 `PaletteColourSetting` owns the full-width colour-row appearance in its own
 stylesheet, so the control renders identically outside an Inspector sections

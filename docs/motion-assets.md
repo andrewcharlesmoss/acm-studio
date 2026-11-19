@@ -6,6 +6,8 @@ Each built-in sketch keeps its edits while you browse the catalogue. **Reset Pre
 
 Press Space to play or pause the preview. Fields and other focused controls keep their usual Space behaviour.
 
+Use the shared **+** and **−** buttons or type directly into a number field. Valid changes update the preview immediately.
+
 Drag inside the sketch’s frame to move it around the preview. Focus the frame and use the arrow keys to move it by 1 px, or hold Shift to move it by 10 px. Escape cancels a drag. **Reset Preview** centres the sketch again. Position applies to the current preview.
 
 Drag an edge or corner handle on the preview to resize the sketch. Resizing keeps the aspect ratio by default. Hold Shift to change width or height independently. With a handle focused, use the arrow keys to resize by 1 px or hold Shift to resize independently by 10 px. Press Escape to cancel a drag. The new dimensions appear in Settings and apply to exports.

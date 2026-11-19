@@ -33,16 +33,22 @@ test("unitless stepper increments, clamps, exposes limits and can clear", () => 
 
 function stepperHarness(initialValue = "1.4", defaultValue = 1.5) {
  const source = readFileSync(new URL("../app/studio/controls/line-height-setting.tsx", import.meta.url), "utf8");
- const code = (source);
+ const stepperSource = readFileSync(new URL("../app/studio/controls/number-stepper.tsx", import.meta.url), "utf8");
  const slots = []; let index = 0; let dirty = false;
  const useState = initial => { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], next => { const value = typeof next === "function" ? next(slots[id]) : next; if (value !== slots[id]) { slots[id] = value; dirty = true; } }]; };
  const jsx = (type, props) => ({ type, props });
- const require = name => name === "react" ? { useState } : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("native-fields") ? { TextInput: "input", NumberInput: "input" } : name.endsWith("button") ? { StudioButton: "button" } : name === "@acm/icons/react" ? { AcmIcon: "svg" } : {};
- const component = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports.LineHeightSetting;`)(require, {});
+ const require = name => name === "react" ? { useState } : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("native-fields") ? { TextInput: "input", NumberInput: "input" } : name.endsWith("button") ? { StudioButton: "button" } : name === "@acm/icons/react" ? { AcmIcon: "svg" } : name === "./number-stepper" ? { NumberStepper: renderStepper } : {};
+ const numberStepper = createHostModuleEvaluator(["require", "exports"], `${stepperSource}\nreturn exports.NumberStepper;`)(require, {});
+ const renderStepper = props => numberStepper(props);
+ const component = createHostModuleEvaluator(["require", "exports"], `${source}\nreturn exports.LineHeightSetting;`)(require, {});
  const changes = [];
  const value = initialValue === "__unset__" ? undefined : initialValue;
  const props = { value, label: "Line Height", stepper: true, defaultValue, placeholder: value === undefined ? "1.4" : "Default", onChange: next => { changes.push(next); props.value = next; } };
- function render() { let tree; do { dirty = false; index = 0; tree = component(props); if (typeof tree.type === "function") tree = tree.type(tree.props); } while (dirty); return tree; }
+ function render() {
+  let tree;
+  do { dirty = false; index = 0; tree = component(props); if (typeof tree.type === "function") tree = tree.type(tree.props); } while (dirty);
+  return [tree, ...nodes(tree).filter(node => node.type === renderStepper).map(node => renderStepper(node.props))];
+ }
  return { props, changes, input: () => nodes(render()).find(node => node.type === "input"), render };
 }
 

@@ -150,6 +150,38 @@ test("Space toggles playback from the preview and preserves native control short
   await expect(play).toBeVisible();
 });
 
+test("large number stepper buttons update the preview immediately and respect field limits", async ({ page }) => {
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const button = (direction: string, field: string) => page.getByRole("button", { name: `${direction} ${field}`, exact: true });
+  const size = page.getByRole("img", { name: "Wave animation preview" });
+  const thickness = size.locator("path");
+  const slider = page.getByRole("slider", { name: "Animation position" });
+
+  const increase = button("Increase", "Width (px)");
+  expect((await increase.boundingBox())!.width).toBeGreaterThanOrEqual(32);
+  await increase.click();
+  await expect(size).toHaveAttribute("viewBox", "0 0 801 800");
+  await button("Decrease", "Height (px)").press("Space");
+  await expect(size).toHaveAttribute("viewBox", "0 0 801 799");
+  await button("Increase", "Thickness (px)").click();
+  await expect(thickness).toHaveAttribute("stroke-width", "10");
+  await button("Increase", "Draw time (s)").click();
+  await expect(slider).toHaveAttribute("max", "93");
+  await button("Decrease", "Hold time (s)").click();
+  await expect(slider).toHaveAttribute("max", "90");
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+
+  await setNumber(page, "Hold time (s)", "0.1");
+  await expect(button("Decrease", "Hold time (s)")).toBeDisabled();
+  const width = page.getByRole("spinbutton", { name: "Width (px)" });
+  await page.locator(".motion-field label").filter({ hasText: /^Width \(px\)$/ }).click();
+  await expect(width).toBeFocused();
+  await width.fill("129.3");
+  await button("Decrease", "Width (px)").dispatchEvent("click");
+  await expect(size).toHaveAttribute("viewBox", "0 0 128 799");
+});
+
 test("editing draw or hold time updates the preview while the field is focused and playback is paused", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");

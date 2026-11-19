@@ -1,9 +1,10 @@
 "use client";
 
 import { AcmIcon } from "@acm/icons/react";
-import { memo, useContext, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
+import { memo, useContext, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
 import { ColourPicker } from "../controls/colour-picker";
-import { NumberInput, TextInput } from "../controls/native-fields";
+import { TextInput } from "../controls/native-fields";
+import { NumberStepper } from "../controls/number-stepper";
 import { RangeControl } from "../controls/range-control";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
@@ -46,22 +47,33 @@ function NumberSetting({ label, value, min, max, step = 1, readOnly = false, onC
   label: string; value: number; min: number; max: number; step?: number; readOnly?: boolean; onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  return <Field label={label}><NumberInput value={draft ?? value} data-committed-value={value} min={min} max={max} step={step} readOnly={readOnly}
-    onChange={event => {
-      const input = event.currentTarget;
-      setDraft(input.value);
-      if (input.validity.valid && Number.isFinite(input.valueAsNumber)) {
-        onCommit(input.valueAsNumber);
-      }
-    }}
-    onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }}
-    onBlur={event => {
-      const entered = event.currentTarget.valueAsNumber;
-      if (!readOnly && draft !== null && Number.isFinite(entered)) {
-        onCommit(Math.max(min, Math.min(max, Math.round(entered / step) * step)));
-      }
-      setDraft(null);
-    }} /></Field>;
+  const inputId = useId();
+  const bound = (number: number) => Math.max(min, Math.min(max, number));
+  const normalise = (number: number) => bound(Math.round(number / step) * step);
+  return <div className="motion-field"><label htmlFor={inputId}>{label}</label>
+    <NumberStepper id={inputId} label={label} value={draft ?? value} data-committed-value={value} min={min} max={max} step={step} readOnly={readOnly}
+      onStep={direction => {
+        const entered = draft?.trim() ? Number(draft) : NaN;
+        const base = Number.isFinite(entered) ? normalise(entered) : value;
+        setDraft(null);
+        onCommit(bound(Number((base + direction * step).toFixed(3))));
+      }}
+      onChange={event => {
+        const input = event.currentTarget;
+        setDraft(input.value);
+        if (input.validity.valid && Number.isFinite(input.valueAsNumber)) {
+          onCommit(input.valueAsNumber);
+        }
+      }}
+      onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }}
+      onBlur={event => {
+        const entered = event.currentTarget.valueAsNumber;
+        if (!readOnly && draft !== null && Number.isFinite(entered)) {
+          onCommit(normalise(entered));
+        }
+        setDraft(null);
+      }} />
+  </div>;
 }
 
 function NameSetting({ name, onChange }: { name: string; onChange: (value: string) => void }) {
