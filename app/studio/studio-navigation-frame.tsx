@@ -74,10 +74,10 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
       <button type="button" aria-label="New post" data-studio-tooltip="New post" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("post")}><AcmIcon name="document.new-post" scale="Regular-S" size={20} /></button>
       <button type="button" aria-label="New page" data-studio-tooltip="New page" disabled={!writable || !onNewDocument} onClick={() => onNewDocument?.("page")}><AcmIcon name="document.new-page" scale="Regular-S" size={20} /></button>
       <button type="button" aria-label="New from template" data-studio-tooltip="New from template" disabled={!writable || !templateWritable || !onNewFromTemplate} onClick={onNewFromTemplate}><AcmIcon name="document.from-template" scale="Regular-S" size={20} /></button>
-    </StudioTooltipGroup><div className="studio-navigation-group studio-navigation-tools">
+    </StudioTooltipGroup><div className={`studio-navigation-group studio-navigation-tools${visibilityEditing ? " is-editing" : ""}`}>
     <InspectorAccordionSection className="studio-navigation-group-disclosure" title="Tools" label="Tools" open={toolsExpanded} onOpenChange={open => { setToolsExpanded(open); if (!open) { setVisibilityEditing(false); reordering.cancel(); } }}>
     <div className={`library-tools${visibilityEditing ? " is-editing" : ""}`} {...reordering.listProps}>
-      {visibilityEditing ? <div className="studio-navigation-edit-bar"><span>{tools.length} items · {orderedVisibleIds.length} visible · {tools.length - orderedVisibleIds.length} hidden</span><button type="button" onClick={() => { setVisibilityEditing(false); requestAnimationFrame(() => toolsVisibilityButton.current?.focus()); }}>Done</button></div> : null}
+      {visibilityEditing ? <div className="studio-navigation-edit-bar"><span>{tools.length} items · {orderedVisibleIds.length} visible · {tools.length - orderedVisibleIds.length} hidden</span></div> : null}
       <DragPlacementIndicator line={reordering.line} />
       {(visibilityEditing ? order : order.filter((id: string) => visibility?.isVisible(id) ?? true)).map((id: string) => {
         const tool = tools.find(item => item.id === id)!;
@@ -96,7 +96,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
       {status ? <p className="studio-site-order-status" role="status">{status}</p> : null}
       {visibility?.status ? <p className="studio-site-order-status" role="status">{visibility.status}</p> : null}
     </div></InspectorAccordionSection>
-    {toolsExpanded ? <div className="studio-navigation-group-action"><button ref={toolsVisibilityButton} type="button" aria-label={visibilityEditing ? "Done editing tool visibility and order" : "Edit tool visibility and order"} title={visibilityEditing ? "Done editing tools" : "Show or hide and reorder tools"} aria-pressed={visibilityEditing} onClick={() => setVisibilityEditing(value => !value)}><AcmIcon name="view.show" scale="Regular-S" size={18} /></button></div> : null}
+    {toolsExpanded ? <div className={`studio-navigation-group-action${visibilityEditing ? " is-editing" : ""}`}><button ref={toolsVisibilityButton} type="button" aria-label={visibilityEditing ? "Done editing tool visibility and order" : "Edit tool visibility and order"} title={visibilityEditing ? "Done editing tools" : "Show or hide and reorder tools"} aria-pressed={visibilityEditing} onClick={() => setVisibilityEditing(value => !value)}>{visibilityEditing ? "Done" : <AcmIcon name="view.show" scale="Regular-S" size={18} />}</button></div> : null}
     </div></>}
     tabs={<><StudioTooltipGroup className="pane-inset"><button type="button" className="studio-drafts-action" aria-pressed={!selectedSite} data-studio-tooltip="Posts and pages not assigned to a site." onClick={onSelectWorkspace}><AcmIcon name="document.content" scale="Regular-S" size={20} /><span>Studio Drafts</span></button></StudioTooltipGroup><LocalFixtureSiteNavigation selectedSite={selectedSite} onSelectSite={onSelectSite} libraryKind={libraryKind} studioSection={studioSection} /><div className="library-tabs"><PaneTabs id={tabsId} label="Content type" tabs={[
       { id: "post", label: "Posts" }, { id: "page", label: "Pages" }, { id: "templates", label: "Templates" },
