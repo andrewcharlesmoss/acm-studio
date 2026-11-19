@@ -1,7 +1,7 @@
 import { studioProjects } from "./project-registry.ts";
 
 export const dashboardSiteIds = studioProjects.map(project => project.id);
-export const dashboardToolIds = ["site-editor", "templates", "designs", "ui-library", "content", "files", "backup"];
+export const dashboardToolIds = ["site-editor", "templates", "designs", "motion-assets", "ui-library", "content", "files", "backup"];
 export const dashboardOrderKeys = {
   sites: "acm-studio-dashboard-sites-order-v1",
   tools: "acm-studio-dashboard-tools-order-v1",

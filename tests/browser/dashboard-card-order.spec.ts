@@ -49,7 +49,7 @@ test('dashboard card drag feedback stays vertical across wrapped rows', async ({
   await page.goto('/');
   const tools = page.locator('.dashboard-tool-grid');
   await expect(page.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
-  const marker = await page.evaluate(() => {
+  const marker = await page.evaluate(async () => {
     const grid = document.querySelector<HTMLElement>('.dashboard-tool-grid')!;
     const cards = Array.from(grid.querySelectorAll<HTMLElement>('.dashboard-card-reorder'));
     const firstRow = cards.filter(card => Math.abs(card.getBoundingClientRect().top - cards[0].getBoundingClientRect().top) < 1);
@@ -60,7 +60,9 @@ test('dashboard card drag feedback stays vertical across wrapped rows', async ({
     const gridBounds = grid.getBoundingClientRect();
     const dataTransfer = new DataTransfer();
     handle.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer }));
+    await new Promise(requestAnimationFrame);
     grid.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer, clientX: gridBounds.right - 1, clientY: lastInRow.bottom - 1 }));
+    await new Promise(requestAnimationFrame);
     const line = grid.querySelector<HTMLElement>('.studio-gap-line');
     if (!line) throw new Error('The dashboard did not render a drop indicator.');
     const measured = { width: line.getBoundingClientRect().width, height: line.getBoundingClientRect().height, left: line.getBoundingClientRect().left, nextLeft: nextRow.getBoundingClientRect().left };

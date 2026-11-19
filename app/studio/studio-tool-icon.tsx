@@ -6,6 +6,7 @@ export const studioToolIcons = {
   siteEditor: "layout.columns",
   templates: "component.block",
   designs: "library.designs",
+  motionAssets: "insert.video",
   uiLibrary: "layout.columns",
   content: "action.edit",
   files: "library.files",

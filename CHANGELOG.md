@@ -4,6 +4,8 @@
 
 ### Added
 
+- Create draw-on animations in Motion Assets, save editable project files, and export SVG, Lottie JSON, and transparent ProRes MOV from local Studio.
+
 - Open a native SwiftUI reordering preview alongside the web example in local Studio.
 
 - Add a reusable SwiftUI vertical reorder package alongside the web behaviour.

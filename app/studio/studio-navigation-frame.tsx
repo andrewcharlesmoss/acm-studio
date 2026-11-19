@@ -19,7 +19,7 @@ import { studioNavigationToolItems } from "./studio-navigation-visibility-contra
 import { useStudioNavigationVisibility } from "./studio-navigation-visibility";
 
 type LibraryKind = StudioDocumentKind | "templates";
-type StudioToolItem = { id: string; label: string; description: string; icon: "files" | "templates" | "designs" | "uiLibrary" | "content" | "siteEditor" | "backup" | "bin"; action?: () => void; href?: string; disabled?: boolean };
+type StudioToolItem = { id: string; label: string; description: string; icon: "files" | "templates" | "designs" | "motionAssets" | "uiLibrary" | "content" | "siteEditor" | "backup" | "bin"; action?: () => void; href?: string; disabled?: boolean };
 
 function keepEditorsTogether(order: string[]) {
   if (!order.includes("content") || !order.includes("site-editor")) return order;
@@ -55,6 +55,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
       files: { description: "Browse images and files", icon: "files" as const, action: onOpenFiles },
       templates: { description: "Create reusable layouts", icon: "templates" as const, action: onOpenTemplates ?? (() => onSelectLibraryKind?.("templates")), disabled: !onOpenTemplates && !onSelectLibraryKind },
       designs: { description: "Create and edit images", icon: "designs" as const, href: "/studio/designs" },
+      "motion-assets": { description: "Create draw-on animations", icon: "motionAssets", href: "/studio/motion-assets" },
       "ui-library": { description: "Explore shared UI", icon: "uiLibrary" as const, href: "/studio/ui" },
       content: { description: "Edit pages and posts", icon: "content" as const, href: contentEditorHref ?? "/studio" },
       "site-editor": { description: "Preview site design", icon: "siteEditor" as const, href: siteEditorHref ?? (selectedSite ? `/studio/site-editor?site=${selectedSite}` : "/studio/site-editor") },

@@ -2,6 +2,7 @@ export const studioNavigationToolItems = [
   { id: "files", label: "Files" },
   { id: "templates", label: "Templates" },
   { id: "designs", label: "Design Canvas" },
+  { id: "motion-assets", label: "Motion Assets" },
   { id: "ui-library", label: "Studio UI Library" },
   { id: "content", label: "Content Editor" },
   { id: "site-editor", label: "Site Editor" },

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
 import { testSiteBridge } from "./scripts/test-site-bridge.mjs";
+import { motionExportBridge } from "./scripts/motion-export-bridge.mjs";
 import { swiftUIPreviewBridge } from "./scripts/swiftui-preview-bridge.mjs";
 import { sharedStylesBridge } from "./scripts/shared-styles-bridge.mjs";
 
@@ -71,6 +72,7 @@ export default defineConfig(async () => {
     plugins: [
       sharedStylesBridge(),
       swiftUIPreviewBridge(),
+      motionExportBridge(),
       projectPortsBridge(),
       testSiteBridge(),
       vinext(),

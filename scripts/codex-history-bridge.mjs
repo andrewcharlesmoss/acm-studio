@@ -2,11 +2,11 @@ import { spawn } from "node:child_process";
 
 // Dev-only adapter. No raw RPC, credentials or transcript files are exposed
 // through the public build. Coding requires an explicit local server opt-in.
-export function isLocalStudioRequest(request, origin) {
+export function isLocalStudioRequest(request, origin, client = "codex-history") {
   return ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(request.socket.remoteAddress)
     && request.headers.host === new URL(origin).host
     && request.headers.origin === origin
-    && request.headers["x-studio-client"] === "codex-history"
+    && request.headers["x-studio-client"] === client
     && request.headers["content-type"] === "application/json"
     && (!request.headers["sec-fetch-site"] || request.headers["sec-fetch-site"] === "same-origin");
 }
