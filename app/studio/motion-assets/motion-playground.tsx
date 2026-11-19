@@ -161,8 +161,7 @@ export function MotionPlayground() {
   function changeTiming(drawFrames: number, holdFrames: number) {
     if (drawFrames === asset.drawFrames && holdFrames === asset.holdFrames) return;
     changeAsset({ drawFrames, holdFrames });
-    setPosition(0);
-    setPlayback({ startFrame: 0 });
+    setPosition(current => current === null ? null : Math.min(current, drawFrames + holdFrames));
   }
 
   async function openFile(event: ChangeEvent<HTMLInputElement>) {

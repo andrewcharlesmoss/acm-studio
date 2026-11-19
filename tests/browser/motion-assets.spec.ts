@@ -96,20 +96,24 @@ test("autoplay is on by default, starts the chosen sketch after confirmation, an
   await expect(slider).toHaveValue("90");
 });
 
-test("committing draw or hold time replays the preview with the updated duration", async ({ page }) => {
+test("committing draw or hold time updates the preview without starting playback", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
-  const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });
-  await autoplay.press("Space");
-  await expect(autoplay).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Autoplay on selection" })).toBeChecked();
   const slider = page.getByRole("slider", { name: "Animation position" });
-  const pause = page.getByRole("button", { name: "Pause", exact: true });
+  const play = page.getByRole("button", { name: "Play", exact: true });
+  const path = page.getByRole("img", { name: "Wave animation preview" }).locator("path");
+  await slider.press("Home");
+  await slider.press("ArrowRight");
+  const originalPath = await path.getAttribute("d");
   await setNumber(page, "Draw time (s)", "2.7");
-  await expect(pause).toBeVisible();
+  await expect(play).toBeVisible();
   await expect(slider).toHaveAttribute("max", "141");
+  await expect(slider).toHaveValue("1");
+  await expect(path).not.toHaveAttribute("d", originalPath!);
   await slider.press("End");
   await setNumber(page, "Hold time (s)", "0.1");
-  await expect(pause).toBeVisible();
+  await expect(play).toBeVisible();
   await expect(slider).toHaveAttribute("max", "84");
   await expect(slider).toHaveValue("84");
 });
