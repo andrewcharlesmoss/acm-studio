@@ -4,6 +4,7 @@ import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useS
 import { ColourPicker } from "../controls/colour-picker";
 import { NumberInput, TextInput } from "../controls/native-fields";
 import { RangeControl } from "../controls/range-control";
+import { ToggleSetting } from "../controls/toggle-setting";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane } from "../panes/pane-components";
 import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
@@ -66,9 +67,10 @@ export function MotionPlayground() {
   const [asset, setAsset] = useState(wave);
   const [search, setSearch] = useState("");
   const [baseline, setBaseline] = useState(() => projectKey(wave));
-  const [playing, setPlaying] = useState(false);
+  const [autoplay, setAutoplay] = useState(false);
+  const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
   const [position, setPosition] = useState<number | null>(null);
-  const [replacement, setReplacement] = useState<{ asset: MotionAsset; unsaved: boolean }>();
+  const [replacement, setReplacement] = useState<{ asset: MotionAsset; unsaved: boolean; play: boolean }>();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [movSupport, setMovSupport] = useState<{ available: boolean; error?: string }>();
@@ -78,6 +80,7 @@ export function MotionPlayground() {
   const inputSequence = useRef(0);
   const currentDirty = useRef(false);
   const model = useMemo(() => motionGeometry(asset), [asset]);
+  const frameCount = useRef(model.frameCount);
   const signature = useMemo(() => projectKey(asset), [asset]);
   const dirty = signature !== baseline;
   const frame = Math.min(position ?? model.frameCount, model.frameCount);
@@ -102,6 +105,7 @@ export function MotionPlayground() {
   }, []);
 
   useLayoutEffect(() => { currentDirty.current = dirty; }, [dirty]);
+  useLayoutEffect(() => { frameCount.current = model.frameCount; }, [model.frameCount]);
 
   useEffect(() => {
     const preventLoss = (event: BeforeUnloadEvent) => {
@@ -116,27 +120,25 @@ export function MotionPlayground() {
   useEffect(() => () => exportRequest.current?.abort(), []);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playback) return;
     let request = 0;
     let started: number | undefined;
-    const firstFrame = frame;
+    const { startFrame } = playback;
     function tick(now: number) {
       started ??= now;
-      const nextFrame = Math.min(model.frameCount, firstFrame + Math.floor((now - started) * motionFps / 1000));
+      const nextFrame = Math.min(frameCount.current, startFrame + Math.floor((now - started) * motionFps / 1000));
       setPosition(nextFrame);
-      if (nextFrame === model.frameCount) setPlaying(false);
+      if (nextFrame === frameCount.current) setPlayback(null);
       else request = requestAnimationFrame(tick);
     }
     request = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(request);
-    // Capture the starting frame when playback begins. Rendered frames don't restart the clock.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, model.frameCount]);
+  }, [playback]);
 
-  function applyReplacement(next: MotionAsset, unsaved: boolean) {
+  function applyReplacement(next: MotionAsset, unsaved: boolean, play: boolean) {
     inputSequence.current++;
-    setPlaying(false);
-    setPosition(null);
+    setPlayback(play ? { startFrame: 0 } : null);
+    setPosition(play ? 0 : null);
     setAsset(next);
     setBaseline(unsaved ? "" : projectKey(next));
     setReplacement(undefined);
@@ -145,9 +147,9 @@ export function MotionPlayground() {
     document.getElementById("motion-preview")?.scrollIntoView({ block: "start", behavior: "instant" });
   }
 
-  function requestReplacement(next: MotionAsset, unsaved = false) {
-    if (currentDirty.current || hasPendingFieldEdit()) setReplacement({ asset: next, unsaved });
-    else applyReplacement(next, unsaved);
+  function requestReplacement(next: MotionAsset, { unsaved = false, play = false } = {}) {
+    if (currentDirty.current || hasPendingFieldEdit()) setReplacement({ asset: next, unsaved, play });
+    else applyReplacement(next, unsaved, play);
   }
 
   function changeAsset(changes: Partial<MotionAsset>) {
@@ -166,7 +168,7 @@ export function MotionPlayground() {
       const source = await file.text();
       if (inputSequence.current !== sequence) return;
       const svg = /\.svg$/i.test(file.name);
-      requestReplacement(svg ? importMotionSvg(source, file.name.replace(/\.svg$/i, "").slice(0, 100)) : readMotionProject(JSON.parse(source)), svg);
+      requestReplacement(svg ? importMotionSvg(source, file.name.replace(/\.svg$/i, "").slice(0, 100)) : readMotionProject(JSON.parse(source)), { unsaved: svg });
     } catch (failure) {
       if (inputSequence.current !== sequence) return;
       setMessage("");
@@ -217,10 +219,13 @@ export function MotionPlayground() {
     <section className="motion-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
       <div className="motion-catalogue-heading">
         <div><h1 id="motion-catalogue-title">Motion Assets</h1><p>Choose a sketch to preview, adjust and export.</p></div>
-        <label><span>Search motion assets</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches…" /></label>
+        <div className="motion-catalogue-options">
+          <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
+          <label className="motion-catalogue-search"><span>Search motion assets</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches…" /></label>
+        </div>
       </div>
       <div className="motion-catalogue-grid">
-        {motionCatalogue.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase())).map(item => <button key={item.name} type="button" className="motion-catalogue-card" aria-label={`Use ${item.name}`} aria-pressed={asset.path === item.path && asset.name === item.name} onClick={() => requestReplacement(item)}>
+        {motionCatalogue.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase())).map(item => <button key={item.name} type="button" className="motion-catalogue-card" aria-label={`Use ${item.name}`} aria-pressed={asset.path === item.path && asset.name === item.name} onClick={() => requestReplacement(item, { play: autoplay })}>
           <svg viewBox="0 0 420 420" aria-hidden="true"><path d={item.path} fill="none" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <strong>{item.name}</strong>
         </button>)}
@@ -249,13 +254,14 @@ export function MotionPlayground() {
         </div>
         <div className="motion-transport">
           <button type="button" className="button-secondary" onClick={() => {
-            if (playing) { setPlaying(false); return; }
-            if (frame === model.frameCount) setPosition(0);
-            setPlaying(true);
-          }}>{playing ? "Pause" : "Play"}</button>
+            if (playback) { setPlayback(null); return; }
+            const startFrame = frame === model.frameCount ? 0 : frame;
+            setPosition(startFrame);
+            setPlayback({ startFrame });
+          }}>{playback ? "Pause" : "Play"}</button>
           <RangeControl min={0} max={model.frameCount} step={1} value={frame}
             aria-label="Animation position" aria-valuetext={`${formatSeconds(frame)} of ${formatSeconds(model.frameCount)}`}
-            tooltipPlacement="above" tooltipText={formatSeconds(frame)} onChange={event => { setPlaying(false); setPosition(event.target.valueAsNumber); }} />
+            tooltipPlacement="above" tooltipText={formatSeconds(frame)} onChange={event => { setPlayback(null); setPosition(event.target.valueAsNumber); }} />
           <span className="motion-time" aria-hidden="true">{formatSeconds(frame)} / {formatSeconds(model.frameCount)}</span>
         </div>
       </section>
@@ -304,7 +310,7 @@ export function MotionPlayground() {
       <p>Download the editable project first if you want to keep your changes.</p>
       <StudioDialogActions>
         <button type="button" className="button-secondary" onClick={() => setReplacement(undefined)}>Keep Editing</button>
-        <button type="button" className="button-primary" onClick={() => applyReplacement(replacement.asset, replacement.unsaved)}>Replace Project</button>
+        <button type="button" className="button-primary" onClick={() => applyReplacement(replacement.asset, replacement.unsaved, replacement.play)}>Replace Project</button>
       </StudioDialogActions>
     </StudioDialog> : null}
   </>;

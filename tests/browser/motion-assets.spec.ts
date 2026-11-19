@@ -2,6 +2,7 @@ import { expect, test, devices, type Page } from "@playwright/test";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import { motionGeometry, motionPreset, motionProject } from "../../app/studio/motion-assets/motion-asset";
+import { motionCatalogue } from "../../app/studio/motion-assets/motion-catalogue";
 
 const require = createRequire(import.meta.url);
 const route = "/studio/ui/motion-assets";
@@ -66,6 +67,62 @@ test("finds Motion Assets in the Library Catalogue", async ({ page }) => {
   await entry.click();
   await expect(page).toHaveURL(route);
   await expect(page.getByRole("tab", { name: "Motion Assets" })).toHaveAttribute("aria-selected", "true");
+});
+
+test("autoplay starts the chosen sketch after confirmation and can be turned off", async ({ page }) => {
+  await page.goto(route);
+  const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });
+  const slider = page.getByRole("slider", { name: "Animation position" });
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  await expect(autoplay).not.toBeChecked();
+  await setNumber(page, "Width (px)", "1200");
+  await autoplay.press("Space");
+  await expect(autoplay).toBeChecked();
+  await page.getByRole("button", { name: "Use Plus", exact: true }).press("Enter");
+  await expect(page.getByRole("dialog", { name: "Replace this project?" })).toBeVisible();
+  await page.getByRole("button", { name: "Keep Editing" }).click();
+  await expect(page.getByRole("img", { name: "Wave animation preview" })).toBeVisible();
+  await page.getByRole("button", { name: "Use Plus", exact: true }).click();
+  await page.getByRole("button", { name: "Replace Project" }).click();
+  await expect(page.getByRole("img", { name: "Plus animation preview" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await expect(slider).toHaveValue("90");
+
+  await autoplay.press("Space");
+  await page.getByRole("button", { name: "Use Smile", exact: true }).click();
+  const drawing = page.getByRole("img", { name: "Smile animation preview" }).locator("path");
+  await expect(drawing).toHaveAttribute("d", /M.*M.*M.*M/);
+  await expect(slider).toHaveValue("90");
+});
+
+test("the Lottie SVG player reveals separate strokes in order", async ({ page }) => {
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  await page.getByRole("button", { name: "Use Double line", exact: true }).click();
+  const file = await save(page, "Lottie JSON");
+  await page.setContent('<div id="example"></div>');
+  await page.addScriptTag({ path: require.resolve("lottie-web/build/player/lottie_light.min.js") });
+  const lengths = await page.locator("#example").evaluate(async (container, animationData) => {
+    const { lottie } = window as unknown as { lottie: typeof import("lottie-web").default };
+    const player = lottie.loadAnimation({ container, renderer: "svg", loop: false, autoplay: false, animationData });
+    await new Promise<void>(resolve => player.addEventListener("DOMLoaded", () => resolve()));
+    const paths = [...container.querySelectorAll<SVGPathElement>('path[stroke-width="9"]')];
+    return [10, 20, 30, 89].map(frame => {
+      player.goToAndStop(frame, true);
+      return paths.map(path => ({ length: path.getTotalLength(), y: path.getBBox().y }));
+    });
+  }, JSON.parse(file.data.toString()));
+  const [first, second, complete, held] = lengths;
+  const firstStroke = first.findIndex(path => path.length > 0);
+  expect(firstStroke).toBeGreaterThanOrEqual(0);
+  const secondStroke = 1 - firstStroke;
+  expect(first[secondStroke].length).toBe(0);
+  expect(second[firstStroke].length).toBeCloseTo(complete[firstStroke].length);
+  expect(second[secondStroke].length).toBeGreaterThan(0);
+  expect(complete[firstStroke].y).toBeLessThan(complete[secondStroke].y);
+  expect(held).toEqual(complete);
 });
 
 test("round-trips a widened wave, protects an edit, and rejects invalid SVG", async ({ page }, info) => {
@@ -249,8 +306,8 @@ test("the local bridge rejects foreign and invalid requests and recovers after c
   await page.getByRole("button", { name: "Cancel Export" }).click();
   await expect(page.getByRole("status").filter({ hasText: "MOV export cancelled." })).toBeVisible();
   // The browser may be ready for another export while the bridge is still stopping FFmpeg.
+  const sketch = motionCatalogue.find(asset => asset.name === "Double line")!;
   await expect.poll(async () => {
-    const retry = await post(motionProject({ ...motionPreset("circle"), width: 128, height: 128, drawFrames: 3, holdFrames: 3 }));
-    return retry.status();
+    return (await post(motionProject({ ...sketch, width: 128, height: 128, drawFrames: 12, holdFrames: 3 }))).status();
   }, { timeout: 10000 }).toBe(200);
 });

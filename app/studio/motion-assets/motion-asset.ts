@@ -1,5 +1,6 @@
 export const motionFps = 30;
-export const motionProjectVersion = "0.1.0";
+const singleStrokeProjectVersion = "0.1.0";
+export const motionProjectVersion = "0.2.0";
 export const motionFileLimit = 24 * 1024;
 
 export type MotionAsset = {
@@ -32,7 +33,9 @@ export function motionPreset(shape: "wave" | "circle"): MotionAsset {
 
 const numberToken = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/i;
 const pathLimit = 12000;
-const pathError = "Use one SVG path with absolute M, L, C, and Z commands.";
+const segmentLimit = 128;
+const pathError = "Use an SVG path with absolute M, L, C, and Z commands.";
+const segmentError = "Use an SVG path with up to 128 segments.";
 const numberIn = (value: unknown, low: number, high: number): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= low && value <= high;
 const integerIn = (value: unknown, low: number, high: number): value is number =>
@@ -42,8 +45,7 @@ export function motionDimensionLimit(other: number) {
   return other > 1080 ? 1080 : 1920;
 }
 
-function parsePath(path: string, [x, y, width, height]: MotionAsset["viewBox"]): Sketch {
-  if (typeof path !== "string" || path.length > pathLimit) throw new Error(pathError);
+function parseSketch(path: string, [x, y, width, height]: MotionAsset["viewBox"]): Sketch {
   let rest = path.trim();
   function readPoint(): Point {
     function number() {
@@ -78,7 +80,7 @@ function parsePath(path: string, [x, y, width, height]: MotionAsset["viewBox"]):
       closed = true;
       break;
     }
-    if (segments.length >= 128) throw new Error("Use an SVG path with up to 128 segments.");
+    if (segments.length >= segmentLimit) throw new Error(segmentError);
     const controls: Segment["controls"] = command === "C" ? [readPoint(), readPoint()] : undefined;
     const to = readPoint();
     if (distance(previous, to) || controls?.some(point => distance(previous, point))) {
@@ -87,8 +89,16 @@ function parsePath(path: string, [x, y, width, height]: MotionAsset["viewBox"]):
     previous = to;
   }
   if (!segments.length) throw new Error("Choose a path with a visible stroke.");
-  if (segments.length > 128) throw new Error("Use an SVG path with up to 128 segments.");
   return { start, segments, closed };
+}
+
+function parsePath(path: string, viewBox: MotionAsset["viewBox"]): Sketch[] {
+  if (typeof path !== "string" || path.length > pathLimit) throw new Error(pathError);
+  const sketches = path.trim().split(/(?=M)/).map(stroke => parseSketch(stroke, viewBox));
+  if (sketches.reduce((count, sketch) => count + sketch.segments.length, 0) > segmentLimit) {
+    throw new Error(segmentError);
+  }
+  return sketches;
 }
 
 export function readMotionAsset(input: unknown): MotionAsset {
@@ -113,7 +123,7 @@ export function readMotionAsset(input: unknown): MotionAsset {
     || value.drawFrames % 3 || value.holdFrames % 3) {
     throw new Error("Set at least 0.1 s for drawing and holding, with a total of up to 10 s.");
   }
-  const path = pathData(parsePath(value.path, value.viewBox));
+  const path = parsePath(value.path, value.viewBox).map(pathData).join(" ");
   if (path.length > pathLimit) throw new Error("Use a shorter SVG path.");
   return {
     name: value.name.trim(), viewBox: [...value.viewBox], path,
@@ -123,15 +133,21 @@ export function readMotionAsset(input: unknown): MotionAsset {
 }
 
 export function motionProject(asset: MotionAsset) {
-  return { format: "acm-motion", version: motionProjectVersion, asset: readMotionAsset(asset) };
+  const validated = readMotionAsset(asset);
+  const version = validated.path.indexOf("M", 1) === -1 ? singleStrokeProjectVersion : motionProjectVersion;
+  return { format: "acm-motion", version, asset: validated };
 }
 
 export function readMotionProject(value: unknown) {
   const file = value as ReturnType<typeof motionProject>;
-  if (!file || file.format !== "acm-motion" || file.version !== motionProjectVersion) {
+  if (!file || file.format !== "acm-motion" || (file.version !== singleStrokeProjectVersion && file.version !== motionProjectVersion)) {
     throw new Error("Choose an ACM Motion project saved in a supported version.");
   }
-  return readMotionAsset(file.asset);
+  const asset = readMotionAsset(file.asset);
+  if (file.version === singleStrokeProjectVersion && asset.path.indexOf("M", 1) !== -1) {
+    throw new Error("Use ACM Motion project v0.2.0 for sketches with multiple strokes.");
+  }
+  return asset;
 }
 
 function distance(a: Point, b: Point) {
@@ -169,51 +185,69 @@ export function motionGeometry(asset: MotionAsset) {
     inset + (point[0] - x) / width * (asset.width - inset * 2),
     inset + (point[1] - y) / height * (asset.height - inset * 2),
   ];
-  const sketch: Sketch = {
-    start: map(source.start), closed: source.closed,
-    segments: source.segments.map(({ from, to, controls }) => ({
+  const sketches: Sketch[] = source.map(stroke => ({
+    start: map(stroke.start), closed: stroke.closed,
+    segments: stroke.segments.map(({ from, to, controls }) => ({
       from: map(from), to: map(to), controls: controls && [map(controls[0]), map(controls[1])],
     })),
-  };
+  }));
   let length = 0;
-  const measured = sketch.segments.map(segment => {
-    const steps = segment.controls ? 96 : 1;
-    const distances = [length];
-    let previous = segment.from;
-    for (let i = 1; i <= steps; i++) {
-      const point = shorten(segment, i / steps).to;
-      length += distance(previous, point);
-      distances.push(length);
-      previous = point;
-    }
-    return { segment, distances, steps };
+  const strokes = sketches.map(sketch => {
+    const startDistance = length;
+    const segments = sketch.segments.map(segment => {
+      const steps = segment.controls ? 96 : 1;
+      const distances = [length];
+      let previous = segment.from;
+      for (let i = 1; i <= steps; i++) {
+        const point = shorten(segment, i / steps).to;
+        length += distance(previous, point);
+        distances.push(length);
+        previous = point;
+      }
+      return { segment, distances, steps };
+    });
+    return { sketch, segments, startDistance, endDistance: length, fullPath: pathData(sketch) };
   });
-  const fullPath = pathData(sketch);
+  const fullPath = strokes.map(stroke => stroke.fullPath).join(" ");
   function pathAt(frame: number) {
     if (frame <= 0) return "";
     if (frame >= asset.drawFrames) return fullPath;
     const target = length * frame / asset.drawFrames;
-    const segments: Segment[] = [];
-    for (const { segment, distances, steps } of measured) {
-      const next = distances.findIndex(value => value > target);
-      if (next < 0) { segments.push(segment); continue; }
-      if (next > 0) {
-        const fraction = (target - distances[next - 1]) / (distances[next] - distances[next - 1]);
-        segments.push(shorten(segment, (next - 1 + fraction) / steps));
+    const paths: string[] = [];
+    for (const stroke of strokes) {
+      if (stroke.endDistance <= target) { paths.push(stroke.fullPath); continue; }
+      if (stroke.startDistance >= target) break;
+      const segments: Segment[] = [];
+      for (const { segment, distances, steps } of stroke.segments) {
+        const next = distances.findIndex(value => value > target);
+        if (next < 0) { segments.push(segment); continue; }
+        if (next > 0 && target > distances[next - 1]) {
+          const fraction = (target - distances[next - 1]) / (distances[next] - distances[next - 1]);
+          segments.push(shorten(segment, (next - 1 + fraction) / steps));
+        }
+        break;
       }
+      paths.push(pathData({ start: stroke.sketch.start, segments, closed: false }));
       break;
     }
-    return pathData({ start: sketch.start, segments, closed: false });
+    return paths.join(" ");
   }
-  return { sketch, pathAt, frameCount: asset.drawFrames + asset.holdFrames };
+  return {
+    strokes: strokes.map(({ sketch, startDistance, endDistance }) => ({
+      sketch,
+      startFrame: startDistance / length * asset.drawFrames,
+      endFrame: endDistance / length * asset.drawFrames,
+    })),
+    pathAt,
+    frameCount: asset.drawFrames + asset.holdFrames,
+  };
 }
 
 export function motionSvg(asset: MotionAsset, path: string) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${asset.width}" height="${asset.height}" viewBox="0 0 ${asset.width} ${asset.height}">${path ? `<path d="${path}" fill="none" stroke="${asset.colour}" stroke-width="${asset.thickness}" stroke-linecap="round" stroke-linejoin="round"/>` : ""}</svg>\n`;
 }
 
-export function motionLottie(asset: MotionAsset) {
-  const { sketch, frameCount } = motionGeometry(asset);
+function lottiePath(sketch: Sketch) {
   const vertices = [sketch.start, ...sketch.segments.map(segment => segment.to)];
   const tangentsIn: Point[] = vertices.map(() => [0, 0]);
   const tangentsOut: Point[] = vertices.map(() => [0, 0]);
@@ -227,6 +261,11 @@ export function motionLottie(asset: MotionAsset) {
     tangentsIn[0] = tangentsIn.pop()!;
     tangentsOut.pop();
   }
+  return { v: vertices, i: tangentsIn, o: tangentsOut, c: sketch.closed };
+}
+
+export function motionLottie(asset: MotionAsset) {
+  const { strokes, frameCount } = motionGeometry(asset);
   const prop = <T,>(k: T) => ({ a: 0, k });
   const colour = [1, 3, 5].map(index => Number.parseInt(asset.colour.slice(index, index + 2), 16) / 255);
   const transform = { p: prop([0, 0]), a: prop([0, 0]), s: prop([100, 100]), r: prop(0), o: prop(100) };
@@ -234,17 +273,17 @@ export function motionLottie(asset: MotionAsset) {
     v: "5.12.2", nm: asset.name, fr: motionFps, ip: 0, op: frameCount, w: asset.width, h: asset.height, assets: [],
     layers: [{
       ty: 4, ind: 1, nm: asset.name, ks: transform, ip: 0, op: frameCount, st: 0, sr: 1, bm: 0,
-      shapes: [{
+      shapes: strokes.map(({ sketch, startFrame, endFrame }) => ({
         ty: "gr", it: [
-          { ty: "sh", ks: prop({ v: vertices, i: tangentsIn, o: tangentsOut, c: sketch.closed }) },
+          { ty: "sh", ks: prop(lottiePath(sketch)) },
           { ty: "st", c: prop(colour), o: prop(100), w: prop(asset.thickness), lc: 2, lj: 2 },
           { ty: "tm", s: prop(0), e: { a: 1, k: [
-            { t: 0, s: [0], e: [100], o: { x: [0.33], y: [0.33] }, i: { x: [0.67], y: [0.67] } },
-            { t: asset.drawFrames, s: [100] },
+            { t: startFrame, s: [0], e: [100], o: { x: [0.33], y: [0.33] }, i: { x: [0.67], y: [0.67] } },
+            { t: endFrame, s: [100] },
           ] }, o: prop(0), m: 1 },
           { ty: "tr", ...transform },
         ],
-      }],
+      })),
     }],
   };
 }

@@ -7,7 +7,7 @@ import { motionPreset, motionGeometry, motionLottie, motionProject, motionSvg, r
 import { motionCatalogue } from "../app/studio/motion-assets/motion-catalogue.ts";
 
 test("each catalogue sketch supports editable and portable exports", () => {
-  assert.ok(motionCatalogue.length >= 12);
+  assert.ok(motionCatalogue.length >= 20);
   for (const asset of motionCatalogue) {
     const restored = readMotionProject(motionProject(asset));
     const geometry = motionGeometry(restored);
@@ -15,6 +15,22 @@ test("each catalogue sketch supports editable and portable exports", () => {
     assert.ok(motionLottie(restored).layers.length, asset.name);
     assert.match(motionSvg(restored, geometry.pathAt(restored.drawFrames)), /<svg/);
   }
+});
+
+test("multiple strokes reveal in sequence and round-trip through the versioned project", () => {
+  const asset = { ...motionPreset("wave"), path: "M20 100 L300 100 M20 300 L300 300" };
+  const project = motionProject(asset);
+  assert.equal(project.version, "0.2.0");
+  const restored = readMotionProject(JSON.parse(JSON.stringify(project)));
+  const geometry = motionGeometry(restored);
+  assert.equal(geometry.pathAt(0), "");
+  assert.equal(geometry.pathAt(15).match(/M/g)?.length, 1);
+  assert.equal(geometry.pathAt(16).match(/M/g)?.length, 2);
+  assert.equal(geometry.pathAt(30), geometry.pathAt(89));
+  const groups = motionLottie(restored).layers[0].shapes;
+  assert.deepEqual(groups.map(group => group.it[2].e.k.map(keyframe => keyframe.t)), [[0, 15], [15, 30]]);
+  assert.throws(() => readMotionProject({ ...project, version: "0.1.0" }), /multiple strokes/);
+  assert.equal(motionProject(motionPreset("circle")).version, "0.1.0");
 });
 
 test("wave and oval projects round-trip the editable geometry and settings", () => {
@@ -42,7 +58,8 @@ test("unsafe or unusable projects are rejected before render", () => {
   const project = motionProject(motionPreset("wave"));
   for (const changes of [
     { path: 'M0 0 L12 12"><script>alert(1)</script>' },
-    { path: "M0 0 L2 2 M4 4 L8 8" },
+    { path: "M0 0 L2 2 M4 4" },
+    { path: "M0 0 L2 2 ".repeat(129) },
     { path: "M0 0 L0 0" },
     { path: "M0 0 C1 2 3 4 1000 1000" },
     { colour: "url(https://example.invalid)" },

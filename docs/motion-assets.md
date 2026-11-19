@@ -1,10 +1,10 @@
 # Motion Assets
 
-Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Search the sketch collection and choose an asset, then set the canvas dimensions, stroke colour, thickness, draw time, and hold time. Press Enter or leave a number field to apply it. Use **Play** or the position slider to check the reveal against the transparent canvas. The draft stays open while you browse other Library tabs.
+Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Browse or search the collection for arrows, shapes, lines and other sketch marks. Turn on **Autoplay on selection** to play each sketch from the start when you choose it. Set the canvas dimensions, stroke colour, thickness, draw time and hold time. Press Enter or leave a number field to apply it. You can also preview with **Play** or the position slider. The draft and autoplay setting stay open while you browse other Library tabs.
 
 **Download Project** saves an editable `.acm-motion.json` file with the original SVG path, its viewBox, and the animation settings. **Open File** reopens it or imports a simple SVG. Studio keeps the current project in memory. A project file is the way to keep and move your work between sessions or computers.
 
-The initial wave uses the SVG geometry from the November 2026 cross-editor experiment. The circle is an original cubic Bézier preset. An imported SVG needs a viewBox and one untransformed path. Its supported path commands are absolute M, L, C, and Z in one subpath, with up to 128 segments. Path and control points must be inside the viewBox. Studio imports the geometry and uses a supported solid stroke colour and whole-pixel thickness if specified directly on the path. Files are limited to 24 KB.
+The initial wave uses the SVG geometry from the November 2026 cross-editor experiment. The collection includes original geometry for the sketch marks. An imported SVG needs a viewBox and one untransformed path. It supports absolute M, L, C and Z commands, with up to 128 segments across all subpaths. Separate strokes draw in path order within the overall draw time. Path and control points must be inside the viewBox. Studio imports the geometry and uses a supported solid stroke colour and whole-pixel thickness if specified directly on the path. Files are limited to 24 KB. Projects with multiple strokes use v0.2.0. Studio still reads and writes v0.1.0 projects for a single stroke.
 
 ## Choose an export
 

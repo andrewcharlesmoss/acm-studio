@@ -13,15 +13,16 @@ const endpoint = "/__studio/motion-export";
 const require = createRequire(import.meta.url);
 const runFile = promisify(execFile);
 const ffmpegMissing = "Install FFmpeg with the ProRes 4444 encoder to export MOV in local Studio.";
-let rasteriser;
+// Vite reloads this bridge with its config while Node retains the WASM module.
+const rasteriserKey = Symbol.for("acm-studio.motion-rasteriser");
 
 async function renderMov(asset, output, signal) {
-  rasteriser ??= (async () => {
+  globalThis[rasteriserKey] ??= (async () => {
     const { Resvg, initWasm } = await import("@resvg/resvg-wasm");
     await initWasm(await readFile(require.resolve("@resvg/resvg-wasm/index_bg.wasm")));
     return Resvg;
-  })().catch(error => { rasteriser = undefined; throw error; });
-  const Resvg = await rasteriser;
+  })().catch(error => { delete globalThis[rasteriserKey]; throw error; });
+  const Resvg = await globalThis[rasteriserKey];
   signal.throwIfAborted();
   const child = spawn("ffmpeg", [
     "-hide_banner", "-loglevel", "error", "-n", "-f", "image2pipe", "-framerate", String(motionFps),
