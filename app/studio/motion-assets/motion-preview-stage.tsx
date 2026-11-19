@@ -11,18 +11,21 @@ import { shouldCommitResizeGesture, type ResizeGestureEnd } from "../resize-gest
 import type { MotionAsset } from "./motion-asset";
 import { resizeMotion, type MotionSize } from "./motion-resize";
 
+type MotionPlacement = PageResizePlacement & { scaleFactor: number };
+
 type Gesture = {
   original: MotionSize;
   drag: ResizeDrag<MotionSize>;
   handle: ResizeHandle;
   pointerId: number;
   scale: number;
+  placement: MotionPlacement;
 };
 
 type MoveGesture = {
   drag: CanvasMove;
-  placement: PageResizePlacement;
-  previous: PageResizePlacement | null;
+  placement: MotionPlacement;
+  previous: MotionPlacement | null;
 };
 
 export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
@@ -38,7 +41,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   const [renderWidth, setRenderWidth] = useState(0);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [liveResize, setLiveResize] = useState<Gesture | null>(null);
-  const [placement, setPlacement] = useState<PageResizePlacement | null>(null);
+  const [placement, setPlacement] = useState<MotionPlacement | null>(null);
   const [moving, setMoving] = useState(false);
 
   useLayoutEffect(() => {
@@ -58,20 +61,27 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   useLayoutEffect(() => () => onResizeDraft(null), [onResizeDraft]);
 
   const size = asset;
-  const original = placement?.basis ?? liveResize?.original ?? asset;
-  const scale = renderWidth / original.width;
-  const fit = { ...stageSize, margin: 10 };
-  const layout = placement || liveResize ? pageResizeLayout(size, scale * 100,
+  const activePlacement = liveResize?.placement ?? placement;
+  const original = activePlacement?.basis ?? asset;
+  const footprintScale = renderWidth / original.width;
+  const scale = footprintScale * (activePlacement?.scaleFactor ?? 1);
+  const fit = { ...stageSize, margin: 10, footprint: { width: renderWidth, height: original.height * footprintScale } };
+  const layout = activePlacement ? pageResizeLayout(size, scale * 100,
     liveResize ? { ...liveResize.original, handle: liveResize.handle } : null,
-    { placement, fit }).frame : undefined;
+    { placement: activePlacement, fit }).frame : undefined;
   const displayWidth = layout?.width ?? renderWidth;
   const displayHeight = layout?.height ?? displayWidth * size.height / size.width;
 
-  function displayedPlacement(): PageResizePlacement {
-    return { basis: { width: original.width, height: original.height }, x: (layout?.left ?? 0) / scale, y: (layout?.top ?? 0) / scale };
+  function displayedPlacement(frameScale = scale): MotionPlacement {
+    return {
+      basis: { width: original.width, height: original.height },
+      scaleFactor: frameScale / footprintScale,
+      x: (layout?.left ?? 0) / frameScale,
+      y: (layout?.top ?? 0) / frameScale,
+    };
   }
 
-  function moveSketch(origin: PageResizePlacement, delta: { x: number; y: number }) {
+  function moveSketch(origin: MotionPlacement, delta: { x: number; y: number }) {
     const next = moveCanvasPlacement(origin, delta, candidate => {
       const { frame } = pageResizeLayout(size, scale * 100, null, { placement: candidate, fit });
       return { ...candidate, x: frame.left / scale, y: frame.top / scale };
@@ -97,7 +107,8 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     event.currentTarget.focus({ preventScroll: true });
     const original = { width: asset.width, height: asset.height };
     const origin = { x: event.clientX / scale, y: event.clientY / scale };
-    const next = { original, drag: beginResizeDrag(original, origin, !event.shiftKey), handle, pointerId: event.pointerId, scale };
+    const next = { original, drag: beginResizeDrag(original, origin, !event.shiftKey), handle, pointerId: event.pointerId, scale,
+      placement: displayedPlacement(scale) };
     gesture.current = next;
     svg.setPointerCapture(event.pointerId);
     setLiveResize(next);
@@ -112,8 +123,8 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     onResizeDraft(size);
   }
 
-  function commitResize(previous: MotionSize, next: MotionSize, handle: ResizeHandle) {
-    setPlacement(current => commitPageResizePlacement(next, { ...previous, handle }, current));
+  function commitResize(previous: MotionSize, next: MotionSize, handle: ResizeHandle, start: MotionPlacement) {
+    setPlacement({ ...commitPageResizePlacement(next, { ...previous, handle }, start), scaleFactor: start.scaleFactor });
     onResize(next);
   }
 
@@ -127,7 +138,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     onResizeDraft(null);
     const { width, height } = current.drag.latest;
     if (shouldCommitResizeGesture(reason) && (width !== current.original.width || height !== current.original.height)) {
-      commitResize(current.original, { width, height }, current.handle);
+      commitResize(current.original, { width, height }, current.handle, current.placement);
     }
   }
 
@@ -194,7 +205,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
             const next = resizePageFromKey(previous, handle, event.key, event.shiftKey, resizeMotion);
             if (!next) return;
             event.preventDefault();
-            if (next.width !== previous.width || next.height !== previous.height) commitResize(previous, next, handle);
+            if (next.width !== previous.width || next.height !== previous.height) commitResize(previous, next, handle, displayedPlacement(displayWidth / size.width));
           }} />
       </svg> : null}
     </div>

@@ -948,6 +948,8 @@
 
 ### Fixed
 
+- Let fitted Motion Assets sketches resize inward immediately in narrow previews.
+
 - Keep Design Canvas pages in place when releasing a resize handle, using the shared resize placement from Motion Assets.
 
 - Keep the Motion Assets playback bar in place when resizing a sketch.

@@ -379,6 +379,41 @@ test("moves the sketch by dragging or keyboard and restores its position on Esca
   await expect(sketch).not.toHaveAttribute("style");
 });
 
+test("a fitted sketch shrinks immediately on a narrow preview without moving its opposite edge", async ({ page }) => {
+  await page.setViewportSize({ width: 780, height: 920 });
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  await setNumber(page, "Height (px)", "155");
+  await setNumber(page, "Width (px)", "611");
+  const preview = page.getByRole("img", { name: "Wave animation preview" });
+  const handle = page.getByRole("button", { name: "Resize sketch from right middle" });
+  await handle.scrollIntoViewIfNeeded();
+
+  async function stretch(dx: number) {
+    const box = (await handle.boundingBox())!;
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    await page.keyboard.down("Shift");
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + dx, y, { steps: 5 });
+    const during = (await preview.boundingBox())!;
+    await page.mouse.up();
+    await page.keyboard.up("Shift");
+    return during;
+  }
+
+  await stretch(150);
+  const fitted = (await preview.boundingBox())!;
+  const grown = Number(await page.getByRole("spinbutton", { name: "Width (px)" }).inputValue());
+  expect(grown).toBeGreaterThan(611);
+  const during = await stretch(-24);
+  const shrunk = (await preview.boundingBox())!;
+  expect(shrunk).toEqual(during);
+  expect(shrunk.width).toBeLessThan(fitted.width - 20);
+  expect(shrunk.x).toBeCloseTo(fitted.x, 0);
+  expect(shrunk.y).toBeCloseTo(fitted.y, 0);
+});
+
 test("settings and spectrum gestures update the preview and active sketch thumbnail live", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");

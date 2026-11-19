@@ -7,7 +7,7 @@ export type PageResizeFrame = PageSize & { handle: ResizeHandle };
 export type PageResizePlacement = { basis: PageSize; x: number; y: number };
 type FrameOptions = {
   placement?: PageResizePlacement | null;
-  fit?: PageSize & { margin: number };
+  fit?: PageSize & { margin: number; footprint?: PageSize };
 };
 
 /** Keep the layout origin through a drag and its commit. */
@@ -28,8 +28,10 @@ export function pageResizeLayout(page: PageSize, zoom: number, resize?: PageResi
     const width = fit.width - 2 * margin;
     const height = fit.height - 2 * margin;
     const fitScale = Math.min(1, width / frame.width, height / frame.height);
-    const left = (footprint.width - width) / 2;
-    const top = (footprint.height - height) / 2;
+    // A fitted preview can render at a different scale from its CSS footprint.
+    const fitFootprint = fit.footprint ?? footprint;
+    const left = (fitFootprint.width - width) / 2;
+    const top = (fitFootprint.height - height) / 2;
     frame.width *= fitScale;
     frame.height *= fitScale;
     frame.left = Math.max(left, Math.min(frame.left, left + width - frame.width));
