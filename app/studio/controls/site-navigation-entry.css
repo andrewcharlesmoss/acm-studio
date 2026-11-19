@@ -14,6 +14,7 @@
 .studio-site-visibility-button:hover { color: var(--ink); }
 .studio-local-sites-group { position: relative; }
 .studio-local-sites-group > .studio-local-sites .inspector-accordion-heading { padding-right: 48px; }
+.studio-local-sites-group.is-editing > .studio-local-sites .inspector-accordion-heading { padding-right: 68px; }
 .studio-local-sites-group-action { right: 7px; top: 10px; }
 .studio-local-sites-list.is-editing .studio-site-entry.is-hidden { opacity: .58; }
 .studio-site-entry:has(> .studio-site-entry-action:hover) .inspector-accordion-heading { background: var(--acm-ui-hover-neutral-rows-background, #f0f0f0); }
