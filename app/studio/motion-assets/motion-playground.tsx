@@ -158,6 +158,13 @@ export function MotionPlayground() {
     setAsset(current => ({ ...current, ...changes }));
   }
 
+  function changeTiming(drawFrames: number, holdFrames: number) {
+    if (drawFrames === asset.drawFrames && holdFrames === asset.holdFrames) return;
+    changeAsset({ drawFrames, holdFrames });
+    setPosition(0);
+    setPlayback({ startFrame: 0 });
+  }
+
   async function openFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -287,9 +294,9 @@ export function MotionPlayground() {
           </div>
           <div className="motion-setting-group motion-field-grid" role="group" aria-label="Timing">
             <NumberSetting label="Draw time (s)" value={asset.drawFrames / motionFps} min={0.1} max={(300 - asset.holdFrames) / motionFps} step={0.1}
-              onCommit={value => changeAsset({ drawFrames: Math.round(value * motionFps) })} />
+              onCommit={value => changeTiming(Math.round(value * motionFps), asset.holdFrames)} />
             <NumberSetting label="Hold time (s)" value={asset.holdFrames / motionFps} min={0.1} max={(300 - asset.drawFrames) / motionFps} step={0.1}
-              onCommit={value => changeAsset({ holdFrames: Math.round(value * motionFps) })} />
+              onCommit={value => changeTiming(asset.drawFrames, Math.round(value * motionFps))} />
           </div>
           <div className="motion-setting-group">
             <h3>Export</h3>

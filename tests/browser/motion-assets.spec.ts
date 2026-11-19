@@ -96,6 +96,24 @@ test("autoplay is on by default, starts the chosen sketch after confirmation, an
   await expect(slider).toHaveValue("90");
 });
 
+test("committing draw or hold time replays the preview with the updated duration", async ({ page }) => {
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });
+  await autoplay.press("Space");
+  await expect(autoplay).not.toBeChecked();
+  const slider = page.getByRole("slider", { name: "Animation position" });
+  const pause = page.getByRole("button", { name: "Pause", exact: true });
+  await setNumber(page, "Draw time (s)", "2.7");
+  await expect(pause).toBeVisible();
+  await expect(slider).toHaveAttribute("max", "141");
+  await slider.press("End");
+  await setNumber(page, "Hold time (s)", "0.1");
+  await expect(pause).toBeVisible();
+  await expect(slider).toHaveAttribute("max", "84");
+  await expect(slider).toHaveValue("84");
+});
+
 test("the Lottie SVG player reveals separate strokes in order", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
