@@ -1,7 +1,7 @@
 "use client";
 
 import { AcmIcon } from "@acm/icons/react";
-import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
+import { memo, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
 import { ColourPicker } from "../controls/colour-picker";
 import { NumberInput, TextInput } from "../controls/native-fields";
 import { RangeControl } from "../controls/range-control";
@@ -11,8 +11,11 @@ import { Pane } from "../panes/pane-components";
 import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
 import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
+import { MotionPreviewStage } from "./motion-preview-stage";
+import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMotionPreviewWorkspace, type MotionDraft } from "./motion-preview-workspace";
+import type { MotionSize } from "./motion-resize";
 import {
-  motionDimensionLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionPreset, motionProject,
+  motionDimensionLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionProject,
   motionSvg, readMotionProject, type MotionAsset,
 } from "./motion-asset";
 import "./motion-assets.css";
@@ -21,30 +24,7 @@ const movEndpoint = "/__studio/motion-export";
 const localOnly = "MOV export is available in local Studio with FFmpeg installed.";
 const exportHeaders = { "Content-Type": "application/json", "X-Studio-Client": "motion-assets" };
 const formatSeconds = (frames: number) => `${(frames / motionFps).toFixed(2)} s`;
-const wave = motionPreset("wave");
 const subscribeToHydration = () => () => {};
-const projectKey = (asset: MotionAsset) => JSON.stringify(motionProject(asset));
-
-type MotionDraft = {
-  asset: MotionAsset;
-  original: MotionAsset;
-  baseline: string;
-  preset?: string;
-};
-
-function makeDraft(asset: MotionAsset, { preset, unsaved = false }: { preset?: string; unsaved?: boolean } = {}): MotionDraft {
-  return { asset, original: asset, baseline: unsaved ? "" : projectKey(asset), preset };
-}
-
-function focusedMotionField() {
-  const field = document.activeElement;
-  return field instanceof HTMLInputElement && field.closest(".motion-field") ? field : null;
-}
-
-function hasPendingFieldEdit() {
-  const field = focusedMotionField();
-  return field && field.value !== field.dataset.committedValue;
-}
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -61,40 +41,57 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="motion-field"><span>{label}</span>{children}</label>;
 }
 
-function NumberSetting({ label, value, min, max, step = 1, live = false, onCommit }: {
-  label: string; value: number; min: number; max: number; step?: number; live?: boolean; onCommit: (value: number) => void;
+function NumberSetting({ label, value, min, max, step = 1, readOnly = false, onCommit }: {
+  label: string; value: number; min: number; max: number; step?: number; readOnly?: boolean; onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  return <Field label={label}><NumberInput value={draft ?? value} data-committed-value={value} min={min} max={max} step={step}
+  return <Field label={label}><NumberInput value={draft ?? value} data-committed-value={value} min={min} max={max} step={step} readOnly={readOnly}
     onChange={event => {
       const input = event.currentTarget;
       setDraft(input.value);
-      if (live && input.validity.valid && Number.isFinite(input.valueAsNumber)) {
+      if (input.validity.valid && Number.isFinite(input.valueAsNumber)) {
         onCommit(input.valueAsNumber);
       }
     }}
     onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }}
     onBlur={event => {
       const entered = event.currentTarget.valueAsNumber;
-      if (Number.isFinite(entered)) {
+      if (!readOnly && draft !== null && Number.isFinite(entered)) {
         onCommit(Math.max(min, Math.min(max, Math.round(entered / step) * step)));
       }
       setDraft(null);
     }} /></Field>;
 }
 
+function NameSetting({ name, onChange }: { name: string; onChange: (value: string) => void }) {
+  const [input, setInput] = useState<string | null>(null);
+  return <Field label="Name"><TextInput maxLength={100} value={input ?? name} data-committed-value={name}
+    onChange={event => {
+      const value = event.currentTarget.value;
+      setInput(value);
+      if (value.trim()) onChange(value.trim());
+    }}
+    onBlur={() => setInput(null)}
+    onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></Field>;
+}
+
+const MotionThumbnail = memo(function MotionThumbnail({ asset }: { asset: MotionAsset }) {
+  const path = motionGeometry(asset).pathAt(asset.drawFrames);
+  return <svg viewBox={`0 0 ${asset.width} ${asset.height}`} aria-hidden="true">
+    <path d={path} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" />
+  </svg>;
+});
+
 export function MotionPlayground() {
   const active = useContext(StudioUiActiveSectionContext) === "motion-assets";
   const ready = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const [{ draft, parked }, setWorkspace] = useState(() => ({
-    draft: makeDraft(wave, { preset: wave.name }),
-    parked: new Map<string, MotionDraft>(),
-  }));
+  const { workspace: { draft, parked }, setWorkspace, autoplay, setAutoplay } = useMotionPreviewWorkspace();
   const { asset } = draft;
   const [search, setSearch] = useState("");
-  const [autoplay, setAutoplay] = useState(true);
   const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
   const [position, setPosition] = useState<number | null>(null);
+  const [previewRevision, setPreviewRevision] = useState(0);
+  const [resizeDraft, setResizeDraft] = useState<MotionSize | null>(null);
   const [replacement, setReplacement] = useState<{ draft: MotionDraft; play: boolean }>();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -105,10 +102,18 @@ export function MotionPlayground() {
   const inputSequence = useRef(0);
   const currentFileDirty = useRef(false);
   const model = useMemo(() => motionGeometry(asset), [asset]);
+  const previewAsset = useMemo(() => resizeDraft ? { ...asset, ...resizeDraft } : asset, [asset, resizeDraft]);
+  const previewModel = useMemo(() => previewAsset === asset ? model : motionGeometry(previewAsset), [asset, model, previewAsset]);
+  const visibleSketches = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return motionCatalogue.flatMap(preset => {
+      const sketch = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
+      return [preset.name, sketch.name].some(name => name.toLowerCase().includes(query)) ? [{ preset, sketch }] : [];
+    });
+  }, [draft.preset, parked, previewAsset, search]);
   const frameCount = useRef(model.frameCount);
   const signature = useMemo(() => projectKey(asset), [asset]);
   const dirty = signature !== draft.baseline;
-  const parkedDirty = useMemo(() => [...parked.values()].some(item => projectKey(item.asset) !== item.baseline), [parked]);
   const frame = Math.min(position ?? model.frameCount, model.frameCount);
   const playbackLabel = playback ? "Pause" : "Play";
   const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "sketch";
@@ -134,16 +139,6 @@ export function MotionPlayground() {
   useLayoutEffect(() => { currentFileDirty.current = !draft.preset && dirty; }, [draft.preset, dirty]);
   useLayoutEffect(() => { frameCount.current = model.frameCount; }, [model.frameCount]);
 
-  useEffect(() => {
-    const preventLoss = (event: BeforeUnloadEvent) => {
-      if (!dirty && !parkedDirty && !hasPendingFieldEdit()) return;
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", preventLoss);
-    return () => window.removeEventListener("beforeunload", preventLoss);
-  }, [dirty, parkedDirty]);
-
   useEffect(() => () => exportRequest.current?.abort(), []);
 
   useEffect(() => {
@@ -165,6 +160,7 @@ export function MotionPlayground() {
   function applyReplacement(next: MotionDraft, play: boolean) {
     focusedMotionField()?.blur();
     inputSequence.current++;
+    setPreviewRevision(current => current + 1);
     setPlayback(play ? { startFrame: 0 } : null);
     setPosition(play ? 0 : null);
     setWorkspace(current => {
@@ -190,6 +186,7 @@ export function MotionPlayground() {
   function resetPreview() {
     focusedMotionField()?.blur();
     inputSequence.current++;
+    setPreviewRevision(current => current + 1);
     setWorkspace(current => {
       const { draft } = current;
       const baseline = draft.preset ? projectKey(draft.original) : draft.baseline;
@@ -204,10 +201,11 @@ export function MotionPlayground() {
   function changeAsset(changes: Partial<MotionAsset>) {
     setMessage("");
     setError("");
-    setWorkspace(current => ({
-      ...current,
-      draft: { ...current.draft, asset: { ...current.draft.asset, ...changes } },
-    }));
+    setWorkspace(current => {
+      const asset = current.draft.asset;
+      if (Object.entries(changes).every(([key, value]) => asset[key as keyof MotionAsset] === value)) return current;
+      return { ...current, draft: { ...current.draft, asset: { ...asset, ...changes } } };
+    });
   }
 
   function changeTiming(drawFrames: number, holdFrames: number) {
@@ -286,12 +284,12 @@ export function MotionPlayground() {
         </div>
       </div>
       <div className="motion-catalogue-grid">
-        {motionCatalogue.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase())).map(item => <button key={item.name} type="button" className="motion-catalogue-card" aria-label={`Use ${item.name}`} aria-pressed={draft.preset === item.name} onClick={() => requestReplacement(makeDraft(item, { preset: item.name }), autoplay)}>
-          <svg viewBox="0 0 420 420" aria-hidden="true"><path d={item.path} fill="none" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <strong>{item.name}</strong>
+        {visibleSketches.map(({ preset, sketch }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${sketch.name}`} aria-pressed={draft.preset === preset.name} onClick={() => requestReplacement(makeDraft(preset, { preset: preset.name }), autoplay)}>
+          <MotionThumbnail asset={sketch} />
+          <strong>{sketch.name}</strong>
         </button>)}
       </div>
-      {!motionCatalogue.some(item => item.name.toLowerCase().includes(search.trim().toLowerCase())) ? <p>No matching sketches.</p> : null}
+      {!visibleSketches.length ? <p>No matching sketches.</p> : null}
     </section>
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
       <section id="motion-preview" className="motion-preview" aria-label="Motion preview">
@@ -306,16 +304,7 @@ export function MotionPlayground() {
             <input hidden ref={fileInput} type="file" accept=".svg,.json" onChange={openFile} />
           </div>
         </div>
-        <div className="motion-stage">
-          <div className="motion-artboard" style={{
-            aspectRatio: `${asset.width} / ${asset.height}`,
-            width: `min(100%, ${asset.width}px, ${56 * asset.width / asset.height}vh)`,
-          }}>
-            <svg width={asset.width} height={asset.height} viewBox={`0 0 ${asset.width} ${asset.height}`} role="img" aria-label={`${asset.name} animation preview`}>
-              {frame > 0 ? <path d={model.pathAt(frame)} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" /> : null}
-            </svg>
-          </div>
-        </div>
+        <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} path={previewModel.pathAt(frame)} onResize={changeAsset} onResizeDraft={setResizeDraft} />
         <div className="motion-transport">
           <button type="button" className="button-secondary motion-playback-button" aria-label={playbackLabel} title={playbackLabel} onClick={() => {
             if (playback) { setPlayback(null); return; }
@@ -333,26 +322,21 @@ export function MotionPlayground() {
         trackClassName="motion-inspector" header={<h2>Settings</h2>}>
         <div className="motion-settings">
           <div className="motion-setting-group" role="group" aria-label="Asset">
-            <Field label="Name"><TextInput maxLength={100} defaultValue={asset.name} data-committed-value={asset.name} key={asset.path + asset.name}
-              onBlur={event => {
-                const name = event.currentTarget.value.trim();
-                if (name) changeAsset({ name });
-                else event.currentTarget.value = asset.name;
-              }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></Field>
+            <NameSetting key={previewRevision} name={asset.name} onChange={name => changeAsset({ name })} />
             <div className="motion-field-grid">
-              <NumberSetting label="Width (px)" min={128} max={motionDimensionLimit(asset.height)} value={asset.width} onCommit={width => changeAsset({ width })} />
-              <NumberSetting label="Height (px)" min={128} max={motionDimensionLimit(asset.width)} value={asset.height} onCommit={height => changeAsset({ height })} />
+              <NumberSetting label="Width (px)" min={128} max={motionDimensionLimit(asset.height)} value={previewAsset.width} readOnly={resizeDraft !== null} onCommit={width => changeAsset({ width })} />
+              <NumberSetting label="Height (px)" min={128} max={motionDimensionLimit(asset.width)} value={previewAsset.height} readOnly={resizeDraft !== null} onCommit={height => changeAsset({ height })} />
             </div>
           </div>
           <div className="motion-setting-group" role="group" aria-label="Stroke">
             {active ? <div className="motion-colour"><ColourPicker label="Stroke colour" value={asset.colour}
-              onChange={colour => { if (colour && /^#[a-f0-9]{6}$/i.test(colour)) changeAsset({ colour }); }} enableAlpha={false} allowClear={false} /></div> : null}
+              onChange={colour => { if (colour && /^#[a-f0-9]{6}$/i.test(colour)) changeAsset({ colour }); }} enableAlpha={false} allowClear={false} livePointerChanges liveHexChanges /></div> : null}
             <NumberSetting label="Thickness (px)" value={asset.thickness} min={1} max={64} onCommit={thickness => changeAsset({ thickness })} />
           </div>
           <div className="motion-setting-group motion-field-grid" role="group" aria-label="Timing">
-            <NumberSetting label="Draw time (s)" value={asset.drawFrames / motionFps} min={0.1} max={(300 - asset.holdFrames) / motionFps} step={0.1} live
+            <NumberSetting label="Draw time (s)" value={asset.drawFrames / motionFps} min={0.1} max={(300 - asset.holdFrames) / motionFps} step={0.1}
               onCommit={value => changeTiming(Math.round(value * motionFps), asset.holdFrames)} />
-            <NumberSetting label="Hold time (s)" value={asset.holdFrames / motionFps} min={0.1} max={(300 - asset.drawFrames) / motionFps} step={0.1} live
+            <NumberSetting label="Hold time (s)" value={asset.holdFrames / motionFps} min={0.1} max={(300 - asset.drawFrames) / motionFps} step={0.1}
               onCommit={value => changeTiming(asset.drawFrames, Math.round(value * motionFps))} />
           </div>
           <div className="motion-setting-group">

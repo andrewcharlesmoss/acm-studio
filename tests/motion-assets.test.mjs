@@ -5,6 +5,21 @@ import { dashboardToolIds } from "../app/studio/dashboard-order-contract.mjs";
 import { readStudioNavigationHiddenTools, studioNavigationVisibilityKey } from "../app/studio/studio-navigation-visibility-contract.mjs";
 import { motionPreset, motionGeometry, motionLottie, motionProject, motionSvg, readMotionProject } from "../app/studio/motion-assets/motion-asset.ts";
 import { motionCatalogue } from "../app/studio/motion-assets/motion-catalogue.ts";
+import { resizeMotion } from "../app/studio/motion-assets/motion-resize.ts";
+
+test("motion resizes respect export limits and keep an unmodified edge dimension", () => {
+  const landscape = { width: 1600, height: 800 };
+  const portrait = { width: 800, height: 1600 };
+  assert.deepEqual(resizeMotion(landscape, "se", 1000, 0, true), { width: 1920, height: 960 });
+  assert.deepEqual(resizeMotion(portrait, "sw", -1000, 0, true), { width: 960, height: 1920 });
+  assert.deepEqual(resizeMotion(landscape, "s", 0, 1000, false), { width: 1600, height: 1080 });
+  assert.deepEqual(resizeMotion(portrait, "w", -1000, 0, false), { width: 1080, height: 1600 });
+  assert.deepEqual(resizeMotion(portrait, "se", 910, 0, false), { width: 1080, height: 1600 });
+  const square = { width: 800, height: 800 };
+  const firstSize = resizeMotion(square, "se", 300, 320, false);
+  assert.deepEqual(resizeMotion(square, "se", 330, 320, false, firstSize), firstSize);
+  assert.deepEqual(resizeMotion(landscape, "se", -1700, -900, true), { width: 256, height: 128 });
+});
 
 test("each catalogue sketch supports editable and portable exports", () => {
   assert.ok(motionCatalogue.length >= 20);

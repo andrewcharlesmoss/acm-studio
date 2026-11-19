@@ -18,10 +18,12 @@ export function resizePage<T extends { width: number; height: number }>(page: T,
   return { ...page, width: Math.round(Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, width))), height: Math.round(Math.max(minimum, Math.min(DESIGN_MAX_DIMENSION, height))) };
 }
 
-export function resizePageFromKey<T extends { width: number; height: number }>(page: T, handle: ResizeHandle, key: string, shiftKey: boolean) {
+export function resizePageFromKey<T extends { width: number; height: number }>(
+  page: T, handle: ResizeHandle, key: string, shiftKey: boolean, resize = resizePage<T>,
+) {
   if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return null;
   const amount = shiftKey ? 10 : 1;
   const dx = key === "ArrowLeft" ? -amount : key === "ArrowRight" ? amount : 0;
   const dy = key === "ArrowUp" ? -amount : key === "ArrowDown" ? amount : 0;
-  return resizePage(page, handle, dx, dy, !shiftKey);
+  return resize(page, handle, dx, dy, !shiftKey);
 }

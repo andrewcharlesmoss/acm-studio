@@ -5,7 +5,7 @@ import { StudioIcon } from "../studio-icons";
 import { hexToHsv, hsvToHex, hsvToHsl, hslToHsv, rgbChannels } from "./gradient-colour";
 
 /** Studio-owned colour surface; no upstream picker code or assets are included. */
-export function GradientStopColour({ colour, onChange, enableAlpha = true, deferPointerChange = false, disabled = false }: { colour: string; onChange: (colour: string) => void; enableAlpha?: boolean; deferPointerChange?: boolean; disabled?: boolean }) {
+export function GradientStopColour({ colour, onChange, enableAlpha = true, deferPointerChange = false, liveHexChanges = false, disabled = false }: { colour: string; onChange: (colour: string) => void; enableAlpha?: boolean; deferPointerChange?: boolean; liveHexChanges?: boolean; disabled?: boolean }) {
   const [pointerColour, setPointerColour] = useState<string | null>(null);
   const pointerColourRef = useRef<string | null>(null);
   const hsv = hexToHsv(pointerColour ?? colour);
@@ -26,6 +26,12 @@ export function GradientStopColour({ colour, onChange, enableAlpha = true, defer
     const converted = hexToHsv(next);
     setLastHue(converted.saturation > 0 ? converted.hue : hue);
     onChange(next);
+  }
+  function applyHex(value: string) {
+    const next = value.replace(/^#/, "");
+    if ((enableAlpha ? /^(?:[0-9a-f]{6}|[0-9a-f]{8})$/i : /^[0-9a-f]{6}$/i).test(next)) {
+      applyColour(`#${next.toUpperCase()}`);
+    }
   }
   function pointAt(event: React.PointerEvent<HTMLDivElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -49,7 +55,7 @@ export function GradientStopColour({ colour, onChange, enableAlpha = true, defer
     <input className="gradient-colour-hue" type="range" aria-label="Hue" min="0" max="359" value={hue} disabled={disabled} onChange={event => change({ hue: Number(event.target.value) })} />
     {enableAlpha ? <input className="gradient-colour-alpha" type="range" aria-label="Alpha" min="0" max="100" value={hsv.alpha} disabled={disabled} style={{ backgroundImage: `linear-gradient(90deg, transparent, ${(pointerColour ?? colour).slice(0, 7)}), var(--studio-transparency-pattern)`, backgroundSize: "auto, var(--studio-transparency-size)" }} onChange={event => change({ alpha: Number(event.target.value) })} /> : null}
     <div className="gradient-colour-format"><label><span className="visually-hidden">Colour format</span><SelectControl className="gradient-colour-format-select" value={format} disabled={disabled} onChange={event => setFormat(event.target.value)}><option>Hex</option><option>RGB</option><option>HSL</option></SelectControl></label><button type="button" aria-label="Copy colour" title="Copy colour" disabled={disabled} onClick={async () => { try { await navigator.clipboard.writeText(format === "Hex" ? pointerColour ?? colour : format === "RGB" ? `rgba(${rgb.join(", ")}, ${Math.round(hsv.alpha) / 100})` : `hsla(${hsl[0]}, ${hsl[1]}%, ${hsl[2]}%, ${Math.round(hsv.alpha) / 100})`); setCopied(true); } catch { setCopied(false); } }}><StudioIcon name="copy" size={16} /></button><span role="status" className="visually-hidden">{copied ? "Colour copied" : ""}</span></div>
-    {format === "Hex" ? <label className="gradient-colour-hex"><span className="visually-hidden">Hex colour</span><span className="gradient-colour-hex-field"><span className="gradient-colour-hex-prefix" aria-hidden="true">#</span><TextInput aria-label="Hex colour" disabled={disabled} value={hexDraft ?? (pointerColour ?? colour).slice(1).toUpperCase()} onChange={event => setHexDraft(event.target.value)} maxLength={enableAlpha ? 8 : 6} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onBlur={event => { const next = event.target.value.replace(/^#/, ""); if ((enableAlpha ? /^(?:[0-9a-f]{6}|[0-9a-f]{8})$/i : /^[0-9a-f]{6}$/i).test(next)) applyColour(`#${next.toUpperCase()}`); setHexDraft(null); }} /></span></label> : <div className="gradient-colour-channels">{channels.map((channel, index) => <label key={index}>{(format === "RGB" ? ["Red", "Green", "Blue"] : ["Hue", "Saturation", "Lightness"])[index]}<NumberInput  min="0" disabled={disabled} max={format === "RGB" ? 255 : index === 0 ? 359 : 100} value={channel} onChange={event => {
+    {format === "Hex" ? <label className="gradient-colour-hex"><span className="visually-hidden">Hex colour</span><span className="gradient-colour-hex-field"><span className="gradient-colour-hex-prefix" aria-hidden="true">#</span><TextInput aria-label="Hex colour" disabled={disabled} value={hexDraft ?? (pointerColour ?? colour).slice(1).toUpperCase()} onChange={event => { const value = event.target.value; setHexDraft(value); if (liveHexChanges) applyHex(value); }} maxLength={enableAlpha ? 8 : 6} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} onBlur={event => { if (!liveHexChanges) applyHex(event.target.value); setHexDraft(null); }} /></span></label> : <div className="gradient-colour-channels">{channels.map((channel, index) => <label key={index}>{(format === "RGB" ? ["Red", "Green", "Blue"] : ["Hue", "Saturation", "Lightness"])[index]}<NumberInput  min="0" disabled={disabled} max={format === "RGB" ? 255 : index === 0 ? 359 : 100} value={channel} onChange={event => {
       if (event.target.value === "") return;
       const next = [...channels]; next[index] = Math.max(0, Math.min(format === "RGB" ? 255 : index === 0 ? 359 : 100, Number(event.target.value)));
       if (format === "RGB") applyColour(`#${next.map(value => Math.round(value).toString(16).padStart(2, "0")).join("")}${colour.length === 9 ? colour.slice(7) : ""}`);

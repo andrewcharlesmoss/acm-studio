@@ -137,6 +137,120 @@ test("editing draw or hold time updates the preview while the field is focused a
   await expect(slider).toHaveValue("84");
 });
 
+test("resize handles preserve proportions, stretch with Shift, and cancel with Escape", async ({ page }) => {
+  await page.goto(route);
+  const preview = page.getByRole("img", { name: "Wave animation preview" });
+  const corner = page.getByRole("button", { name: "Resize sketch from bottom right" });
+  const width = page.getByRole("spinbutton", { name: "Width (px)" });
+  const height = page.getByRole("spinbutton", { name: "Height (px)" });
+
+  async function drag(dx: number, dy: number) {
+    await corner.scrollIntoViewIfNeeded();
+    const bounds = (await corner.boundingBox())!;
+    const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + dx, y + dy, { steps: 4 });
+    return { x: x + dx, y: y + dy };
+  }
+
+  async function displayedDimensions() {
+    const [, , width, height] = (await preview.getAttribute("viewBox"))!.split(" ").map(Number);
+    return { width, height };
+  }
+
+  await drag(24, 10);
+  await expect(preview).not.toHaveAttribute("viewBox", "0 0 800 800");
+  const displaying = await displayedDimensions();
+  await expect(width).toHaveValue(String(displaying.width));
+  await expect(height).toHaveValue(String(displaying.height));
+  await expect(page.getByRole("button", { name: "Use Wave", exact: true }).locator("svg"))
+    .toHaveAttribute("viewBox", `0 0 ${displaying.width} ${displaying.height}`);
+  await page.mouse.up();
+  const proportionalWidth = Number(await width.inputValue());
+  expect(proportionalWidth).toBeGreaterThan(800);
+  await expect(height).toHaveValue(String(proportionalWidth));
+
+  const point = await drag(6, 3);
+  const anchored = (await preview.boundingBox())!;
+  await page.keyboard.down("Shift");
+  await page.mouse.move(point.x + 26, point.y + 8);
+  const free = await displayedDimensions();
+  expect(free.width).toBeGreaterThan(free.height);
+  await page.keyboard.up("Shift");
+  await page.mouse.move(point.x + 34, point.y + 12);
+  const relocked = await displayedDimensions();
+  expect(relocked.width / relocked.height).toBeCloseTo(free.width / free.height, 2);
+  const moved = (await preview.boundingBox())!;
+  expect(moved.x).toBeCloseTo(anchored.x, 1);
+  expect(moved.y).toBeCloseTo(anchored.y, 1);
+  await page.mouse.up();
+  const stretchedWidth = Number(await width.inputValue());
+  const stretchedHeight = Number(await height.inputValue());
+  expect(stretchedWidth).toBeGreaterThan(stretchedHeight);
+  expect(stretchedHeight).toBeGreaterThan(proportionalWidth);
+
+  await drag(-18, -16);
+  await expect(preview).not.toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(preview).toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
+
+  await page.getByRole("button", { name: "Resize sketch from right middle" }).press("Shift+ArrowRight");
+  await expect(width).toHaveValue(String(stretchedWidth + 10));
+  await expect(height).toHaveValue(String(stretchedHeight));
+  const exported = await save(page, "Download Project");
+  expect(JSON.parse(exported.data.toString()).asset).toMatchObject({ width: stretchedWidth + 10, height: stretchedHeight });
+});
+
+test("settings and spectrum gestures update the preview and active sketch thumbnail live", async ({ page }) => {
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const name = page.getByRole("textbox", { name: "Name", exact: true });
+  await name.fill("Edited wave");
+  await expect(name).toBeFocused();
+  const sketch = page.getByRole("button", { name: "Use Edited wave", exact: true });
+  const preview = page.getByRole("img", { name: "Edited wave animation preview" });
+  await expect(sketch).toBeVisible();
+  await expect(preview).toBeVisible();
+
+  const width = page.getByRole("spinbutton", { name: "Width (px)" });
+  await width.fill("500");
+  await expect(width).toBeFocused();
+  await expect(preview).toHaveAttribute("viewBox", "0 0 500 800");
+  await page.getByRole("spinbutton", { name: "Height (px)" }).fill("494");
+  await expect(sketch.locator("svg")).toHaveAttribute("viewBox", "0 0 500 494");
+  const thickness = page.getByRole("spinbutton", { name: "Thickness (px)" });
+  await thickness.fill("24");
+  await expect(thickness).toBeFocused();
+  await expect(preview.locator("path")).toHaveAttribute("stroke-width", "24");
+  await expect(sketch.locator("path")).toHaveAttribute("stroke-width", "24");
+
+  await page.getByRole("button", { name: "Choose Stroke colour" }).click();
+  await page.getByRole("button", { name: /custom stroke colour picker/i }).click();
+  const hex = page.getByRole("textbox", { name: "Hex colour" });
+  await hex.fill("3030D0");
+  await expect(hex).toBeFocused();
+  await expect(sketch.locator("path")).toHaveAttribute("stroke", "#3030D0");
+  await expect(preview.locator("path")).toHaveAttribute("stroke", "#3030D0");
+  const plane = page.getByRole("slider", { name: "Colour saturation and brightness" });
+  const bounds = (await plane.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width * 0.4, bounds.y + bounds.height * 0.2);
+  await page.mouse.down();
+  await expect(preview.locator("path")).not.toHaveAttribute("stroke", "#3030D0");
+  const initialStroke = (await preview.locator("path").getAttribute("stroke"))!;
+  await page.mouse.move(bounds.x + bounds.width * 0.8, bounds.y + bounds.height * 0.5);
+  await expect(preview.locator("path")).not.toHaveAttribute("stroke", initialStroke);
+  const finalStroke = (await preview.locator("path").getAttribute("stroke"))!;
+  await expect(sketch.locator("path")).toHaveAttribute("stroke", finalStroke);
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await page.mouse.up();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Use Circle", exact: true }).click();
+  await expect(sketch.locator("path")).toHaveAttribute("stroke", finalStroke);
+});
+
 test("the Lottie SVG player reveals separate strokes in order", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
@@ -204,6 +318,25 @@ for (const view of ["desktop", "tablet", "mobile"] as const) {
     if (view === "mobile") {
       const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
       test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent, reducedMotion: "reduce" });
+
+      test("a touch drag resizes proportionally and the size fields allow independent dimensions", async ({ page }) => {
+        await page.goto(route);
+        const corner = page.getByRole("button", { name: "Resize sketch from bottom right" });
+        await corner.scrollIntoViewIfNeeded();
+        const bounds = (await corner.boundingBox())!;
+        const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2;
+        const touch = await page.context().newCDPSession(page);
+        await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+        await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - 24, y: y - 16 }] });
+        await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        const height = page.getByRole("spinbutton", { name: "Height (px)" });
+        const width = page.getByRole("spinbutton", { name: "Width (px)" });
+        const resized = Number(await width.inputValue());
+        expect(resized).toBeLessThan(800);
+        await expect(height).toHaveValue(String(resized));
+        await setNumber(page, "Width (px)", "900");
+        await expect(height).toHaveValue(String(resized));
+      });
     }
 
     test("exports an oval with the same timing and geometry in the Lottie SVG player", async ({ page }, info) => {
@@ -213,6 +346,7 @@ for (const view of ["desktop", "tablet", "mobile"] as const) {
       await setNumber(page, "Width (px)", "1200");
       await setNumber(page, "Height (px)", "480");
       await setNumber(page, "Draw time (s)", "1.5");
+      await expect(page.getByRole("button", { name: /^Resize sketch from/ })).toHaveCount(8);
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await expect.poll(() => page.getByRole("tab", { name: "Motion Assets" }).evaluate(tab => {
         const bounds = tab.getBoundingClientRect();
