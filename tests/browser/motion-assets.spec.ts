@@ -221,6 +221,53 @@ for (const initialSize of [300, 800]) {
 });
 }
 
+test("moves the sketch by dragging or keyboard and restores its position on Escape and Reset", async ({ page }) => {
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  await setNumber(page, "Width (px)", "350");
+  await setNumber(page, "Height (px)", "350");
+  const sketch = page.getByRole("group", { name: "Move sketch with the arrow keys" });
+  await sketch.scrollIntoViewIfNeeded();
+  const start = (await sketch.boundingBox())!;
+  const bar = await playbackBarTop(page);
+  const x = start.x + start.width / 2;
+  const y = start.y + start.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 40, y + 20, { steps: 4 });
+  await page.mouse.up();
+  const moved = (await sketch.boundingBox())!;
+  expect(moved.x).toBeCloseTo(start.x + 40, 0);
+  expect(moved.y).toBeCloseTo(start.y + 20, 0);
+  expect(moved.width).toBe(start.width);
+  expect(moved.height).toBe(start.height);
+  expect(await playbackBarTop(page)).toBeCloseTo(bar, 0);
+
+  await page.mouse.down();
+  await page.mouse.move(x + 95, y + 20);
+  expect((await sketch.boundingBox())!.x).toBeGreaterThan(moved.x);
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect.poll(() => sketch.boundingBox()).toEqual(moved);
+  await sketch.press("Shift+ArrowLeft");
+  expect((await sketch.boundingBox())!.x).toBeCloseTo(moved.x - 10, 0);
+
+  await page.mouse.move(x + 30, y + 20);
+  await page.mouse.down();
+  await page.mouse.move(0, y + 20);
+  await page.mouse.up();
+  const stage = (await page.locator(".motion-stage").boundingBox())!;
+  const atEdge = (await sketch.boundingBox())!;
+  expect(atEdge.x).toBeCloseTo(stage.x + 10, 0);
+  await expect(page.getByRole("button", { name: "Resize sketch from left middle" })).toBeVisible();
+
+  const exported = await save(page, "Download Project");
+  expect(JSON.parse(exported.data.toString()).asset).toEqual(motionProject({ ...motionPreset("wave"), width: 350, height: 350 }).asset);
+  await page.getByRole("button", { name: "Reset Preview" }).click();
+  await expect(page.getByRole("img", { name: "Wave animation preview" })).toHaveAttribute("viewBox", "0 0 800 800");
+  await expect(sketch).not.toHaveAttribute("style");
+});
+
 test("settings and spectrum gestures update the preview and active sketch thumbnail live", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
@@ -354,6 +401,16 @@ for (const view of ["desktop", "tablet", "mobile"] as const) {
         await expect(height).toHaveValue(String(resized));
         await setNumber(page, "Width (px)", "900");
         await expect(height).toHaveValue(String(resized));
+
+        const sketch = page.getByRole("group", { name: "Move sketch with the arrow keys" });
+        await sketch.scrollIntoViewIfNeeded();
+        const beforeMove = (await sketch.boundingBox())!;
+        const centre = { x: beforeMove.x + beforeMove.width / 2, y: beforeMove.y + beforeMove.height / 2 };
+        await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [centre] });
+        await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...centre, y: centre.y + 24 }] });
+        await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await expect.poll(async () => (await sketch.boundingBox())!.y).toBeCloseTo(beforeMove.y + 24, 0);
+        await expect(width).toHaveValue("900");
       });
     }
 

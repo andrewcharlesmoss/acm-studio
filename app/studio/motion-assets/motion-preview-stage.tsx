@@ -18,6 +18,14 @@ type Gesture = {
   scale: number;
 };
 
+type MoveGesture = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  origin: PageResizePlacement;
+  previous: PageResizePlacement | null;
+};
+
 export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   asset: MotionAsset;
   path: string;
@@ -27,10 +35,12 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   const footprint = useRef<HTMLDivElement>(null);
   const overlay = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
+  const moveGesture = useRef<MoveGesture | null>(null);
   const [renderWidth, setRenderWidth] = useState(0);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [liveResize, setLiveResize] = useState<Gesture | null>(null);
   const [placement, setPlacement] = useState<PageResizePlacement | null>(null);
+  const [moving, setMoving] = useState(false);
 
   useLayoutEffect(() => {
     const element = footprint.current;
@@ -51,15 +61,35 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   const size = asset;
   const original = placement?.basis ?? liveResize?.original ?? asset;
   const scale = renderWidth / original.width;
+  const fit = { ...stageSize, margin: 10 };
   const layout = placement || liveResize ? pageResizeLayout(size, scale * 100,
     liveResize ? { ...liveResize.original, handle: liveResize.handle } : null,
-    { placement, fit: { ...stageSize, margin: 10 } }).frame : undefined;
+    { placement, fit }).frame : undefined;
   const displayWidth = layout?.width ?? renderWidth;
   const displayHeight = layout?.height ?? displayWidth * size.height / size.width;
 
+  function displayedPlacement(): PageResizePlacement {
+    return { basis: { width: original.width, height: original.height }, x: (layout?.left ?? 0) / scale, y: (layout?.top ?? 0) / scale };
+  }
+
+  function moveSketch(origin: PageResizePlacement, dx: number, dy: number) {
+    const target = { ...origin, x: origin.x + dx / scale, y: origin.y + dy / scale };
+    const { frame } = pageResizeLayout(size, scale * 100, null, { placement: target, fit });
+    setPlacement({ basis: origin.basis, x: frame.left / scale, y: frame.top / scale });
+  }
+
+  function finishMove(artboard: HTMLDivElement, pointerId: number, reason: ResizeGestureEnd) {
+    const current = moveGesture.current;
+    if (!current || current.pointerId !== pointerId) return;
+    moveGesture.current = null;
+    setMoving(false);
+    if (!shouldCommitResizeGesture(reason)) setPlacement(current.previous);
+    if (artboard.hasPointerCapture(pointerId)) artboard.releasePointerCapture(pointerId);
+  }
+
   function begin(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
     const svg = overlay.current;
-    if (event.button !== 0 || !svg || gesture.current) return;
+    if (event.button !== 0 || !svg || gesture.current || moveGesture.current) return;
     const scale = svg.getBoundingClientRect().width / asset.width;
     if (!scale) return;
     event.preventDefault();
@@ -105,7 +135,46 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
       aspectRatio: `${original.width} / ${original.height}`,
       width: `min(100%, ${original.width}px, calc(var(--motion-artboard-max-height) * ${original.width / original.height}))`,
     }}>
-      <div className="motion-artboard" style={layout}>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- The focused preview supports keyboard positioning as an alternative to dragging. */}
+      <div className="motion-artboard" style={layout} data-moving={moving || undefined} role="group" aria-label="Move sketch with the arrow keys" tabIndex={0}
+        onPointerDown={event => {
+          if (event.button !== 0 || !scale || gesture.current || moveGesture.current) return;
+          event.preventDefault();
+          event.currentTarget.focus({ preventScroll: true });
+          moveGesture.current = {
+            pointerId: event.pointerId, startX: event.clientX, startY: event.clientY,
+            origin: displayedPlacement(), previous: placement,
+          };
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setMoving(true);
+        }}
+        onPointerMove={event => {
+          const current = moveGesture.current;
+          if (!scale || current?.pointerId !== event.pointerId) return;
+          moveSketch(current.origin, event.clientX - current.startX, event.clientY - current.startY);
+        }}
+        onPointerUp={event => finishMove(event.currentTarget, event.pointerId, "pointer-up")}
+        onPointerCancel={event => finishMove(event.currentTarget, event.pointerId, "pointer-cancel")}
+        onLostPointerCapture={event => finishMove(event.currentTarget, event.pointerId, "capture-loss")}
+        onBlur={event => {
+          const current = moveGesture.current;
+          if (current) finishMove(event.currentTarget, current.pointerId, "escape");
+        }}
+        onKeyDown={event => {
+          const current = moveGesture.current;
+          if (current && event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            finishMove(event.currentTarget, current.pointerId, "escape");
+          }
+          if (!scale || current || gesture.current || event.metaKey || event.ctrlKey || event.altKey) return;
+          const step = event.shiftKey ? 10 : 1;
+          const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+          const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+          if (!dx && !dy) return;
+          event.preventDefault();
+          moveSketch(displayedPlacement(), dx, dy);
+        }}>
         <svg width={size.width} height={size.height} viewBox={`0 0 ${size.width} ${size.height}`} role="img" aria-label={`${asset.name} animation preview`}>
           {path ? <path d={path} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" /> : null}
         </svg>

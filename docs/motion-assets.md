@@ -4,6 +4,8 @@ Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Brow
 
 Each built-in sketch keeps its edits while you browse the catalogue. **Reset Preview** restores the selected sketch’s defaults or the original settings of an opened file. Studio asks before leaving an opened file with unsaved changes.
 
+Drag inside the sketch’s frame to move it around the preview. Focus the frame and use the arrow keys to move it by 1 px, or hold Shift to move it by 10 px. Escape cancels a drag. **Reset Preview** centres the sketch again. Position applies to the current preview.
+
 Drag an edge or corner handle on the preview to resize the sketch. Resizing keeps the aspect ratio by default. Hold Shift to change width or height independently. With a handle focused, use the arrow keys to resize by 1 px or hold Shift to resize independently by 10 px. Press Escape to cancel a drag. The new dimensions appear in Settings and apply to exports.
 
 **Download Project** saves an editable `.acm-motion.json` file with the original SVG path, its viewBox, and the animation settings. **Open File** reopens it or imports a simple SVG. Studio keeps preview edits in memory. A project file is the way to keep and move your work between sessions or computers.

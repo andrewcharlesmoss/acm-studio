@@ -6,6 +6,7 @@
 
 - Create draw-on animations in the Studio UI Library’s Motion Assets tab, save editable project files, and export SVG, Lottie JSON, and transparent ProRes MOV from local Studio.
 - Play sketches automatically on selection and browse a wider collection of arrows, shapes and marks, including sketches with multiple strokes.
+- Move sketches around the Motion Assets preview by dragging or using the arrow keys.
 
 - Open a native SwiftUI reordering preview alongside the web example in local Studio.
 
