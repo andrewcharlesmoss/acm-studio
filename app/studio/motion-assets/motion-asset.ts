@@ -18,6 +18,11 @@ export type MotionAsset = {
 type Point = [number, number];
 type Segment = { from: Point; to: Point; controls?: [Point, Point] };
 type Sketch = { start: Point; segments: Segment[]; closed: boolean };
+type Size = Pick<MotionAsset, "width" | "height">;
+export type MotionPreviewGeometry = {
+  span: Size;
+  boxFor: (size: Size) => Size & { x: number; y: number };
+};
 
 const wave = "M11,330 C75,330 91,90 155,90 C213,90 223,360 281,360 C342,360 352,130 409,130";
 const circle = "M210 11 C319.905 11 409 100.095 409 210 C409 319.905 319.905 409 210 409 C100.095 409 11 319.905 11 210 C11 100.095 100.095 11 210 11 Z";
@@ -176,11 +181,62 @@ function pathData({ start, segments, closed }: Sketch) {
   return [`M${point(start)}`, ...commands, ...(closed ? ["Z"] : [])].join(" ");
 }
 
+function cubicExtrema(from: number, first: number, second: number, to: number) {
+  const start = first - from, middle = second - first, end = to - second;
+  const a = start - 2 * middle + end, b = 2 * (middle - start), c = start;
+  if (Math.abs(a) <= Number.EPSILON * Math.max(Math.abs(b), Math.abs(c))) return b ? [-c / b] : [];
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return [];
+  const root = Math.sqrt(discriminant);
+  return [(-b - root) / (2 * a), (-b + root) / (2 * a)];
+}
+
+function sketchBounds(sketches: Sketch[]) {
+  let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+  function include([x, y]: Point) {
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    right = Math.max(right, x);
+    bottom = Math.max(bottom, y);
+  }
+  for (const sketch of sketches) {
+    for (const segment of sketch.segments) {
+      const { from, to, controls } = segment;
+      include(from);
+      include(to);
+      if (!controls) continue;
+      for (const axis of [0, 1]) {
+        for (const t of cubicExtrema(from[axis], controls[0][axis], controls[1][axis], to[axis])) {
+          if (t > 0 && t < 1) include(shorten(segment, t).to);
+        }
+      }
+    }
+  }
+  return { left, top, right, bottom };
+}
+
 export function motionGeometry(asset: MotionAsset) {
   const source = parsePath(asset.path, asset.viewBox);
   const [x, y, width, height] = asset.viewBox;
   // Reserve padding for every supported stroke so changing thickness never moves the path.
   const inset = 34;
+  const bounds = sketchBounds(source);
+  const span = { width: (bounds.right - bounds.left) / width, height: (bounds.bottom - bounds.top) / height };
+  const preview: MotionPreviewGeometry = {
+    span,
+    boxFor(size) {
+      const drawingWidth = size.width - inset * 2, drawingHeight = size.height - inset * 2;
+      const inkWidth = span.width * drawingWidth, inkHeight = span.height * drawingHeight;
+      const clearance = asset.thickness + 12;
+      const boxWidth = Math.max(36, inkWidth + clearance), boxHeight = Math.max(36, inkHeight + clearance);
+      return {
+        x: inset + (bounds.left - x) / width * drawingWidth - (boxWidth - inkWidth) / 2,
+        y: inset + (bounds.top - y) / height * drawingHeight - (boxHeight - inkHeight) / 2,
+        width: boxWidth,
+        height: boxHeight,
+      };
+    },
+  };
   const map = (point: Point): Point => [
     inset + (point[0] - x) / width * (asset.width - inset * 2),
     inset + (point[1] - y) / height * (asset.height - inset * 2),
@@ -233,6 +289,7 @@ export function motionGeometry(asset: MotionAsset) {
     return paths.join(" ");
   }
   return {
+    preview,
     strokes: strokes.map(({ sketch, startDistance, endDistance }) => ({
       sketch,
       startFrame: startDistance / length * asset.drawFrames,

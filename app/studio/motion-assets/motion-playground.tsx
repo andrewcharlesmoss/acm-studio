@@ -345,7 +345,7 @@ export function MotionPlayground() {
             <input hidden ref={fileInput} type="file" accept=".svg,.json" onChange={openFile} />
           </div>
         </div>
-        <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} path={previewModel.pathAt(frame)} onResize={changeAsset} onResizeDraft={setResizeDraft} />
+        <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} path={previewModel.pathAt(frame)} geometry={previewModel.preview} onResize={changeAsset} onResizeDraft={setResizeDraft} />
         <div className="motion-transport">
           <button type="button" className="button-secondary motion-playback-button" aria-label={playbackLabel} title={`${playbackLabel} (Space)`} aria-keyshortcuts="Space" onClick={togglePlayback}><AcmIcon name={playback ? "media.pause" : "media.play"} scale="Regular-S" size={20} /></button>
           <RangeControl min={0} max={model.frameCount} step={1} value={frame}

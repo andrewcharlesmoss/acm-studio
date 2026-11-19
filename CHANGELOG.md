@@ -51,6 +51,8 @@
 
 ### Changed
 
+- Fit Motion Assets resize frames to the finished stroke with room for handles.
+
 - Use shared, larger plus and minus buttons for number fields in Motion Assets.
 - Hold a shared number stepper button to repeat the adjustment.
 

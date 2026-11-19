@@ -8,13 +8,14 @@ import type { ResizeHandle } from "../design-transform";
 import { resizePageFromKey } from "../page-resize";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../resize-drag";
 import { shouldCommitResizeGesture, type ResizeGestureEnd } from "../resize-gesture-policy";
-import type { MotionAsset } from "./motion-asset";
+import type { MotionAsset, MotionPreviewGeometry } from "./motion-asset";
 import { resizeMotion, type MotionSize } from "./motion-resize";
 
 type MotionPlacement = PageResizePlacement & { scaleFactor: number };
 
 type Gesture = {
   original: MotionSize;
+  originalBox: MotionSize;
   drag: ResizeDrag<MotionSize>;
   handle: ResizeHandle;
   pointerId: number;
@@ -28,9 +29,10 @@ type MoveGesture = {
   previous: MotionPlacement | null;
 };
 
-export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
+export function MotionPreviewStage({ asset, path, geometry, onResize, onResizeDraft }: {
   asset: MotionAsset;
   path: string;
+  geometry: MotionPreviewGeometry;
   onResize: (size: MotionSize) => void;
   onResizeDraft: (size: MotionSize | null) => void;
 }) {
@@ -60,17 +62,24 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   }, []);
   useLayoutEffect(() => () => onResizeDraft(null), [onResizeDraft]);
 
-  const size = asset;
+  const box = geometry.boxFor(asset);
   const activePlacement = liveResize?.placement ?? placement;
-  const original = activePlacement?.basis ?? asset;
+  const original = activePlacement?.basis ?? box;
   const footprintScale = renderWidth / original.width;
   const scale = footprintScale * (activePlacement?.scaleFactor ?? 1);
   const fit = { ...stageSize, margin: 10, footprint: { width: renderWidth, height: original.height * footprintScale } };
-  const layout = activePlacement ? pageResizeLayout(size, scale * 100,
-    liveResize ? { ...liveResize.original, handle: liveResize.handle } : null,
+  const layout = activePlacement ? pageResizeLayout(box, scale * 100,
+    liveResize ? { ...liveResize.originalBox, handle: liveResize.handle } : null,
     { placement: activePlacement, fit }).frame : undefined;
   const displayWidth = layout?.width ?? renderWidth;
-  const displayHeight = layout?.height ?? displayWidth * size.height / size.width;
+  const displayHeight = layout?.height ?? displayWidth * box.height / box.width;
+  // Adjacent corner and midpoint handles need room for their 16 px targets.
+  const roomAcross = displayWidth >= 32, roomDown = displayHeight >= 32;
+  const availableHandles: ResizeHandle[] = [];
+  if (roomAcross && roomDown) availableHandles.push("nw", "ne", "se", "sw");
+  if (roomAcross && geometry.span.width > 0) availableHandles.push("w", "e");
+  if (roomDown && geometry.span.height > 0) availableHandles.push("n", "s");
+  if (!availableHandles.length) availableHandles.push("se");
 
   function displayedPlacement(frameScale = scale): MotionPlacement {
     return {
@@ -83,7 +92,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
 
   function moveSketch(origin: MotionPlacement, delta: { x: number; y: number }) {
     const next = moveCanvasPlacement(origin, delta, candidate => {
-      const { frame } = pageResizeLayout(size, scale * 100, null, { placement: candidate, fit });
+      const { frame } = pageResizeLayout(box, scale * 100, null, { placement: candidate, fit });
       return { ...candidate, x: frame.left / scale, y: frame.top / scale };
     });
     setPlacement(next);
@@ -101,13 +110,13 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   function begin(event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) {
     const svg = overlay.current;
     if (event.button !== 0 || !svg || gesture.current || moveGesture.current) return;
-    const scale = svg.getBoundingClientRect().width / asset.width;
+    const scale = svg.getBoundingClientRect().width / box.width;
     if (!scale) return;
     event.preventDefault();
     event.currentTarget.focus({ preventScroll: true });
     const original = { width: asset.width, height: asset.height };
     const origin = { x: event.clientX / scale, y: event.clientY / scale };
-    const next = { original, drag: beginResizeDrag(original, origin, !event.shiftKey), handle, pointerId: event.pointerId, scale,
+    const next = { original, originalBox: box, drag: beginResizeDrag(original, origin, !event.shiftKey), handle, pointerId: event.pointerId, scale,
       placement: displayedPlacement(scale) };
     gesture.current = next;
     svg.setPointerCapture(event.pointerId);
@@ -119,13 +128,25 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     if (!current || current.pointerId !== event.pointerId) return;
     const point = { x: event.clientX / current.scale, y: event.clientY / current.scale };
     const size = updateResizeDrag(current.drag, point, !event.shiftKey,
-      (basis, dx, dy, keepRatio) => resizeMotion(basis, current.handle, dx, dy, keepRatio, current.drag.latest));
+      (basis, dx, dy, keepRatio) => {
+        // A handle covers the drawn fraction of the export width or height.
+        const widthDelta = geometry.span.width ? dx / Math.max(geometry.span.width, 0.05) : 0;
+        const heightDelta = geometry.span.height ? dy / Math.max(geometry.span.height, 0.05) : 0;
+        return resizeMotion(basis, current.handle, widthDelta, heightDelta, keepRatio, current.drag.latest);
+      });
     onResizeDraft(size);
   }
 
-  function commitResize(previous: MotionSize, next: MotionSize, handle: ResizeHandle, start: MotionPlacement) {
-    setPlacement({ ...commitPageResizePlacement(next, { ...previous, handle }, start), scaleFactor: start.scaleFactor });
+  function commitResize(previousBox: MotionSize, next: MotionSize, handle: ResizeHandle, start: MotionPlacement) {
+    const focused = document.activeElement;
+    setPlacement({ ...commitPageResizePlacement(geometry.boxFor(next), { ...previousBox, handle }, start), scaleFactor: start.scaleFactor });
     onResize(next);
+    if (overlay.current?.contains(focused)) requestAnimationFrame(() => {
+      // Compact frames can replace the focused corner with an edge handle.
+      if (!focused?.isConnected && document.activeElement === document.body) {
+        overlay.current?.querySelector<SVGCircleElement>(".studio-canvas-handle")?.focus({ preventScroll: true });
+      }
+    });
   }
 
   function finish(reason: ResizeGestureEnd, pointerId?: number) {
@@ -138,7 +159,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     onResizeDraft(null);
     const { width, height } = current.drag.latest;
     if (shouldCommitResizeGesture(reason) && (width !== current.original.width || height !== current.original.height)) {
-      commitResize(current.original, { width, height }, current.handle, current.placement);
+      commitResize(current.originalBox, { width, height }, current.handle, current.placement);
     }
   }
 
@@ -186,7 +207,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
           event.preventDefault();
           moveSketch(displayedPlacement(), delta);
         }}>
-        <svg width={size.width} height={size.height} viewBox={`0 0 ${size.width} ${size.height}`} role="img" aria-label={`${asset.name} animation preview`}>
+        <svg width={asset.width} height={asset.height} viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`} role="img" aria-label={`${asset.name} animation preview`}>
           {path ? <path d={path} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" /> : null}
         </svg>
       </div>
@@ -196,6 +217,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
         onPointerCancel={event => finish("pointer-cancel", event.pointerId)}
         onLostPointerCapture={event => finish("capture-loss", event.pointerId)}>
         <PageResizeHandles page={{ width: displayWidth, height: displayHeight }} controlScale={1} labelSubject="sketch"
+          availableHandles={availableHandles}
           activeHandle={liveResize?.handle} onPointerDown={begin} onKeyDown={(event, handle) => {
             if (gesture.current) {
               if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); finish("escape"); }
@@ -205,7 +227,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
             const next = resizePageFromKey(previous, handle, event.key, event.shiftKey, resizeMotion);
             if (!next) return;
             event.preventDefault();
-            if (next.width !== previous.width || next.height !== previous.height) commitResize(previous, next, handle, displayedPlacement(displayWidth / size.width));
+            if (next.width !== previous.width || next.height !== previous.height) commitResize(box, next, handle, displayedPlacement(displayWidth / box.width));
           }} />
       </svg> : null}
     </div>

@@ -1,4 +1,4 @@
-import { expect, test, devices, type Page } from "@playwright/test";
+import { expect, test, devices, type Locator, type Page } from "@playwright/test";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import { motionGeometry, motionPreset, motionProject } from "../../app/studio/motion-assets/motion-asset";
@@ -18,6 +18,11 @@ async function setNumber(page: Page, label: string, value: string) {
   const field = page.getByRole("spinbutton", { name: label, exact: true });
   await field.fill(value);
   await field.press("Enter");
+}
+
+async function expectPreviewSize(preview: Locator, width: number, height: number) {
+  await expect(preview).toHaveAttribute("width", String(width));
+  await expect(preview).toHaveAttribute("height", String(height));
 }
 
 function playbackBarTop(page: Page) {
@@ -45,13 +50,13 @@ test("opens Motion Assets from Icons, preserves the draft across tabs, and redir
   await expect(page.getByRole("dialog", { name: /stroke colour palette/i })).toHaveCount(0);
   expect(await page.evaluate(() => window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(false);
   await page.goForward();
-  await expect(page.getByRole("img", { name: "Wave animation preview" })).toHaveAttribute("viewBox", "0 0 1600 800");
+  await expectPreviewSize(page.getByRole("img", { name: "Wave animation preview" }), 1600, 800);
 
   await iconsTab.click();
   await expect(page.getByRole("heading", { name: "Motion Assets", level: 1 })).toBeHidden();
   await page.goBack();
   await expect(motionTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("img", { name: "Wave animation preview" })).toHaveAttribute("viewBox", "0 0 1600 800");
+  await expectPreviewSize(page.getByRole("img", { name: "Wave animation preview" }), 1600, 800);
   await save(page, "Download Project");
 
   await page.goto("/studio/motion-assets");
@@ -100,11 +105,11 @@ test("browsing presets preserves edits, supports reset and respects autoplay", a
   await expect(autoplay).not.toBeChecked();
   await page.getByRole("button", { name: "Use Wave", exact: true }).click();
   const wave = page.getByRole("img", { name: "Wave animation preview" });
-  await expect(wave).toHaveAttribute("viewBox", "0 0 1200 800");
+  await expectPreviewSize(wave, 1200, 800);
   await width.fill("1400");
   await page.getByRole("button", { name: "Reset Preview" }).dispatchEvent("click");
   await expect(width).toHaveValue("800");
-  await expect(wave).toHaveAttribute("viewBox", "0 0 800 800");
+  await expectPreviewSize(wave, 800, 800);
   await expect(play).toBeVisible();
   expect(await page.evaluate(() => window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(true);
   await page.getByRole("button", { name: "Use Smile", exact: true }).click();
@@ -203,9 +208,9 @@ test("large number stepper buttons update the preview immediately and respect fi
   const increase = button("Increase", "Width (px)");
   expect((await increase.boundingBox())!.width).toBeGreaterThanOrEqual(32);
   await increase.click();
-  await expect(size).toHaveAttribute("viewBox", "0 0 801 800");
+  await expectPreviewSize(size, 801, 800);
   await button("Decrease", "Height (px)").press("Space");
-  await expect(size).toHaveAttribute("viewBox", "0 0 801 799");
+  await expectPreviewSize(size, 801, 799);
   await button("Increase", "Thickness (px)").click();
   await expect(thickness).toHaveAttribute("stroke-width", "10");
   await button("Increase", "Draw time (s)").click();
@@ -221,7 +226,7 @@ test("large number stepper buttons update the preview immediately and respect fi
   await expect(width).toBeFocused();
   await width.fill("129.3");
   await button("Decrease", "Width (px)").dispatchEvent("click");
-  await expect(size).toHaveAttribute("viewBox", "0 0 128 799");
+  await expectPreviewSize(size, 128, 799);
 });
 
 test("editing draw or hold time updates the preview while the field is focused and playback is paused", async ({ page }) => {
@@ -262,7 +267,7 @@ for (const initialSize of [300, 800]) {
     const height = page.getByRole("spinbutton", { name: "Height (px)" });
     await setNumber(page, "Width (px)", String(initialSize));
     await setNumber(page, "Height (px)", String(initialSize));
-    await expect(preview).toHaveAttribute("viewBox", `0 0 ${initialSize} ${initialSize}`);
+    await expectPreviewSize(preview, initialSize, initialSize);
 
     async function drag(dx: number, dy: number) {
       await corner.scrollIntoViewIfNeeded();
@@ -275,12 +280,12 @@ for (const initialSize of [300, 800]) {
     }
 
     async function displayedDimensions() {
-      const [, , width, height] = (await preview.getAttribute("viewBox"))!.split(" ").map(Number);
+      const [width, height] = await preview.evaluate(svg => [Number(svg.getAttribute("width")), Number(svg.getAttribute("height"))]);
       return { width, height };
     }
 
     await drag(24, 10);
-    await expect(preview).not.toHaveAttribute("viewBox", `0 0 ${initialSize} ${initialSize}`);
+    await expect(preview).not.toHaveAttribute("width", String(initialSize));
     const displaying = await displayedDimensions();
     await expect(width).toHaveValue(String(displaying.width));
     await expect(height).toHaveValue(String(displaying.height));
@@ -319,10 +324,10 @@ for (const initialSize of [300, 800]) {
     expect(stretchedHeight).toBeGreaterThan(proportionalWidth);
 
     await drag(-18, -16);
-    await expect(preview).not.toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
+    await expect(preview).not.toHaveAttribute("width", String(stretchedWidth));
     await page.keyboard.press("Escape");
     await page.mouse.up();
-    await expect(preview).toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
+    await expectPreviewSize(preview, stretchedWidth, stretchedHeight);
 
     await page.getByRole("button", { name: "Resize sketch from right middle" }).press("Shift+ArrowRight");
     await expect(width).toHaveValue(String(stretchedWidth + 10));
@@ -375,8 +380,44 @@ test("moves the sketch by dragging or keyboard and restores its position on Esca
   const exported = await save(page, "Download Project");
   expect(JSON.parse(exported.data.toString()).asset).toEqual(motionProject({ ...motionPreset("wave"), width: 350, height: 350 }).asset);
   await page.getByRole("button", { name: "Reset Preview" }).click();
-  await expect(page.getByRole("img", { name: "Wave animation preview" })).toHaveAttribute("viewBox", "0 0 800 800");
+  await expectPreviewSize(page.getByRole("img", { name: "Wave animation preview" }), 800, 800);
   await expect(sketch).not.toHaveAttribute("style");
+});
+
+test("the resize box hugs the finished stroke and stays fixed while the padded asset plays", async ({ page }) => {
+  await page.setViewportSize({ width: 780, height: 920 });
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  await page.getByRole("button", { name: "Use Chevron", exact: true }).click();
+  await setNumber(page, "Width (px)", "611");
+  await setNumber(page, "Height (px)", "155");
+  const slider = page.getByRole("slider", { name: "Animation position" });
+  await slider.press("End");
+  const sketch = page.getByRole("group", { name: "Move sketch with the arrow keys" });
+  const path = sketch.locator("path");
+  const fullPath = await path.getAttribute("d");
+  const frame = (await sketch.boundingBox())!;
+  const ink = (await path.boundingBox())!;
+  expect(ink.x - frame.x).toBeLessThan(16);
+  expect(frame.x + frame.width - (ink.x + ink.width)).toBeLessThan(16);
+  expect(ink.y - frame.y).toBeLessThan(16);
+  expect(frame.y + frame.height - (ink.y + ink.height)).toBeLessThan(16);
+  const handle = page.getByRole("button", { name: "Resize sketch from bottom right" });
+  const handleBounds = await handle.boundingBox();
+  await slider.press("Home");
+  await expect(path).toHaveCount(0);
+  expect(await sketch.boundingBox()).toEqual(frame);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(path).toBeVisible();
+  await expect(path).not.toHaveAttribute("d", fullPath!);
+  expect(await sketch.boundingBox()).toEqual(frame);
+  expect(await handle.boundingBox()).toEqual(handleBounds);
+
+  const svg = await save(page, "SVG");
+  expect(svg.data.toString()).toContain('viewBox="0 0 611 155"');
+  expect(svg.data.toString()).toContain(`d="${fullPath}"`);
+  const lottie = await save(page, "Lottie JSON");
+  expect(JSON.parse(lottie.data.toString())).toMatchObject({ w: 611, h: 155 });
 });
 
 test("a fitted sketch shrinks immediately on a narrow preview without moving its opposite edge", async ({ page }) => {
@@ -414,6 +455,26 @@ test("a fitted sketch shrinks immediately on a narrow preview without moving its
   expect(shrunk.y).toBeCloseTo(fitted.y, 0);
 });
 
+test("a thin sketch keeps reachable resize handles in a narrow preview", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  await page.getByRole("button", { name: "Use Line", exact: true }).click();
+  await setNumber(page, "Width (px)", "1920");
+  await expect(page.getByRole("button", { name: /^Resize sketch from/ })).toHaveCount(2);
+  const right = page.getByRole("button", { name: "Resize sketch from right middle", exact: true });
+  await right.press("Shift+ArrowLeft");
+  await expect(page.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1910");
+  await expect(right).toBeFocused();
+
+  await page.getByRole("button", { name: "Use Chevron", exact: true }).click();
+  await setNumber(page, "Height (px)", "171");
+  await setNumber(page, "Width (px)", "1920");
+  await page.getByRole("button", { name: "Resize sketch from bottom right", exact: true }).press("Shift+ArrowUp");
+  await expect(page.getByRole("spinbutton", { name: "Height (px)" })).toHaveValue("161");
+  await expect(right).toBeFocused();
+});
+
 test("settings and spectrum gestures update the preview and active sketch thumbnail live", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
@@ -428,7 +489,7 @@ test("settings and spectrum gestures update the preview and active sketch thumbn
   const width = page.getByRole("spinbutton", { name: "Width (px)" });
   await width.fill("500");
   await expect(width).toBeFocused();
-  await expect(preview).toHaveAttribute("viewBox", "0 0 500 800");
+  await expectPreviewSize(preview, 500, 800);
   await page.getByRole("spinbutton", { name: "Height (px)" }).fill("494");
   await expect(sketch.locator("svg")).toHaveAttribute("viewBox", "0 0 500 494");
   const thickness = page.getByRole("spinbutton", { name: "Thickness (px)" });
@@ -495,7 +556,7 @@ test("round-trips a widened wave, protects imported edits, and rejects invalid S
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
   await setNumber(page, "Width (px)", "1600");
   const image = page.getByRole("img", { name: "Wave animation preview" });
-  await expect(image).toHaveAttribute("viewBox", "0 0 1600 800");
+  await expectPreviewSize(image, 1600, 800);
   await expect(image.locator("path")).toHaveAttribute("stroke-width", "9");
   const slider = page.getByRole("slider", { name: "Animation position" });
   await slider.press("Home");
@@ -507,18 +568,18 @@ test("round-trips a widened wave, protects imported edits, and rejects invalid S
   await page.getByRole("button", { name: "Use Circle" }).click();
   await expect(page.getByRole("img", { name: "Circle animation preview" })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
-  await expect(image).toHaveAttribute("viewBox", "0 0 1600 800");
+  await expectPreviewSize(image, 1600, 800);
   await setNumber(page, "Width (px)", "1400");
   await page.getByRole("button", { name: "Use Circle" }).click();
   await expect(page.getByRole("dialog", { name: "Replace this project?" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Use Circle" })).toBeFocused();
-  await expect(image).toHaveAttribute("viewBox", "0 0 1400 800");
+  await expectPreviewSize(image, 1400, 800);
   await page.getByRole("button", { name: "Reset Preview" }).click();
-  await expect(image).toHaveAttribute("viewBox", "0 0 1600 800");
+  await expectPreviewSize(image, 1600, 800);
   await page.locator('input[type="file"]').setInputFiles({ name: "invalid.svg", mimeType: "image/svg+xml", buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><script/><path d="M1 1 L19 19"/></svg>') });
   await expect(page.getByRole("alert")).toContainText("one untransformed path");
-  await expect(image).toHaveAttribute("viewBox", "0 0 1600 800");
+  await expectPreviewSize(image, 1600, 800);
   await slider.press("End");
   await page.screenshot({ path: info.outputPath("wide-wave.png") });
   await setNumber(page, "Width (px)", "1400");
@@ -593,14 +654,14 @@ for (const view of ["desktop", "tablet", "mobile"] as const) {
       const height = page.getByRole("spinbutton", { name: "Height (px)" });
 
       await height.fill("200");
-      await expect(drawing).toHaveAttribute("viewBox", "0 0 800 200");
+      await expectPreviewSize(drawing, 800, 200);
       await expect.poll(drawingHeight).toBeLessThan(initialHeight);
       expect(await playbackBarTop(page)).toBeCloseTo(initialTop, 0);
       await height.press("Enter");
       expect(await playbackBarTop(page)).toBeCloseTo(initialTop, 0);
 
       await page.getByRole("button", { name: "Reset Preview" }).click();
-      await expect(drawing).toHaveAttribute("viewBox", "0 0 800 800");
+      await expectPreviewSize(drawing, 800, 800);
       expect(await playbackBarTop(page)).toBeCloseTo(initialTop, 0);
     });
 

@@ -32,6 +32,20 @@ test("each catalogue sketch supports editable and portable exports", () => {
   }
 });
 
+test("preview bounds follow the cubic extrema and every stroke at the current thickness", () => {
+  const asset = {
+    ...motionPreset("wave"), width: 268, height: 168, viewBox: [0, 0, 100, 100],
+    path: "M0 50 C0 0 100 0 100 50 M20 70 L60 90",
+  };
+  const { preview, pathAt } = motionGeometry(asset);
+  assert.deepEqual(preview.boxFor(asset), { x: 23.5, y: 36, width: 221, height: 98.5 });
+  assert.deepEqual(motionGeometry({ ...asset, thickness: 19 }).preview.boxFor(asset), {
+    x: 18.5, y: 31, width: 231, height: 108.5,
+  });
+  assert.match(motionSvg(asset, pathAt(30)), /viewBox="0 0 268 168"/);
+  assert.deepEqual(motionProject(asset).asset.viewBox, [0, 0, 100, 100]);
+});
+
 test("multiple strokes reveal in sequence and round-trip through the versioned project", () => {
   const asset = { ...motionPreset("wave"), path: "M20 100 L300 100 M20 300 L300 300" };
   const project = motionProject(asset);

@@ -12,6 +12,8 @@ Drag inside the sketch’s frame to move it around the preview. Focus the frame 
 
 Drag an edge or corner handle on the preview to resize the sketch. Resizing keeps the aspect ratio by default. Hold Shift to change width or height independently. With a handle focused, use the arrow keys to resize by 1 px or hold Shift to resize independently by 10 px. Press Escape to cancel a drag. The new dimensions appear in Settings and apply to exports.
 
+The preview frame follows the finished stroke and stays in place during playback. Very thin sketches show fewer handles when space is limited. Width and height fields remain available for both dimensions. Exports use the full canvas and its transparent padding.
+
 **Download Project** saves an editable `.acm-motion.json` file with the original SVG path, its viewBox, and the animation settings. **Open File** reopens it or imports a simple SVG. Studio keeps preview edits in memory. A project file is the way to keep and move your work between sessions or computers.
 
 The initial wave uses the SVG geometry from the November 2026 cross-editor experiment. The collection includes original geometry for the sketch marks. An imported SVG needs a viewBox and one untransformed path. It supports absolute M, L, C and Z commands, with up to 128 segments across all subpaths. Separate strokes draw in path order within the overall draw time. Path and control points must be inside the viewBox. Studio imports the geometry and uses a supported solid stroke colour and whole-pixel thickness if specified directly on the path. Files are limited to 24 KB. Projects with multiple strokes use v0.2.0. Studio still reads and writes v0.1.0 projects for a single stroke.

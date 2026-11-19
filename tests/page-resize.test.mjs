@@ -39,6 +39,10 @@ test("the shared page handles expose all eight controls, the active control, and
   const active = renderToStaticMarkup(createElement("svg", null, createElement(PageResizeHandles, { page, controlScale: 1, activeHandle: "nw" })));
   assert.equal((active.match(/role="button"/g) ?? []).length, 1);
   assert.match(active, /aria-label="Resize page from top left"/);
+  const compact = renderToStaticMarkup(createElement("svg", null, createElement(PageResizeHandles, { page, controlScale: 1, availableHandles: ["w", "e"] })));
+  assert.equal((compact.match(/role="button"/g) ?? []).length, 2);
+  assert.match(compact, /aria-label="Resize page from right middle"/);
+  assert.match(compact, /aria-label="Resize page from left middle"/);
 });
 test("the existing resize specimen offers Page alongside Shape and Image, with a complete temporary page example", async () => {
   const { ResizeHandlesSpecimen } = await loadProductionModule(new URL("../app/studio/ui/controls/resize-handles-specimen.tsx", import.meta.url));

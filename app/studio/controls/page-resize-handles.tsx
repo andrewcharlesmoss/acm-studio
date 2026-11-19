@@ -13,14 +13,16 @@ const pageResizeHandles: Array<{ handle: ResizeHandle; label: string }> = [
     { handle: "w", label: "Resize page from left middle" },
   ];
 
-export function PageResizeHandles({ page, controlScale, activeHandle, disabled = false, labelSubject = "page", onPointerDown, onKeyDown }: {
+export function PageResizeHandles({ page, controlScale, activeHandle, availableHandles, disabled = false, labelSubject = "page", onPointerDown, onKeyDown }: {
   page: { width: number; height: number };
   controlScale: number;
   activeHandle?: ResizeHandle | null;
+  availableHandles?: readonly ResizeHandle[];
   disabled?: boolean;
   labelSubject?: string;
   onPointerDown?: (event: PointerEvent<SVGCircleElement>, handle: ResizeHandle) => void;
   onKeyDown?: (event: KeyboardEvent<SVGCircleElement>, handle: ResizeHandle) => void;
 }) {
-  return pageResizeHandles.map(({ handle, label }) => activeHandle && activeHandle !== handle ? null : <CanvasHandle key={`page-${handle}`} aria-label={label.replace("page", labelSubject)} cursor={resizeCursor(handle, 0)} cx={handle.includes("e") ? page.width : handle.includes("w") ? 0 : page.width / 2} cy={handle.includes("s") ? page.height : handle.includes("n") ? 0 : page.height / 2} controlScale={controlScale} disabled={disabled} onPointerDown={event => onPointerDown?.(event, handle)} onKeyDown={event => onKeyDown?.(event, handle)} />);
+  const visible = pageResizeHandles.filter(({ handle }) => activeHandle ? activeHandle === handle : !availableHandles || availableHandles.includes(handle));
+  return visible.map(({ handle, label }) => <CanvasHandle key={`page-${handle}`} aria-label={label.replace("page", labelSubject)} cursor={resizeCursor(handle, 0)} cx={handle.includes("e") ? page.width : handle.includes("w") ? 0 : page.width / 2} cy={handle.includes("s") ? page.height : handle.includes("n") ? 0 : page.height / 2} controlScale={controlScale} disabled={disabled} onPointerDown={event => onPointerDown?.(event, handle)} onKeyDown={event => onKeyDown?.(event, handle)} />);
 }
