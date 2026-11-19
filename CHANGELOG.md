@@ -941,6 +941,8 @@
 
 ### Fixed
 
+- Keep the Motion Assets playback bar in place when resizing a sketch.
+
 - Match the UK Windows keyboard’s media controls, keypad and arrow legends, wide-key captions, indicators, and utility symbols to the Surface Keyboard reference.
 
 - Windows keyboard selections now preview and export the printed key, including the shortcut on F11 and the framed Menu legend.

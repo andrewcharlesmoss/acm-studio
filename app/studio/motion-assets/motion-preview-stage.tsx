@@ -88,7 +88,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   return <div className="motion-stage">
     <div className="motion-artboard-footprint" ref={footprint} style={{
       aspectRatio: `${original.width} / ${original.height}`,
-      width: `min(100%, ${original.width}px, ${56 * original.width / original.height}vh)`,
+      width: `min(100%, ${original.width}px, calc(var(--motion-artboard-max-height) * ${original.width / original.height}))`,
     }}>
       <div className="motion-artboard" style={layout}>
         <svg width={size.width} height={size.height} viewBox={`0 0 ${size.width} ${size.height}`} role="img" aria-label={`${asset.name} animation preview`}>

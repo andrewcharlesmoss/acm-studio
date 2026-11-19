@@ -20,6 +20,10 @@ async function setNumber(page: Page, label: string, value: string) {
   await field.press("Enter");
 }
 
+function playbackBarTop(page: Page) {
+  return page.locator(".motion-transport").evaluate(bar => bar.getBoundingClientRect().top + window.scrollY);
+}
+
 test("opens Motion Assets from Icons, preserves the draft across tabs, and redirects old links", async ({ page }) => {
   await page.goto("/studio/ui/icons");
   const iconsTab = page.getByRole("tab", { name: "Icons", exact: true });
@@ -171,6 +175,7 @@ test("resize handles preserve proportions, stretch with Shift, and cancel with E
   expect(proportionalWidth).toBeGreaterThan(800);
   await expect(height).toHaveValue(String(proportionalWidth));
 
+  const initialBarTop = await playbackBarTop(page);
   const point = await drag(6, 3);
   const anchored = (await preview.boundingBox())!;
   await page.keyboard.down("Shift");
@@ -184,7 +189,9 @@ test("resize handles preserve proportions, stretch with Shift, and cancel with E
   const moved = (await preview.boundingBox())!;
   expect(moved.x).toBeCloseTo(anchored.x, 1);
   expect(moved.y).toBeCloseTo(anchored.y, 1);
+  expect(await playbackBarTop(page)).toBeCloseTo(initialBarTop, 0);
   await page.mouse.up();
+  expect(await playbackBarTop(page)).toBeCloseTo(initialBarTop, 0);
   const stretchedWidth = Number(await width.inputValue());
   const stretchedHeight = Number(await height.inputValue());
   expect(stretchedWidth).toBeGreaterThan(stretchedHeight);
@@ -338,6 +345,27 @@ for (const view of ["desktop", "tablet", "mobile"] as const) {
         await expect(height).toHaveValue(String(resized));
       });
     }
+
+    test("keeps the playback bar in place as the sketch is resized", async ({ page }) => {
+      await page.goto(route);
+      await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+      const drawing = page.getByRole("img", { name: "Wave animation preview" });
+      const initialTop = await playbackBarTop(page);
+      const drawingHeight = () => drawing.evaluate(element => element.getBoundingClientRect().height);
+      const initialHeight = await drawingHeight();
+      const height = page.getByRole("spinbutton", { name: "Height (px)" });
+
+      await height.fill("200");
+      await expect(drawing).toHaveAttribute("viewBox", "0 0 800 200");
+      await expect.poll(drawingHeight).toBeLessThan(initialHeight);
+      expect(await playbackBarTop(page)).toBeCloseTo(initialTop, 0);
+      await height.press("Enter");
+      expect(await playbackBarTop(page)).toBeCloseTo(initialTop, 0);
+
+      await page.getByRole("button", { name: "Reset Preview" }).click();
+      await expect(drawing).toHaveAttribute("viewBox", "0 0 800 800");
+      expect(await playbackBarTop(page)).toBeCloseTo(initialTop, 0);
+    });
 
     test("exports an oval with the same timing and geometry in the Lottie SVG player", async ({ page }, info) => {
       await page.goto(route);
