@@ -1,6 +1,6 @@
 # Motion Assets
 
-Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Browse or search the collection for arrows, shapes, lines and other sketch marks. Turn on **Autoplay on selection** to play each sketch from the start when you choose it. Set the canvas dimensions, stroke colour, thickness, draw time and hold time. Press Enter or leave a number field to apply it. You can also preview with **Play** or the position slider. The draft and autoplay setting stay open while you browse other Library tabs.
+Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Browse or search the collection for arrows, shapes, lines and other sketch marks. With **Autoplay on selection** on by default, each sketch plays from the start when you choose it. Use the switch to turn autoplay off. Set the canvas dimensions, stroke colour, thickness, draw time and hold time. Press Enter or leave a number field to apply it. You can also preview with **Play** or the position slider. The draft and autoplay setting stay open while you browse other Library tabs.
 
 **Download Project** saves an editable `.acm-motion.json` file with the original SVG path, its viewBox, and the animation settings. **Open File** reopens it or imports a simple SVG. Studio keeps the current project in memory. A project file is the way to keep and move your work between sessions or computers.
 

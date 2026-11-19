@@ -69,15 +69,13 @@ test("finds Motion Assets in the Library Catalogue", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Motion Assets" })).toHaveAttribute("aria-selected", "true");
 });
 
-test("autoplay starts the chosen sketch after confirmation and can be turned off", async ({ page }) => {
+test("autoplay is on by default, starts the chosen sketch after confirmation, and can be turned off", async ({ page }) => {
   await page.goto(route);
   const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });
   const slider = page.getByRole("slider", { name: "Animation position" });
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
-  await expect(autoplay).not.toBeChecked();
-  await setNumber(page, "Width (px)", "1200");
-  await autoplay.press("Space");
   await expect(autoplay).toBeChecked();
+  await setNumber(page, "Width (px)", "1200");
   await page.getByRole("button", { name: "Use Plus", exact: true }).press("Enter");
   await expect(page.getByRole("dialog", { name: "Replace this project?" })).toBeVisible();
   await page.getByRole("button", { name: "Keep Editing" }).click();
@@ -91,6 +89,7 @@ test("autoplay starts the chosen sketch after confirmation and can be turned off
   await expect(slider).toHaveValue("90");
 
   await autoplay.press("Space");
+  await expect(autoplay).not.toBeChecked();
   await page.getByRole("button", { name: "Use Smile", exact: true }).click();
   const drawing = page.getByRole("img", { name: "Smile animation preview" }).locator("path");
   await expect(drawing).toHaveAttribute("d", /M.*M.*M.*M/);

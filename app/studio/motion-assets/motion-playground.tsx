@@ -67,7 +67,7 @@ export function MotionPlayground() {
   const [asset, setAsset] = useState(wave);
   const [search, setSearch] = useState("");
   const [baseline, setBaseline] = useState(() => projectKey(wave));
-  const [autoplay, setAutoplay] = useState(false);
+  const [autoplay, setAutoplay] = useState(true);
   const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
   const [position, setPosition] = useState<number | null>(null);
   const [replacement, setReplacement] = useState<{ asset: MotionAsset; unsaved: boolean; play: boolean }>();
