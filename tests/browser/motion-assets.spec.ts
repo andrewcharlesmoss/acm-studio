@@ -69,7 +69,7 @@ test("finds Motion Assets in the Library Catalogue", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Motion Assets" })).toHaveAttribute("aria-selected", "true");
 });
 
-test("autoplay is on by default, starts the chosen sketch after confirmation, and can be turned off", async ({ page }) => {
+test("browsing presets preserves edits, supports reset and respects autoplay", async ({ page }) => {
   await page.goto(route);
   const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });
   const slider = page.getByRole("slider", { name: "Animation position" });
@@ -78,14 +78,13 @@ test("autoplay is on by default, starts the chosen sketch after confirmation, an
   await expect(play).toHaveText("");
   await expect(play.locator("svg")).toBeVisible();
   await expect(autoplay).toBeChecked();
-  await setNumber(page, "Width (px)", "1200");
-  await page.getByRole("button", { name: "Use Plus", exact: true }).press("Enter");
-  await expect(page.getByRole("dialog", { name: "Replace this project?" })).toBeVisible();
-  await page.getByRole("button", { name: "Keep Editing" }).click();
-  await expect(page.getByRole("img", { name: "Wave animation preview" })).toBeVisible();
-  await page.getByRole("button", { name: "Use Plus", exact: true }).click();
-  await page.getByRole("button", { name: "Replace Project" }).click();
+  const width = page.getByRole("spinbutton", { name: "Width (px)" });
+  await width.fill("1200");
+  await expect(width).toBeFocused();
+  await page.getByRole("button", { name: "Use Plus", exact: true }).dispatchEvent("click");
+  await expect(page.getByRole("dialog", { name: "Replace this project?" })).toHaveCount(0);
   await expect(page.getByRole("img", { name: "Plus animation preview" })).toBeVisible();
+  expect(await page.evaluate(() => window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(false);
   const pause = page.getByRole("button", { name: "Pause", exact: true });
   await expect(pause).toHaveText("");
   await expect(pause.locator("svg")).toBeVisible();
@@ -95,6 +94,15 @@ test("autoplay is on by default, starts the chosen sketch after confirmation, an
 
   await autoplay.press("Space");
   await expect(autoplay).not.toBeChecked();
+  await page.getByRole("button", { name: "Use Wave", exact: true }).click();
+  const wave = page.getByRole("img", { name: "Wave animation preview" });
+  await expect(wave).toHaveAttribute("viewBox", "0 0 1200 800");
+  await width.fill("1400");
+  await page.getByRole("button", { name: "Reset Preview" }).dispatchEvent("click");
+  await expect(width).toHaveValue("800");
+  await expect(wave).toHaveAttribute("viewBox", "0 0 800 800");
+  await expect(play).toBeVisible();
+  expect(await page.evaluate(() => window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(true);
   await page.getByRole("button", { name: "Use Smile", exact: true }).click();
   const drawing = page.getByRole("img", { name: "Smile animation preview" }).locator("path");
   await expect(drawing).toHaveAttribute("d", /M.*M.*M.*M/);
@@ -157,7 +165,7 @@ test("the Lottie SVG player reveals separate strokes in order", async ({ page })
   expect(held).toEqual(complete);
 });
 
-test("round-trips a widened wave, protects an edit, and rejects invalid SVG", async ({ page }, info) => {
+test("round-trips a widened wave, protects imported edits, and rejects invalid SVG", async ({ page }, info) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
   await setNumber(page, "Width (px)", "1600");
@@ -169,15 +177,19 @@ test("round-trips a widened wave, protects an edit, and rejects invalid SVG", as
   await expect(image.locator("path")).toHaveCount(0);
   await slider.press("ArrowRight");
   await expect(image.locator("path")).toHaveCount(1);
-  await page.getByRole("button", { name: "Use Circle" }).click();
-  await expect(page.getByRole("dialog", { name: "Replace this project?" })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "Use Circle" })).toBeFocused();
   const project = await save(page, "Download Project");
   expect(project.name).toBe("wave.acm-motion.json");
   await page.getByRole("button", { name: "Use Circle" }).click();
   await expect(page.getByRole("img", { name: "Circle animation preview" })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
+  await expect(image).toHaveAttribute("viewBox", "0 0 1600 800");
+  await setNumber(page, "Width (px)", "1400");
+  await page.getByRole("button", { name: "Use Circle" }).click();
+  await expect(page.getByRole("dialog", { name: "Replace this project?" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Use Circle" })).toBeFocused();
+  await expect(image).toHaveAttribute("viewBox", "0 0 1400 800");
+  await page.getByRole("button", { name: "Reset Preview" }).click();
   await expect(image).toHaveAttribute("viewBox", "0 0 1600 800");
   await page.locator('input[type="file"]').setInputFiles({ name: "invalid.svg", mimeType: "image/svg+xml", buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><script/><path d="M1 1 L19 19"/></svg>') });
   await expect(page.getByRole("alert")).toContainText("one untransformed path");

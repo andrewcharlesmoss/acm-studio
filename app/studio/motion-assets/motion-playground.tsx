@@ -25,10 +25,25 @@ const wave = motionPreset("wave");
 const subscribeToHydration = () => () => {};
 const projectKey = (asset: MotionAsset) => JSON.stringify(motionProject(asset));
 
-function hasPendingFieldEdit() {
+type MotionDraft = {
+  asset: MotionAsset;
+  original: MotionAsset;
+  baseline: string;
+  preset?: string;
+};
+
+function makeDraft(asset: MotionAsset, { preset, unsaved = false }: { preset?: string; unsaved?: boolean } = {}): MotionDraft {
+  return { asset, original: asset, baseline: unsaved ? "" : projectKey(asset), preset };
+}
+
+function focusedMotionField() {
   const field = document.activeElement;
-  return field instanceof HTMLInputElement && field.closest(".motion-field")
-    && field.value !== field.dataset.committedValue;
+  return field instanceof HTMLInputElement && field.closest(".motion-field") ? field : null;
+}
+
+function hasPendingFieldEdit() {
+  const field = focusedMotionField();
+  return field && field.value !== field.dataset.committedValue;
 }
 
 function download(blob: Blob, name: string) {
@@ -71,13 +86,16 @@ function NumberSetting({ label, value, min, max, step = 1, live = false, onCommi
 export function MotionPlayground() {
   const active = useContext(StudioUiActiveSectionContext) === "motion-assets";
   const ready = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const [asset, setAsset] = useState(wave);
+  const [{ draft, parked }, setWorkspace] = useState(() => ({
+    draft: makeDraft(wave, { preset: wave.name }),
+    parked: new Map<string, MotionDraft>(),
+  }));
+  const { asset } = draft;
   const [search, setSearch] = useState("");
-  const [baseline, setBaseline] = useState(() => projectKey(wave));
   const [autoplay, setAutoplay] = useState(true);
   const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
   const [position, setPosition] = useState<number | null>(null);
-  const [replacement, setReplacement] = useState<{ asset: MotionAsset; unsaved: boolean; play: boolean }>();
+  const [replacement, setReplacement] = useState<{ draft: MotionDraft; play: boolean }>();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [movSupport, setMovSupport] = useState<{ available: boolean; error?: string }>();
@@ -85,11 +103,12 @@ export function MotionPlayground() {
   const fileInput = useRef<HTMLInputElement>(null);
   const exportRequest = useRef<AbortController | null>(null);
   const inputSequence = useRef(0);
-  const currentDirty = useRef(false);
+  const currentFileDirty = useRef(false);
   const model = useMemo(() => motionGeometry(asset), [asset]);
   const frameCount = useRef(model.frameCount);
   const signature = useMemo(() => projectKey(asset), [asset]);
-  const dirty = signature !== baseline;
+  const dirty = signature !== draft.baseline;
+  const parkedDirty = useMemo(() => [...parked.values()].some(item => projectKey(item.asset) !== item.baseline), [parked]);
   const frame = Math.min(position ?? model.frameCount, model.frameCount);
   const playbackLabel = playback ? "Pause" : "Play";
   const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "sketch";
@@ -112,18 +131,18 @@ export function MotionPlayground() {
     return () => controller.abort();
   }, []);
 
-  useLayoutEffect(() => { currentDirty.current = dirty; }, [dirty]);
+  useLayoutEffect(() => { currentFileDirty.current = !draft.preset && dirty; }, [draft.preset, dirty]);
   useLayoutEffect(() => { frameCount.current = model.frameCount; }, [model.frameCount]);
 
   useEffect(() => {
     const preventLoss = (event: BeforeUnloadEvent) => {
-      if (!dirty && !hasPendingFieldEdit()) return;
+      if (!dirty && !parkedDirty && !hasPendingFieldEdit()) return;
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", preventLoss);
     return () => window.removeEventListener("beforeunload", preventLoss);
-  }, [dirty]);
+  }, [dirty, parkedDirty]);
 
   useEffect(() => () => exportRequest.current?.abort(), []);
 
@@ -143,27 +162,52 @@ export function MotionPlayground() {
     return () => cancelAnimationFrame(request);
   }, [playback]);
 
-  function applyReplacement(next: MotionAsset, unsaved: boolean, play: boolean) {
+  function applyReplacement(next: MotionDraft, play: boolean) {
+    focusedMotionField()?.blur();
     inputSequence.current++;
     setPlayback(play ? { startFrame: 0 } : null);
     setPosition(play ? 0 : null);
-    setAsset(next);
-    setBaseline(unsaved ? "" : projectKey(next));
+    setWorkspace(current => {
+      const nextParked = new Map(current.parked);
+      if (current.draft.preset) nextParked.set(current.draft.preset, current.draft);
+      const restored = next.preset ? nextParked.get(next.preset) ?? next : next;
+      if (next.preset) nextParked.delete(next.preset);
+      return { draft: restored, parked: nextParked };
+    });
     setReplacement(undefined);
     setError("");
     setMessage("");
     document.getElementById("motion-preview")?.scrollIntoView({ block: "start", behavior: "instant" });
   }
 
-  function requestReplacement(next: MotionAsset, { unsaved = false, play = false } = {}) {
-    if (currentDirty.current || hasPendingFieldEdit()) setReplacement({ asset: next, unsaved, play });
-    else applyReplacement(next, unsaved, play);
+  function requestReplacement(next: MotionDraft, play = false) {
+    if (!draft.preset && (currentFileDirty.current || hasPendingFieldEdit())) {
+      inputSequence.current++;
+      setReplacement({ draft: next, play });
+    } else applyReplacement(next, play);
+  }
+
+  function resetPreview() {
+    focusedMotionField()?.blur();
+    inputSequence.current++;
+    setWorkspace(current => {
+      const { draft } = current;
+      const baseline = draft.preset ? projectKey(draft.original) : draft.baseline;
+      return { ...current, draft: { ...draft, asset: draft.original, baseline } };
+    });
+    setPlayback(null);
+    setPosition(null);
+    setMessage("");
+    setError("");
   }
 
   function changeAsset(changes: Partial<MotionAsset>) {
     setMessage("");
     setError("");
-    setAsset(current => ({ ...current, ...changes }));
+    setWorkspace(current => ({
+      ...current,
+      draft: { ...current.draft, asset: { ...current.draft.asset, ...changes } },
+    }));
   }
 
   function changeTiming(drawFrames: number, holdFrames: number) {
@@ -182,7 +226,8 @@ export function MotionPlayground() {
       const source = await file.text();
       if (inputSequence.current !== sequence) return;
       const svg = /\.svg$/i.test(file.name);
-      requestReplacement(svg ? importMotionSvg(source, file.name.replace(/\.svg$/i, "").slice(0, 100)) : readMotionProject(JSON.parse(source)), { unsaved: svg });
+      const imported = svg ? importMotionSvg(source, file.name.replace(/\.svg$/i, "").slice(0, 100)) : readMotionProject(JSON.parse(source));
+      requestReplacement(makeDraft(imported, { unsaved: svg }));
     } catch (failure) {
       if (inputSequence.current !== sequence) return;
       setMessage("");
@@ -195,7 +240,9 @@ export function MotionPlayground() {
       : JSON.stringify(format === "project" ? motionProject(asset) : motionLottie(asset), null, 2) + "\n";
     const extension = { project: "acm-motion.json", svg: "svg", lottie: "lottie.json" };
     download(new Blob([source], { type: format === "svg" ? "image/svg+xml" : "application/json" }), `${stem}.${extension[format]}`);
-    if (format === "project") setBaseline(signature);
+    if (format === "project") {
+      setWorkspace(current => ({ ...current, draft: { ...current.draft, baseline: signature } }));
+    }
     setError("");
     setMessage({ project: "Editable project download started.", svg: "SVG download started.", lottie: "Lottie download started." }[format]);
   }
@@ -239,7 +286,7 @@ export function MotionPlayground() {
         </div>
       </div>
       <div className="motion-catalogue-grid">
-        {motionCatalogue.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase())).map(item => <button key={item.name} type="button" className="motion-catalogue-card" aria-label={`Use ${item.name}`} aria-pressed={asset.path === item.path && asset.name === item.name} onClick={() => requestReplacement(item, { play: autoplay })}>
+        {motionCatalogue.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase())).map(item => <button key={item.name} type="button" className="motion-catalogue-card" aria-label={`Use ${item.name}`} aria-pressed={draft.preset === item.name} onClick={() => requestReplacement(makeDraft(item, { preset: item.name }), autoplay)}>
           <svg viewBox="0 0 420 420" aria-hidden="true"><path d={item.path} fill="none" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <strong>{item.name}</strong>
         </button>)}
@@ -251,6 +298,9 @@ export function MotionPlayground() {
         <div className="motion-toolbar">
           <h2>Preview</h2>
           <div className="motion-actions">
+            <button type="button" className="button-secondary motion-reset-button" onClick={resetPreview}>
+              <AcmIcon name="action.reset" scale="Regular-S" size={18} />Reset Preview
+            </button>
             <button type="button" className="button-secondary" onClick={() => fileInput.current?.click()}>Open File</button>
             <button type="button" className="button-primary" onClick={() => downloadSource("project")}>Download Project</button>
             <input hidden ref={fileInput} type="file" accept=".svg,.json" onChange={openFile} />
@@ -324,7 +374,7 @@ export function MotionPlayground() {
       <p>Download the editable project first if you want to keep your changes.</p>
       <StudioDialogActions>
         <button type="button" className="button-secondary" onClick={() => setReplacement(undefined)}>Keep Editing</button>
-        <button type="button" className="button-primary" onClick={() => applyReplacement(replacement.asset, replacement.unsaved, replacement.play)}>Replace Project</button>
+        <button type="button" className="button-primary" onClick={() => applyReplacement(replacement.draft, replacement.play)}>Replace Project</button>
       </StudioDialogActions>
     </StudioDialog> : null}
   </>;
