@@ -96,7 +96,7 @@ test("autoplay is on by default, starts the chosen sketch after confirmation, an
   await expect(slider).toHaveValue("90");
 });
 
-test("committing draw or hold time updates the preview without starting playback", async ({ page }) => {
+test("editing draw or hold time updates the preview while the field is focused and playback is paused", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
   await expect(page.getByRole("checkbox", { name: "Autoplay on selection" })).toBeChecked();
@@ -106,13 +106,19 @@ test("committing draw or hold time updates the preview without starting playback
   await slider.press("Home");
   await slider.press("ArrowRight");
   const originalPath = await path.getAttribute("d");
-  await setNumber(page, "Draw time (s)", "2.7");
+  const draw = page.getByRole("spinbutton", { name: "Draw time (s)" });
+  await draw.fill("2.7");
+  await expect(draw).toBeFocused();
   await expect(play).toBeVisible();
   await expect(slider).toHaveAttribute("max", "141");
   await expect(slider).toHaveValue("1");
   await expect(path).not.toHaveAttribute("d", originalPath!);
   await slider.press("End");
-  await setNumber(page, "Hold time (s)", "0.1");
+  const hold = page.getByRole("spinbutton", { name: "Hold time (s)" });
+  await hold.fill("0.2");
+  await expect(slider).toHaveAttribute("max", "87");
+  await hold.press("ArrowDown");
+  await expect(hold).toBeFocused();
   await expect(play).toBeVisible();
   await expect(slider).toHaveAttribute("max", "84");
   await expect(slider).toHaveValue("84");

@@ -45,12 +45,18 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="motion-field"><span>{label}</span>{children}</label>;
 }
 
-function NumberSetting({ label, value, min, max, step = 1, onCommit }: {
-  label: string; value: number; min: number; max: number; step?: number; onCommit: (value: number) => void;
+function NumberSetting({ label, value, min, max, step = 1, live = false, onCommit }: {
+  label: string; value: number; min: number; max: number; step?: number; live?: boolean; onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   return <Field label={label}><NumberInput value={draft ?? value} data-committed-value={value} min={min} max={max} step={step}
-    onChange={event => setDraft(event.target.value)}
+    onChange={event => {
+      const input = event.currentTarget;
+      setDraft(input.value);
+      if (live && input.validity.valid && Number.isFinite(input.valueAsNumber)) {
+        onCommit(input.valueAsNumber);
+      }
+    }}
     onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }}
     onBlur={event => {
       const entered = event.currentTarget.valueAsNumber;
@@ -292,9 +298,9 @@ export function MotionPlayground() {
             <NumberSetting label="Thickness (px)" value={asset.thickness} min={1} max={64} onCommit={thickness => changeAsset({ thickness })} />
           </div>
           <div className="motion-setting-group motion-field-grid" role="group" aria-label="Timing">
-            <NumberSetting label="Draw time (s)" value={asset.drawFrames / motionFps} min={0.1} max={(300 - asset.holdFrames) / motionFps} step={0.1}
+            <NumberSetting label="Draw time (s)" value={asset.drawFrames / motionFps} min={0.1} max={(300 - asset.holdFrames) / motionFps} step={0.1} live
               onCommit={value => changeTiming(Math.round(value * motionFps), asset.holdFrames)} />
-            <NumberSetting label="Hold time (s)" value={asset.holdFrames / motionFps} min={0.1} max={(300 - asset.drawFrames) / motionFps} step={0.1}
+            <NumberSetting label="Hold time (s)" value={asset.holdFrames / motionFps} min={0.1} max={(300 - asset.drawFrames) / motionFps} step={0.1} live
               onCommit={value => changeTiming(asset.drawFrames, Math.round(value * motionFps))} />
           </div>
           <div className="motion-setting-group">
