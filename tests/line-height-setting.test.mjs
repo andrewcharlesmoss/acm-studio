@@ -37,7 +37,7 @@ function stepperHarness(initialValue = "1.4", defaultValue = 1.5) {
  const slots = []; let index = 0; let dirty = false;
  const useState = initial => { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], next => { const value = typeof next === "function" ? next(slots[id]) : next; if (value !== slots[id]) { slots[id] = value; dirty = true; } }]; };
  const jsx = (type, props) => ({ type, props });
- const require = name => name === "react" ? { useState } : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("native-fields") ? { TextInput: "input", NumberInput: "input" } : name.endsWith("button") ? { StudioButton: "button" } : name === "@acm/icons/react" ? { AcmIcon: "svg" } : name === "./number-stepper" ? { NumberStepper: renderStepper } : {};
+ const require = name => name === "react" ? { useState, useRef: current => ({ current }), useLayoutEffect() {} } : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("native-fields") ? { TextInput: "input", NumberInput: "input" } : name.endsWith("button") ? { StudioButton: "button" } : name === "@acm/icons/react" ? { AcmIcon: "svg" } : name === "./number-stepper" ? { NumberStepper: renderStepper } : {};
  const numberStepper = createHostModuleEvaluator(["require", "exports"], `${stepperSource}\nreturn exports.NumberStepper;`)(require, {});
  const renderStepper = props => numberStepper(props);
  const component = createHostModuleEvaluator(["require", "exports"], `${source}\nreturn exports.LineHeightSetting;`)(require, {});
@@ -70,7 +70,7 @@ test("the production stepper preserves incomplete decimal drafts and resynchroni
  fixture.input().props.onChange({ target: { value: "" } }); fixture.input().props.onBlur();
  assert.equal(fixture.props.value, undefined);
  const increase = nodes(fixture.render()).find(node => node.props?.["aria-label"] === "Increase Line Height");
- increase.props.onClick(); assert.equal(fixture.input().props.value, "1.6");
+ increase.props.onClick({ detail: 0 }); assert.equal(fixture.input().props.value, "1.6");
 });
 
 test("an inherited line-height stays un-authored on focus and blur, while the stepper starts from inheritance", () => {
@@ -80,7 +80,7 @@ test("an inherited line-height stays un-authored on focus and blur, while the st
  fixture.input().props.onBlur();
  assert.deepEqual(fixture.changes, [], "blur alone must not create an authored override");
  const increase = nodes(fixture.render()).find(node => node.props?.["aria-label"] === "Increase Line Height");
- increase.props.onClick();
+ increase.props.onClick({ detail: 0 });
  assert.deepEqual(fixture.changes, ["1.5"]);
  assert.equal(fixture.input().props.value, "1.5");
 });

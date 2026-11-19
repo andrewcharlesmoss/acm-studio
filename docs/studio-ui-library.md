@@ -1385,7 +1385,7 @@ CSS lengths, plus an opt-in `stepper` variant for bounded unitless values. Its
 number field and plus/minus actions share configurable minimum, maximum, and
 step values; defaults are 0.1–10 in increments of 0.1. Typed drafts, including
 incomplete decimals, remain local until blur or Enter, when validation and
-clamping run; step buttons apply immediately. Blank values stay unset and
+clamping run; step buttons apply immediately and repeat while held. Blank values stay unset and
 external history changes resynchronise the draft without remounting.
 The disabled specimen covers all three controls. The Site Editor uses this
 variant; existing paragraph and list inspectors retain the legacy text field.

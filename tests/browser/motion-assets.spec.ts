@@ -150,6 +150,48 @@ test("Space toggles playback from the preview and preserves native control short
   await expect(play).toBeVisible();
 });
 
+test("holding a number stepper repeats until release or the field limit", async ({ page }) => {
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const field = page.getByRole("spinbutton", { name: "Width (px)" });
+  const increase = page.getByRole("button", { name: "Increase Width (px)" });
+  const decrease = page.getByRole("button", { name: "Decrease Width (px)" });
+  await page.clock.install();
+  await increase.hover();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now()) + 100);
+  await page.mouse.down();
+  for (const [elapsed, value] of [[400, "801"], [90, "802"], [90, "803"]] as const) {
+    await page.clock.runFor(elapsed);
+    await expect(field).toHaveValue(value);
+  }
+  await page.mouse.up();
+  await page.clock.runFor(700);
+  await expect(field).toHaveValue("803");
+  await increase.click();
+  await expect(field).toHaveValue("804");
+  await expect(increase).toBeFocused();
+  await decrease.hover();
+  await page.mouse.down();
+  for (const [elapsed, value] of [[400, "803"], [90, "802"], [90, "801"]] as const) {
+    await page.clock.runFor(elapsed);
+    await expect(field).toHaveValue(value);
+  }
+  await page.mouse.up();
+  await expect(field).toHaveValue("801");
+
+  await setNumber(page, "Width (px)", "130");
+  await decrease.hover();
+  await page.mouse.down();
+  await page.clock.runFor(400);
+  await expect(field).toHaveValue("129");
+  await page.clock.runFor(90);
+  await expect(field).toHaveValue("128");
+  await page.clock.runFor(400);
+  await expect(field).toHaveValue("128");
+  await expect(decrease).toBeDisabled();
+  await page.mouse.up();
+});
+
 test("large number stepper buttons update the preview immediately and respect field limits", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
@@ -458,6 +500,23 @@ for (const view of ["desktop", "tablet", "mobile"] as const) {
     if (view === "mobile") {
       const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
       test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent, reducedMotion: "reduce" });
+
+      test("touch-holding a number stepper repeats and stops on release", async ({ page }) => {
+        await page.goto(route);
+        await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+        const decrease = page.getByRole("button", { name: "Decrease Width (px)" });
+        await decrease.scrollIntoViewIfNeeded();
+        const box = (await decrease.boundingBox())!;
+        const touch = await page.context().newCDPSession(page);
+        await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+        const field = page.getByRole("spinbutton", { name: "Width (px)" });
+        await expect.poll(async () => Number(await field.inputValue())).toBeLessThanOrEqual(798);
+        await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        const released = await field.inputValue();
+        await page.clock.install();
+        await page.clock.runFor(700);
+        await expect(field).toHaveValue(released);
+      });
 
       test("a touch drag resizes proportionally and the size fields allow independent dimensions", async ({ page }) => {
         await page.goto(route);

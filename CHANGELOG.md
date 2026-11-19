@@ -52,6 +52,7 @@
 ### Changed
 
 - Use shared, larger plus and minus buttons for number fields in Motion Assets.
+- Hold a shared number stepper button to repeat the adjustment.
 
 - Share drag and arrow-key movement across Design Canvas, Motion Assets, and the object manipulation playground, with optional preview edge fitting.
 
