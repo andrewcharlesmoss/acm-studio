@@ -2,7 +2,6 @@ export const studioNavigationToolItems = [
   { id: "files", label: "Files" },
   { id: "templates", label: "Templates" },
   { id: "designs", label: "Design Canvas" },
-  { id: "motion-assets", label: "Motion Assets" },
   { id: "ui-library", label: "Studio UI Library" },
   { id: "content", label: "Content Editor" },
   { id: "site-editor", label: "Site Editor" },
@@ -19,7 +18,8 @@ export const studioNavigationVisibilityItems = [...studioNavigationToolItems, ..
 export const studioNavigationVisibilityKey = "acm-studio-navigation-visibility-v1";
 export const studioNavigationVisibilityChangedEvent = "acm-studio-navigation-visibility-saved";
 
-const ids = new Set(studioNavigationVisibilityItems.map(item => item.id));
+// Retain the retired ID when reading preferences saved by earlier versions.
+const ids = new Set([...studioNavigationVisibilityItems.map(item => item.id), "motion-assets"]);
 
 export function validStudioNavigationHiddenTools(value) {
   try {

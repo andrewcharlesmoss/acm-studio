@@ -8,6 +8,7 @@ import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane } from "../panes/pane-components";
 import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
 import { importMotionSvg } from "./import-motion-svg";
+import { motionCatalogue } from "./motion-catalogue";
 import {
   motionDimensionLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionPreset, motionProject,
   motionSvg, readMotionProject, type MotionAsset,
@@ -63,6 +64,7 @@ export function MotionPlayground() {
   const active = useContext(StudioUiActiveSectionContext) === "motion-assets";
   const ready = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [asset, setAsset] = useState(wave);
+  const [search, setSearch] = useState("");
   const [baseline, setBaseline] = useState(() => projectKey(wave));
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState<number | null>(null);
@@ -140,6 +142,7 @@ export function MotionPlayground() {
     setReplacement(undefined);
     setError("");
     setMessage("");
+    document.getElementById("motion-preview")?.scrollIntoView({ block: "start", behavior: "instant" });
   }
 
   function requestReplacement(next: MotionAsset, unsaved = false) {
@@ -211,10 +214,23 @@ export function MotionPlayground() {
   }
 
   return <>
+    <section className="motion-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
+      <div className="motion-catalogue-heading">
+        <div><h1 id="motion-catalogue-title">Motion Assets</h1><p>Choose a sketch to preview, adjust and export.</p></div>
+        <label><span>Search motion assets</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches…" /></label>
+      </div>
+      <div className="motion-catalogue-grid">
+        {motionCatalogue.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase())).map(item => <button key={item.name} type="button" className="motion-catalogue-card" aria-label={`Use ${item.name}`} aria-pressed={asset.path === item.path && asset.name === item.name} onClick={() => requestReplacement(item)}>
+          <svg viewBox="0 0 420 420" aria-hidden="true"><path d={item.path} fill="none" stroke="currentColor" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <strong>{item.name}</strong>
+        </button>)}
+      </div>
+      {!motionCatalogue.some(item => item.name.toLowerCase().includes(search.trim().toLowerCase())) ? <p>No matching sketches.</p> : null}
+    </section>
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
-      <section className="motion-preview" aria-label="Motion preview">
+      <section id="motion-preview" className="motion-preview" aria-label="Motion preview">
         <div className="motion-toolbar">
-          <h1>Motion Assets</h1>
+          <h2>Preview</h2>
           <div className="motion-actions">
             <button type="button" className="button-secondary" onClick={() => fileInput.current?.click()}>Open File</button>
             <button type="button" className="button-primary" onClick={() => downloadSource("project")}>Download Project</button>
@@ -247,10 +263,6 @@ export function MotionPlayground() {
         trackClassName="motion-inspector" header={<h2>Settings</h2>}>
         <div className="motion-settings">
           <div className="motion-setting-group" role="group" aria-label="Asset">
-            <div className="motion-actions" role="group" aria-label="Starter shapes">
-              <button type="button" className="button-secondary" onClick={() => requestReplacement(motionPreset("wave"))}>Use Wave</button>
-              <button type="button" className="button-secondary" onClick={() => requestReplacement(motionPreset("circle"))}>Use Circle</button>
-            </div>
             <Field label="Name"><TextInput maxLength={100} defaultValue={asset.name} data-committed-value={asset.name} key={asset.path + asset.name}
               onBlur={event => {
                 const name = event.currentTarget.value.trim();

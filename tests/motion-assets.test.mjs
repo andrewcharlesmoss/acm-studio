@@ -2,7 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { orderedSiteIds } from "../app/studio/site-order-repository.mjs";
 import { dashboardToolIds } from "../app/studio/dashboard-order-contract.mjs";
+import { readStudioNavigationHiddenTools, studioNavigationVisibilityKey } from "../app/studio/studio-navigation-visibility-contract.mjs";
 import { motionPreset, motionGeometry, motionLottie, motionProject, motionSvg, readMotionProject } from "../app/studio/motion-assets/motion-asset.ts";
+import { motionCatalogue } from "../app/studio/motion-assets/motion-catalogue.ts";
+
+test("each catalogue sketch supports editable and portable exports", () => {
+  assert.ok(motionCatalogue.length >= 12);
+  for (const asset of motionCatalogue) {
+    const restored = readMotionProject(motionProject(asset));
+    const geometry = motionGeometry(restored);
+    assert.ok(geometry.pathAt(restored.drawFrames), asset.name);
+    assert.ok(motionLottie(restored).layers.length, asset.name);
+    assert.match(motionSvg(restored, geometry.pathAt(restored.drawFrames)), /<svg/);
+  }
+});
 
 test("wave and oval projects round-trip the editable geometry and settings", () => {
   for (const preset of ["wave", "circle"]) {
@@ -43,6 +56,12 @@ test("unsafe or unusable projects are rejected before render", () => {
 test("existing dashboard order acquires Motion Assets without reordering saved cards", () => {
   const oldOrder = dashboardToolIds.filter(id => id !== "motion-assets").reverse();
   assert.deepEqual(orderedSiteIds(dashboardToolIds, oldOrder, order => order), [...oldOrder, "motion-assets"]);
+});
+
+test("previous navigation visibility preferences retain hidden tools", () => {
+  const saved = JSON.stringify(["motion-assets", "files", "site:test"]);
+  const storage = { getItem: key => key === studioNavigationVisibilityKey ? saved : null };
+  assert.deepEqual(readStudioNavigationHiddenTools(storage), ["motion-assets", "files", "site:test"]);
 });
 
 

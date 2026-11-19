@@ -1,6 +1,6 @@
 # Motion Assets
 
-Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. The Studio dashboard and Tools navigation also link to this tab. Choose **Use Wave** or **Use Circle**, then set the canvas dimensions, stroke colour, thickness, draw time, and hold time. Press Enter or leave a number field to apply it. Use **Play** or the position slider to check the reveal against the transparent canvas. The draft stays open while you browse other Library tabs.
+Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Search the sketch collection and choose an asset, then set the canvas dimensions, stroke colour, thickness, draw time, and hold time. Press Enter or leave a number field to apply it. Use **Play** or the position slider to check the reveal against the transparent canvas. The draft stays open while you browse other Library tabs.
 
 **Download Project** saves an editable `.acm-motion.json` file with the original SVG path, its viewBox, and the animation settings. **Open File** reopens it or imports a simple SVG. Studio keeps the current project in memory. A project file is the way to keep and move your work between sessions or computers.
 
