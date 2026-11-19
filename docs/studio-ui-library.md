@@ -28,7 +28,7 @@ UI Library uses `layout.columns`. Their surrounding surfaces may differ.
 ## Purpose and organisation
 
 Open `/studio/ui` from the Studio dashboard or its content and template tools.
-The library has nine sections:
+The Catalogue indexes the following sections:
 
 - **Navigation** — the reusable top-level Application Section Navigation
   component, with an isolated interactive example.
@@ -57,6 +57,9 @@ The library has nine sections:
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
+- **Motion Assets** — the [sketch animation playground](motion-assets.md) at
+  `/studio/ui/motion-assets`, with editable projects, SVG, Lottie JSON, and local
+  transparent MOV export. Switching Library tabs keeps the current draft open.
 - **Styles** — website values parsed from the canonical Markdown guide, editable
   in a local preview editor with a live specimen and source view. Save Website
   Styles writes only the website token rows in the guide during local development.
@@ -71,7 +74,7 @@ Navigation is `/studio/ui/navigation`, the Ribbon section is
 `/studio/ui/controls`, Icons is `/studio/ui/icons`, the Block Library icon
 collection is `/studio/ui/icons?collection=blocks`, and Styles is
 `/studio/ui/styles`; Interface Styles is `/studio/ui/interface-styles`.
-`/studio/ribbon` and `/studio/panes` remain
+`/studio/ribbon`, `/studio/panes` and `/studio/motion-assets` remain
 compatible redirects. Studio navigation links to the combined library.
 
 The top section bar is an in-page tab set. Selecting a section updates the URL

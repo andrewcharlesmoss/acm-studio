@@ -30,7 +30,7 @@ const blockLibraryCatalogue = blockLibraryEntries;
 const toolIconConsumers = [
   { icon: studioToolIcons.templates, label: "Templates tool", href: "/studio?mode=templates" },
   { icon: studioToolIcons.designs, label: "Design Canvas tool", href: "/studio/designs" },
-  { icon: studioToolIcons.motionAssets, label: "Motion Assets tool", href: "/studio/motion-assets" },
+  { icon: studioToolIcons.motionAssets, label: "Motion Assets tool", href: "/studio/ui/motion-assets" },
   { icon: studioToolIcons.uiLibrary, label: "Studio UI Library tool", href: "/studio/ui" },
   { icon: studioToolIcons.content, label: "Content Studio tool", href: "/studio" },
   { icon: studioToolIcons.files, label: "Files tool in editor navigation", href: "/studio" },

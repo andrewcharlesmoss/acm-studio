@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
 import { ColourPicker } from "../controls/colour-picker";
 import { NumberInput, TextInput } from "../controls/native-fields";
 import { RangeControl } from "../controls/range-control";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane } from "../panes/pane-components";
-import { StudioAppHeader } from "../studio-app-header";
+import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
 import { importMotionSvg } from "./import-motion-svg";
 import {
   motionDimensionLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionPreset, motionProject,
@@ -60,6 +60,7 @@ function NumberSetting({ label, value, min, max, step = 1, onCommit }: {
 }
 
 export function MotionPlayground() {
+  const active = useContext(StudioUiActiveSectionContext) === "motion-assets";
   const ready = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [asset, setAsset] = useState(wave);
   const [baseline, setBaseline] = useState(() => projectKey(wave));
@@ -209,14 +210,11 @@ export function MotionPlayground() {
     }
   }
 
-  return <div className="studio-shell motion-shell">
-    <StudioAppHeader section="Motion Assets">
-      <a className="studio-app-back" href="/studio">Back to Studio</a>
-    </StudioAppHeader>
-    <main className="motion-workspace" data-motion-ready={ready} inert={!ready}>
+  return <>
+    <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
       <section className="motion-preview" aria-label="Motion preview">
         <div className="motion-toolbar">
-          <h1>Preview</h1>
+          <h1>Motion Assets</h1>
           <div className="motion-actions">
             <button type="button" className="button-secondary" onClick={() => fileInput.current?.click()}>Open File</button>
             <button type="button" className="button-primary" onClick={() => downloadSource("project")}>Download Project</button>
@@ -265,8 +263,8 @@ export function MotionPlayground() {
             </div>
           </div>
           <div className="motion-setting-group" role="group" aria-label="Stroke">
-            <div className="motion-colour"><ColourPicker label="Stroke colour" value={asset.colour}
-              onChange={colour => { if (colour && /^#[a-f0-9]{6}$/i.test(colour)) changeAsset({ colour }); }} enableAlpha={false} allowClear={false} /></div>
+            {active ? <div className="motion-colour"><ColourPicker label="Stroke colour" value={asset.colour}
+              onChange={colour => { if (colour && /^#[a-f0-9]{6}$/i.test(colour)) changeAsset({ colour }); }} enableAlpha={false} allowClear={false} /></div> : null}
             <NumberSetting label="Thickness (px)" value={asset.thickness} min={1} max={64} onCommit={thickness => changeAsset({ thickness })} />
           </div>
           <div className="motion-setting-group motion-field-grid" role="group" aria-label="Timing">
@@ -289,13 +287,13 @@ export function MotionPlayground() {
           </div>
         </div>
       </Pane>
-    </main>
-    {replacement ? <StudioDialog title="Replace this project?" onClose={() => setReplacement(undefined)}>
+    </div>
+    {active && replacement ? <StudioDialog title="Replace this project?" onClose={() => setReplacement(undefined)}>
       <p>Download the editable project first if you want to keep your changes.</p>
       <StudioDialogActions>
         <button type="button" className="button-secondary" onClick={() => setReplacement(undefined)}>Keep Editing</button>
         <button type="button" className="button-primary" onClick={() => applyReplacement(replacement.asset, replacement.unsaved)}>Replace Project</button>
       </StudioDialogActions>
     </StudioDialog> : null}
-  </div>;
+  </>;
 }

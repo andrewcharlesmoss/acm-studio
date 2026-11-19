@@ -23,8 +23,9 @@ import { BlockEditorPlayground, blockEditorPlayground } from "./workspace/block-
 import { ApplicationHeaderSpecimen, applicationHeaderExample } from "./workspace/application-header-example";
 import { ControlSpecimen } from "./controls/control-specimen";
 import { watchAnchoredMenu } from "../overlays/anchored-menu-position.mjs";
+import { studioToolIcons } from "../studio-tool-icon";
 
-const sections = ["Workspace", "Navigation", "Ribbon", "Panes", "Panels", "Blocks", "Controls", "Icons", "Styles", "Interface Styles"] as const;
+const sections = ["Workspace", "Navigation", "Ribbon", "Panes", "Panels", "Blocks", "Controls", "Icons", "Motion Assets", "Styles", "Interface Styles"] as const;
 type Section = typeof sections[number];
 type Preview = { kind: "icon" | "control" | "block" | "pane" | "ribbon" | "panel" | "navigation" | "workspace" | "playground" | "style"; key?: string };
 type Entry = { id: string; name: string; section: Section; purpose: string; owner: string; consumers: string; dependencies: string; href: string; preview: Preview };
@@ -61,6 +62,7 @@ const entries: Entry[] = [
   ...blockEntries,
   ...controlEntries,
   ...iconEntries,
+  { id: "motion-assets:playground", name: "Motion Assets", section: "Motion Assets", purpose: "Create draw-on sketch animations and export editable projects, SVG, Lottie JSON, or transparent MOV.", owner: "ACM Studio", consumers: "Video editors and websites", dependencies: "FFmpeg for local MOV export.", href: "/studio/ui/motion-assets", preview: { kind: "icon", key: studioToolIcons.motionAssets } },
   ...["Colour", "Typography", "Buttons", "Layout"].map((name) => ({ id: `style:${name.toLowerCase()}`, name: `${name} styles`, section: "Styles" as const, purpose: `Shared website ${name.toLowerCase()} tokens and rendered examples from the executable universal style preset.`, owner: "@acm/styles", consumers: "Website previews and registered ACM consumers", dependencies: "Canonical website preset schema and semantic CSS variables.", href: "/studio/ui/styles", preview: { kind: "style" as const, key: name } })),
   ...["Colours", "Typography", "Fields", "Buttons", "Interactions"].map(name => ({ id: `interface-style:${name.toLowerCase()}`, name: `Interface ${name.toLowerCase()}`, section: "Interface Styles" as const, purpose: `Shared ACM Studio interface ${name.toLowerCase()} settings and production control previews.`, owner: "ACM Studio and @acm/styles", consumers: "ACM Studio interface", dependencies: "Validated InterfaceStylePreset and shared production controls.", href: `/studio/ui/interface-styles#interface-style-${name.toLowerCase()}`, preview: { kind: "style" as const, key: `Interface ${name}` } })),
 ];

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { motionGeometry, motionPreset, motionProject } from "../../app/studio/motion-assets/motion-asset";
 
 const require = createRequire(import.meta.url);
-const route = "/studio/motion-assets";
+const route = "/studio/ui/motion-assets";
 
 async function save(page: Page, label: string) {
   const pending = page.waitForEvent("download");
@@ -18,6 +18,55 @@ async function setNumber(page: Page, label: string, value: string) {
   await field.fill(value);
   await field.press("Enter");
 }
+
+test("opens Motion Assets from Icons, preserves the draft across tabs, and redirects old links", async ({ page }) => {
+  await page.goto("/studio/ui/icons");
+  const iconsTab = page.getByRole("tab", { name: "Icons", exact: true });
+  const motionTab = page.getByRole("tab", { name: "Motion Assets" });
+  await expect(iconsTab).toHaveAttribute("aria-selected", "true");
+  await expect(async () => {
+    await iconsTab.press("ArrowRight");
+    await expect(motionTab).toBeFocused({ timeout: 250 });
+  }).toPass({ timeout: 10_000 });
+  await expect(motionTab).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(route);
+  await expect(page.getByRole("heading", { name: "Motion Assets", level: 1 })).toBeVisible();
+  await setNumber(page, "Width (px)", "1600");
+
+  await page.getByRole("button", { name: "Choose Stroke colour" }).click();
+  await expect(page.getByRole("dialog", { name: /stroke colour palette/i })).toBeVisible();
+  await page.goBack();
+  await expect(iconsTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("dialog", { name: /stroke colour palette/i })).toHaveCount(0);
+  expect(await page.evaluate(() => window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(false);
+  await page.goForward();
+  await expect(page.getByRole("img", { name: "Wave animation preview" })).toHaveAttribute("viewBox", "0 0 1600 800");
+
+  await iconsTab.click();
+  await expect(page.getByRole("heading", { name: "Motion Assets", level: 1 })).toBeHidden();
+  await page.goBack();
+  await expect(motionTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("img", { name: "Wave animation preview" })).toHaveAttribute("viewBox", "0 0 1600 800");
+  await save(page, "Download Project");
+
+  await page.goto("/studio/motion-assets");
+  await expect(page).toHaveURL(route);
+  await expect(motionTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: "Motion Assets", level: 1 })).toBeVisible();
+});
+
+test("finds Motion Assets in the Library Catalogue", async ({ page }) => {
+  await page.goto("/studio/ui");
+  const search = page.getByRole("searchbox", { name: "Search the Studio UI Library" });
+  const entry = page.getByRole("link", { name: "Motion Assets", exact: true });
+  await expect(async () => {
+    await search.fill("draw-on sketch");
+    await expect(entry).toBeVisible({ timeout: 250 });
+  }).toPass({ timeout: 10_000 });
+  await entry.click();
+  await expect(page).toHaveURL(route);
+  await expect(page.getByRole("tab", { name: "Motion Assets" })).toHaveAttribute("aria-selected", "true");
+});
 
 test("round-trips a widened wave, protects an edit, and rejects invalid SVG", async ({ page }, info) => {
   await page.goto(route);
@@ -48,8 +97,9 @@ test("round-trips a widened wave, protects an edit, and rejects invalid SVG", as
   await page.screenshot({ path: info.outputPath("wide-wave.png") });
 });
 
-for (const view of ["desktop", "mobile"] as const) {
+for (const view of ["desktop", "tablet", "mobile"] as const) {
   test.describe(view, () => {
+    if (view === "tablet") test.use({ viewport: { width: 768, height: 1024 }, hasTouch: true });
     if (view === "mobile") {
       const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
       test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent, reducedMotion: "reduce" });
@@ -62,10 +112,13 @@ for (const view of ["desktop", "mobile"] as const) {
       await setNumber(page, "Width (px)", "1200");
       await setNumber(page, "Height (px)", "480");
       await setNumber(page, "Draw time (s)", "1.5");
-      if (view === "mobile") {
-        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-        await page.screenshot({ fullPage: true, path: info.outputPath("mobile-oval.png") });
-      }
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await expect.poll(() => page.getByRole("tab", { name: "Motion Assets" }).evaluate(tab => {
+        const bounds = tab.getBoundingClientRect();
+        const strip = tab.parentElement!.getBoundingClientRect();
+        return bounds.left >= strip.left - 1 && bounds.right <= strip.right + 1;
+      })).toBe(true);
+      if (view !== "desktop") await page.screenshot({ fullPage: true, path: info.outputPath(`${view}-oval.png`) });
       const file = await save(page, "Lottie JSON");
       const svg = await save(page, "SVG");
       const animation = JSON.parse(file.data.toString());

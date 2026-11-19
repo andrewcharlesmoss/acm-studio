@@ -13,11 +13,12 @@ const sectionLoaders: Record<StudioUiSection, () => Promise<{ default: Component
   blocks: () => import("./blocks/block-specimen-catalogue").then(module => ({ default: () => <module.BlockLibraryCatalogue initialType={null} /> })),
   controls: () => import("./controls/controls-catalogue").then(module => ({ default: module.ControlsCatalogue })),
   icons: () => import("./icons-catalogue").then(module => ({ default: () => <module.IconsCatalogue /> })),
+  "motion-assets": () => import("../motion-assets/motion-playground").then(module => ({ default: module.MotionPlayground })),
   styles: () => import("./styles/styles-workspace").then(module => ({ default: module.StylesWorkspace })),
   "interface-styles": () => import("./styles/interface-style-sandbox").then(module => ({ default: module.InterfaceStyleSandbox })),
 };
 
-const sectionHrefs: Record<StudioUiSection, string> = { catalogue: "/studio/ui", workspace: "/studio/ui/workspace", navigation: "/studio/ui/navigation", ribbon: "/studio/ui/ribbon", panes: "/studio/ui/panes", panels: "/studio/ui/panels", blocks: "/studio/ui/blocks", controls: "/studio/ui/controls", icons: "/studio/ui/icons", styles: "/studio/ui/styles", "interface-styles": "/studio/ui/interface-styles" };
+const sectionHrefs: Record<StudioUiSection, string> = { catalogue: "/studio/ui", workspace: "/studio/ui/workspace", navigation: "/studio/ui/navigation", ribbon: "/studio/ui/ribbon", panes: "/studio/ui/panes", panels: "/studio/ui/panels", blocks: "/studio/ui/blocks", controls: "/studio/ui/controls", icons: "/studio/ui/icons", "motion-assets": "/studio/ui/motion-assets", styles: "/studio/ui/styles", "interface-styles": "/studio/ui/interface-styles" };
 
 const sectionComponents = Object.fromEntries(
   Object.entries(sectionLoaders).map(([section, loader]) => [section, lazy(loader)]),
@@ -58,11 +59,13 @@ function RestoreSectionScroll({ view, children }: { view?: SectionView; children
 export function StudioUiSectionHost({ section, children }: { section: StudioUiSection; children: ReactNode }) {
   const [activeSection, setActiveSection] = useState(section);
   const [controlsVisited, setControlsVisited] = useState(section === "controls");
+  const [motionVisited, setMotionVisited] = useState(section === "motion-assets");
   const [controlsView, setControlsView] = useState<SectionView | undefined>(undefined);
   const initialEntryPath = useRef(typeof window === "undefined" ? sectionHrefs[section] : `${window.location.pathname}${window.location.search}`);
   const hashes = useRef<Partial<Record<StudioUiSection, string>>>({});
   const ActiveSection = sectionComponents[activeSection];
   const ControlsSection = sectionComponents.controls;
+  const MotionSection = sectionComponents["motion-assets"];
 
   useLayoutEffect(() => {
     function restoreSectionFromRoute() {
@@ -70,6 +73,7 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
       const section = (route?.[1] ?? "catalogue") as StudioUiSection;
       if (!sectionLoaders[section]) return;
       if (section === "controls") setControlsVisited(true);
+      if (section === "motion-assets") setMotionVisited(true);
       setActiveSection(section);
     }
     window.addEventListener("popstate", restoreSectionFromRoute);
@@ -86,6 +90,7 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
       setControlsView(current => current ?? { x: 0, y: 0, hash: "" });
       setControlsVisited(true);
     }
+    if (next === "motion-assets") setMotionVisited(true);
     const hash = hashes.current[next] ?? "";
     const href = next === section ? initialEntryPath.current : sectionHrefs[next];
     window.history.pushState(window.history.state, "", `${href}${hash}`);
@@ -100,8 +105,16 @@ export function StudioUiSectionHost({ section, children }: { section: StudioUiSe
         </Suspense>
       </SectionLoadErrorBoundary>
     </Activity> : null}
+    {/* Keep the draft and its beforeunload protection mounted across library tabs. */}
+    {motionVisited ? <div hidden={activeSection !== "motion-assets"}>
+      <SectionLoadErrorBoundary section="motion-assets">
+        <Suspense fallback={<p className="ui-section-loading" role="status">Loading Motion Assets…</p>}>
+          {section === "motion-assets" ? children : <MotionSection />}
+        </Suspense>
+      </SectionLoadErrorBoundary>
+    </div> : null}
     {/* Keep a stable host boundary around the server-provided section during development refreshes. */}
-    {activeSection !== "controls" ? activeSection === section ? <div style={{ display: "contents" }}>{children}</div> : <SectionLoadErrorBoundary key={activeSection} section={activeSection}>
+    {activeSection !== "controls" && activeSection !== "motion-assets" ? activeSection === section ? <div style={{ display: "contents" }}>{children}</div> : <SectionLoadErrorBoundary key={activeSection} section={activeSection}>
       <Suspense fallback={<p className="ui-section-loading" role="status">Loading {activeSection}…</p>}><ActiveSection /></Suspense>
     </SectionLoadErrorBoundary> : null}
   </StudioUiLibrary>;

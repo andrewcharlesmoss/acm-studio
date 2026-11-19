@@ -1,6 +1,7 @@
 "use client";
 
 import { LibraryApplicationHeader } from "../application-section-headers";
+import { studioToolIcons } from "../studio-tool-icon";
 import type { ReactNode } from "react";
 import type { IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
@@ -17,9 +18,10 @@ import "./keyboard-catalogue.css";
 import "./global-catalogue.css";
 import "./studio-ui-library.css";
 
-export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "styles" | "interface-styles";
+export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "motion-assets" | "styles" | "interface-styles";
 
 export const StudioUiHeaderActionsContext = createContext<Dispatch<SetStateAction<ReactNode>> | null>(null);
+export const StudioUiActiveSectionContext = createContext<StudioUiSection | null>(null);
 
 const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
   { id: "catalogue", label: "Catalogue", icon: "action.search" },
@@ -31,6 +33,7 @@ const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
   { id: "blocks", label: "Blocks", icon: "insert.shapes" },
   { id: "controls", label: "Controls", icon: "action.adjust" },
   { id: "icons", label: "Icons", icon: "insert.shapes" },
+  { id: "motion-assets", label: "Motion Assets", icon: studioToolIcons.motionAssets },
   { id: "styles", label: "Styles", icon: "text.heading" },
   { id: "interface-styles", label: "Interface Styles", icon: "action.adjust" },
 ];
@@ -44,6 +47,13 @@ export function StudioUiLibrary({ section, activeSection = section, onSectionCha
     document.title = activeSection === section
       ? initialTitle.current
       : `${sections.find(item => item.id === activeSection)?.label ?? "Studio UI"} · Studio UI Library — Andrew Charles Moss`;
+    const tab = tabRefs.current[activeSection];
+    const strip = tab?.parentElement;
+    if (tab && strip && strip.scrollWidth > strip.clientWidth) {
+      const tabBounds = tab.getBoundingClientRect();
+      const stripBounds = strip.getBoundingClientRect();
+      strip.scrollLeft += Math.min(0, tabBounds.left - stripBounds.left) + Math.max(0, tabBounds.right - stripBounds.right);
+    }
   }, [activeSection, section]);
 
   function focusSection(id: StudioUiSection) {
@@ -67,6 +77,8 @@ export function StudioUiLibrary({ section, activeSection = section, onSectionCha
         <AcmIcon name={item.icon} size={20} />{item.label}
       </button>)}
     </div>
-    <div className="ui-library-content" role="tabpanel" id="studio-ui-section-panel" aria-labelledby={`studio-ui-tab-${activeSection}`} tabIndex={0}>{children}</div>
+    <div className="ui-library-content" role="tabpanel" id="studio-ui-section-panel" aria-labelledby={`studio-ui-tab-${activeSection}`} tabIndex={0}>
+      <StudioUiActiveSectionContext.Provider value={activeSection}>{children}</StudioUiActiveSectionContext.Provider>
+    </div>
   </main></StudioUiHeaderActionsContext.Provider>;
 }

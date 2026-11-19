@@ -1,9 +1,6 @@
-.motion-shell.studio-shell { min-height: 100dvh; display: flex; flex-direction: column; }
-
 .motion-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 312px;
-  flex: 1;
   font: var(--studio-ui-size, 13px) var(--studio-ui-font, system-ui);
   color: var(--acm-ui-color-label, #1c1c1e);
   background: var(--acm-color-workspace-background, #f8fafc);
@@ -14,6 +11,7 @@
 .motion-toolbar, .motion-transport { padding: 12px 16px; background: var(--acm-color-surface, white); }
 .motion-toolbar { justify-content: space-between; border-bottom: 1px solid var(--acm-ui-color-border, #d1d1d6); }
 .motion-toolbar h1, .motion-inspector h2, .motion-inspector h3 { font-size: 1rem; margin: 0; }
+.motion-inspector .motion-setting-group > h3 { margin-top: 0; }
 .motion-stage { flex: 1; min-height: 220px; display: grid; place-items: center; padding: clamp(12px, 3vw, 32px); }
 .motion-artboard {
   background: var(--studio-transparency-pattern) 0 0 / 24px 24px;
