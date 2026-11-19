@@ -141,74 +141,85 @@ test("editing draw or hold time updates the preview while the field is focused a
   await expect(slider).toHaveValue("84");
 });
 
-test("resize handles preserve proportions, stretch with Shift, and cancel with Escape", async ({ page }) => {
-  await page.goto(route);
-  const preview = page.getByRole("img", { name: "Wave animation preview" });
-  const corner = page.getByRole("button", { name: "Resize sketch from bottom right" });
-  const width = page.getByRole("spinbutton", { name: "Width (px)" });
-  const height = page.getByRole("spinbutton", { name: "Height (px)" });
+for (const initialSize of [300, 800]) {
+  test(`resize handles preserve proportions, stretch with Shift, and cancel with Escape at ${initialSize}px`, async ({ page }) => {
+    await page.goto(route);
+    await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+    const preview = page.getByRole("img", { name: "Wave animation preview" });
+    const corner = page.getByRole("button", { name: "Resize sketch from bottom right" });
+    const width = page.getByRole("spinbutton", { name: "Width (px)" });
+    const height = page.getByRole("spinbutton", { name: "Height (px)" });
+    await setNumber(page, "Width (px)", String(initialSize));
+    await setNumber(page, "Height (px)", String(initialSize));
+    await expect(preview).toHaveAttribute("viewBox", `0 0 ${initialSize} ${initialSize}`);
 
-  async function drag(dx: number, dy: number) {
-    await corner.scrollIntoViewIfNeeded();
-    const bounds = (await corner.boundingBox())!;
-    const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2;
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x + dx, y + dy, { steps: 4 });
-    return { x: x + dx, y: y + dy };
-  }
+    async function drag(dx: number, dy: number) {
+      await corner.scrollIntoViewIfNeeded();
+      const bounds = (await corner.boundingBox())!;
+      const x = bounds.x + bounds.width / 2, y = bounds.y + bounds.height / 2;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + dx, y + dy, { steps: 4 });
+      return { x: x + dx, y: y + dy };
+    }
 
-  async function displayedDimensions() {
-    const [, , width, height] = (await preview.getAttribute("viewBox"))!.split(" ").map(Number);
-    return { width, height };
-  }
+    async function displayedDimensions() {
+      const [, , width, height] = (await preview.getAttribute("viewBox"))!.split(" ").map(Number);
+      return { width, height };
+    }
 
-  await drag(24, 10);
-  await expect(preview).not.toHaveAttribute("viewBox", "0 0 800 800");
-  const displaying = await displayedDimensions();
-  await expect(width).toHaveValue(String(displaying.width));
-  await expect(height).toHaveValue(String(displaying.height));
-  await expect(page.getByRole("button", { name: "Use Wave", exact: true }).locator("svg"))
-    .toHaveAttribute("viewBox", `0 0 ${displaying.width} ${displaying.height}`);
-  await page.mouse.up();
-  const proportionalWidth = Number(await width.inputValue());
-  expect(proportionalWidth).toBeGreaterThan(800);
-  await expect(height).toHaveValue(String(proportionalWidth));
+    await drag(24, 10);
+    await expect(preview).not.toHaveAttribute("viewBox", `0 0 ${initialSize} ${initialSize}`);
+    const displaying = await displayedDimensions();
+    await expect(width).toHaveValue(String(displaying.width));
+    await expect(height).toHaveValue(String(displaying.height));
+    await expect(page.getByRole("button", { name: "Use Wave", exact: true }).locator("svg"))
+      .toHaveAttribute("viewBox", `0 0 ${displaying.width} ${displaying.height}`);
+    await page.mouse.up();
+    const proportionalWidth = Number(await width.inputValue());
+    expect(proportionalWidth).toBeGreaterThan(initialSize);
+    await expect(height).toHaveValue(String(proportionalWidth));
 
-  const initialBarTop = await playbackBarTop(page);
-  const point = await drag(6, 3);
-  const anchored = (await preview.boundingBox())!;
-  await page.keyboard.down("Shift");
-  await page.mouse.move(point.x + 26, point.y + 8);
-  const free = await displayedDimensions();
-  expect(free.width).toBeGreaterThan(free.height);
-  await page.keyboard.up("Shift");
-  await page.mouse.move(point.x + 34, point.y + 12);
-  const relocked = await displayedDimensions();
-  expect(relocked.width / relocked.height).toBeCloseTo(free.width / free.height, 2);
-  const moved = (await preview.boundingBox())!;
-  expect(moved.x).toBeCloseTo(anchored.x, 1);
-  expect(moved.y).toBeCloseTo(anchored.y, 1);
-  expect(await playbackBarTop(page)).toBeCloseTo(initialBarTop, 0);
-  await page.mouse.up();
-  expect(await playbackBarTop(page)).toBeCloseTo(initialBarTop, 0);
-  const stretchedWidth = Number(await width.inputValue());
-  const stretchedHeight = Number(await height.inputValue());
-  expect(stretchedWidth).toBeGreaterThan(stretchedHeight);
-  expect(stretchedHeight).toBeGreaterThan(proportionalWidth);
+    const initialBarTop = await playbackBarTop(page);
+    const point = await drag(6, 3);
+    const anchored = (await preview.boundingBox())!;
+    await page.keyboard.down("Shift");
+    await page.mouse.move(point.x + 26, point.y + 8);
+    const free = await displayedDimensions();
+    expect(free.width).toBeGreaterThan(free.height);
+    await page.keyboard.up("Shift");
+    await page.mouse.move(point.x + 34, point.y + 12);
+    const relocked = await displayedDimensions();
+    expect(relocked.width / relocked.height).toBeCloseTo(free.width / free.height, 2);
+    const moved = (await preview.boundingBox())!;
+    expect(moved.x).toBeCloseTo(anchored.x, 1);
+    if (initialSize === 300) expect(moved.y).toBeCloseTo(anchored.y, 1);
+    expect(await playbackBarTop(page)).toBeCloseTo(initialBarTop, 0);
+    await page.mouse.up();
+    expect(await playbackBarTop(page)).toBeCloseTo(initialBarTop, 0);
+    const released = (await preview.boundingBox())!;
+    expect(released.x).toBeCloseTo(moved.x, 0);
+    expect(released.y).toBeCloseTo(moved.y, 0);
+    expect(released.width).toBeCloseTo(moved.width, 0);
+    expect(released.height).toBeCloseTo(moved.height, 0);
+    const stretchedWidth = Number(await width.inputValue());
+    const stretchedHeight = Number(await height.inputValue());
+    expect(stretchedWidth).toBeGreaterThan(stretchedHeight);
+    expect(stretchedHeight).toBeGreaterThan(proportionalWidth);
 
-  await drag(-18, -16);
-  await expect(preview).not.toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
-  await page.keyboard.press("Escape");
-  await page.mouse.up();
-  await expect(preview).toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
+    await drag(-18, -16);
+    await expect(preview).not.toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
+    await page.keyboard.press("Escape");
+    await page.mouse.up();
+    await expect(preview).toHaveAttribute("viewBox", `0 0 ${stretchedWidth} ${stretchedHeight}`);
 
-  await page.getByRole("button", { name: "Resize sketch from right middle" }).press("Shift+ArrowRight");
-  await expect(width).toHaveValue(String(stretchedWidth + 10));
-  await expect(height).toHaveValue(String(stretchedHeight));
-  const exported = await save(page, "Download Project");
-  expect(JSON.parse(exported.data.toString()).asset).toMatchObject({ width: stretchedWidth + 10, height: stretchedHeight });
+    await page.getByRole("button", { name: "Resize sketch from right middle" }).press("Shift+ArrowRight");
+    await expect(width).toHaveValue(String(stretchedWidth + 10));
+    await expect(height).toHaveValue(String(stretchedHeight));
+    const exported = await save(page, "Download Project");
+    expect(JSON.parse(exported.data.toString()).asset).toMatchObject({ width: stretchedWidth + 10, height: stretchedHeight });
 });
+}
 
 test("settings and spectrum gestures update the preview and active sketch thumbnail live", async ({ page }) => {
   await page.goto(route);

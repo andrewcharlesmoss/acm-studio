@@ -28,22 +28,46 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
   const overlay = useRef<SVGSVGElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const [renderWidth, setRenderWidth] = useState(0);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [liveResize, setLiveResize] = useState<Gesture | null>(null);
+  const [placement, setPlacement] = useState<{ basis: MotionSize; x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
     const element = footprint.current;
-    if (!element) return;
-    const measure = () => setRenderWidth(element.getBoundingClientRect().width);
+    const stage = element?.parentElement;
+    if (!element || !stage) return;
+    const measure = () => {
+      setRenderWidth(element.getBoundingClientRect().width);
+      setStageSize({ width: stage.clientWidth, height: stage.clientHeight });
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(element);
+    observer.observe(stage);
     measure();
     return () => observer.disconnect();
   }, []);
   useLayoutEffect(() => () => onResizeDraft(null), [onResizeDraft]);
 
   const size = asset;
-  const original = liveResize?.original ?? asset;
-  const layout = liveResize ? pageResizeLayout(size, liveResize.scale * 100, { ...original, handle: liveResize.handle }).frame : undefined;
+  const original = placement?.basis ?? liveResize?.original ?? asset;
+  const scale = renderWidth / original.width;
+  const layout = placement || liveResize ? pageResizeLayout(size, scale * 100,
+    liveResize ? { ...liveResize.original, handle: liveResize.handle } : null).frame : undefined;
+  if (layout && placement) {
+    layout.left += placement.x * scale;
+    layout.top += placement.y * scale;
+  }
+  if (layout && stageSize.width && stageSize.height) {
+    const handleMargin = 10;
+    const fit = Math.min(1, (stageSize.width - 2 * handleMargin) / layout.width,
+      (stageSize.height - 2 * handleMargin) / layout.height);
+    const minLeft = handleMargin - (stageSize.width - renderWidth) / 2;
+    const minTop = handleMargin - (stageSize.height - original.height * scale) / 2;
+    layout.width *= fit;
+    layout.height *= fit;
+    layout.left = Math.max(minLeft, Math.min(layout.left, minLeft + stageSize.width - 2 * handleMargin - layout.width));
+    layout.top = Math.max(minTop, Math.min(layout.top, minTop + stageSize.height - 2 * handleMargin - layout.height));
+  }
   const displayWidth = layout?.width ?? renderWidth;
   const displayHeight = layout?.height ?? displayWidth * size.height / size.width;
 
@@ -71,6 +95,16 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     onResizeDraft(size);
   }
 
+  function commitResize(previous: MotionSize, next: MotionSize, handle: ResizeHandle) {
+    const { left, top } = pageResizeLayout(next, 100, { ...previous, handle }).frame;
+    setPlacement(current => ({
+      basis: current?.basis ?? { width: previous.width, height: previous.height },
+      x: (current?.x ?? 0) + left,
+      y: (current?.y ?? 0) + top,
+    }));
+    onResize(next);
+  }
+
   function finish(reason: ResizeGestureEnd, pointerId?: number) {
     const current = gesture.current;
     if (!current || (pointerId !== undefined && pointerId !== current.pointerId)) return;
@@ -81,7 +115,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
     onResizeDraft(null);
     const { width, height } = current.drag.latest;
     if (shouldCommitResizeGesture(reason) && (width !== current.original.width || height !== current.original.height)) {
-      onResize({ width, height });
+      commitResize(current.original, { width, height }, current.handle);
     }
   }
 
@@ -110,7 +144,7 @@ export function MotionPreviewStage({ asset, path, onResize, onResizeDraft }: {
             const next = resizePageFromKey(previous, handle, event.key, event.shiftKey, resizeMotion);
             if (!next) return;
             event.preventDefault();
-            if (next.width !== previous.width || next.height !== previous.height) onResize(next);
+            if (next.width !== previous.width || next.height !== previous.height) commitResize(previous, next, handle);
           }} />
       </svg> : null}
     </div>
