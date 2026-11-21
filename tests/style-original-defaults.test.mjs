@@ -9,6 +9,7 @@ import { loadProductionModule } from "./production-module.mjs";
 import * as styles from "@acm/styles";
 
 const parsed = tokens.parseStyleGuidePresets(styleGuideMarkdown);
+const { paragraphTextColourHasPoorContrast } = await loadProductionModule(new URL("../app/content/paragraph-styles.ts", import.meta.url));
 const websiteHistory = await loadProductionModule(new URL("../app/studio/ui/styles/style-preset-history.ts", import.meta.url));
 const interfaceHistory = await loadProductionModule(new URL("../app/studio/ui/styles/interface-style-history.ts", import.meta.url));
 const selection = await loadProductionModule(new URL("../app/studio/ui/styles/style-guide-selection.ts", import.meta.url));
@@ -74,4 +75,26 @@ for (const scope of ["website", "interface"]) test(`${scope} individual and sect
   assert.deepEqual(scope === "interface" ? app.history.present.colours : app.history.present.palette, scope === "interface" ? parsed.originalInterfacePreset.colours : parsed.originalUniversalPreset.palette);
   app.dispatch({ type: "undo" });
   assert.deepEqual(app.history.present, app.saved);
+});
+
+for (const scope of ["website", "interface"]) test(`${scope} saved and Reset All colours meet ordinary-text contrast`, () => {
+  const app = sandbox(scope);
+  const reset = app.render().find(node => [node.props?.children].flat().includes("Reset All"));
+  reset.props.onClick();
+  const saved = scope === "website" ? parsed.universalPreset : parsed.interfacePreset;
+  for (const [state, preset] of [["saved", saved], ["reset", app.history.present]]) {
+    const check = (role, foreground, background) =>
+      assert.equal(paragraphTextColourHasPoorContrast(foreground, background), false,
+        `${state} ${role} needs at least 4.5:1 (${foreground} on ${background})`);
+    check("outline action", preset.buttons.outline.foreground, preset.buttons.outline.background);
+    if (scope === "website") {
+      check("text on accent", preset.palette.onAccent, preset.palette.accent);
+    } else {
+      check("action label", preset.colours.actionAccent, preset.colours.surface);
+      check("expanded action label", preset.colours.actionAccent, preset.colours.subtleSurface);
+      for (const role of ["textActions", "inspectorOptions", "colourRows"]) {
+        check(role, preset.interactions[role].foreground, preset.interactions[role].background);
+      }
+    }
+  }
 });

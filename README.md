@@ -112,11 +112,14 @@ with access to both GitHub repositories, run:
 ```bash
 git clone https://github.com/andrewcharlesmoss/acm-studio.git
 git clone https://github.com/andrewcharlesmoss/workspace-governance.git
-git -C workspace-governance checkout --detach 2447a388760211155143613aff478d0de872c4f2
+git -C workspace-governance checkout --detach fb55921934ed8874466647778968a9867152f1e1
 cd acm-studio
 npm ci
 npm run build
 ```
+
+For an unpublished local revision, use the path to the local governance repository
+as the source of the second clone.
 
 The guide revision is a build input; advance it deliberately and verify Studio
 when the guide changes. Local development continues to use the adjacent working

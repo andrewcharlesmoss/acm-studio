@@ -953,6 +953,8 @@
 
 ### Fixed
 
+- Preserve readable text on blue website fills and for blue website and interface actions after Reset All.
+
 - Let fitted Motion Assets sketches resize inward immediately in narrow previews.
 
 - Keep Design Canvas pages in place when releasing a resize handle, using the shared resize placement from Motion Assets.
