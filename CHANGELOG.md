@@ -51,6 +51,9 @@
 
 ### Changed
 
+- Split specialist interface, local site, and Site Editor instructions into
+  task-linked guides so the root project instructions fit the Codex reading budget.
+
 - Fit Motion Assets resize frames to the finished stroke with room for handles.
 
 - Use shared, larger plus and minus buttons for number fields in Motion Assets.
