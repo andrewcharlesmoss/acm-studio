@@ -599,7 +599,13 @@ function mediaHarness(initialProps, library) {
       if (folder) folder.name = args[1];
     }
   }]));
-  const load = modules({ requestAnimationFrame: (callback) => callback(), document: { addEventListener() {}, removeEventListener() {} }, window: { innerWidth: 1200, innerHeight: 800, prompt: () => "Folder", confirm: () => true }, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { prepareMediaFolderMove, getMediaAsset: async id => readImage ? readImage(id) : structuredClone(library.assets.find(asset => asset.id === id)), listMediaLibrary: async () => structuredClone(library) },
+  let savedDesigns = [];
+  const windowEvents = new EventTarget();
+  const mediaWindow = Object.assign(windowEvents, {
+    innerWidth: 1200, innerHeight: 800, prompt: () => "Folder", confirm: () => true,
+    localStorage: { getItem: key => key === "acm-studio-designs-v1" ? JSON.stringify(savedDesigns) : null },
+  });
+  const load = modules({ requestAnimationFrame: (callback) => callback(), document: { addEventListener() {}, removeEventListener() {} }, window: mediaWindow, URL: { createObjectURL: () => "blob:synthetic", revokeObjectURL() {} } }, { react, "./studio-icons": { StudioIcon: () => null }, "./media-store": { prepareMediaFolderMove, getMediaAsset: async id => readImage ? readImage(id) : structuredClone(library.assets.find(asset => asset.id === id)), listMediaLibrary: async () => structuredClone(library) },
     "./media-sync": { useMediaSession: () => session, async submitMediaCommand(command) {
       assert.equal(validateMediaCommand(command), true, "UI submits a valid typed Files command");
       commands.push(structuredClone(command));
@@ -618,6 +624,7 @@ function mediaHarness(initialProps, library) {
   const Component = load("app/studio/media-manager.tsx").MediaManager;
   return {
     calls, commands, focusCalls, fail() { rejectMutations = true; }, readImage(callback) { readImage = callback; },
+    saveDesigns(designs) { savedDesigns = designs; mediaWindow.dispatchEvent(new Event("studio-designs-saved")); },
     session(next) { session = { ...session, ...next }; dirty = true; },
     async flush() {
       for (let pass = 0; pass < 12; pass++) {
@@ -644,6 +651,21 @@ function textOf(node) {
 }
 const findButton = (tree, label) => descendants(tree).find((node) => node.type === "button" && textOf(node) === label);
 const sampleMedia = () => ({ assets: [{ id: "image", name: "Original", folderId: null, type: "image/png", size: 1, blob: new Blob(["x"], { type: "image/png" }), createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z", altText: "Original alternative", caption: "" }], folders: [{ id: "folder", name: "Folder F", parentId: null, createdAt: "2026-09-01T00:00:00Z" }] });
+
+test("Files refreshes a unique Design source and hides conflicting historical links", async () => {
+  const model = modules()("app/studio/design-model.ts");
+  const first = model.createDesign("First"), second = model.createDesign("Second");
+  first.pages[0].renderedMediaId = second.pages[0].renderedMediaId = "image";
+  const ui = mediaHarness({ writable: true, targetLabel: "Image", targetOwnerId: "test" }, sampleMedia());
+  const sourceLink = tree => descendants(tree).find(node => node.type === "a" && textOf(node) === "Edit source design");
+  try {
+    assert.equal(sourceLink(await ui.flush()), undefined);
+    ui.saveDesigns([first]);
+    assert.equal(sourceLink(await ui.flush()).props.href, `/studio/designs?designId=${first.id}&pageId=${first.pages[0].id}`);
+    ui.saveDesigns([first, second]);
+    assert.equal(sourceLink(await ui.flush()), undefined);
+  } finally { ui.close(); }
+});
 
 test("disconnected Files exposes browsing/downloads but disables mutations and destination insertion", async () => {
   const h = mediaHarness({ writable: false, targetLabel: "Post", onInsertImage() {} }, sampleMedia());
