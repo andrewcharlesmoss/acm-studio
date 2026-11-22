@@ -5,7 +5,7 @@ import { createServer, request as httpRequest } from "node:http";
 import test from "node:test";
 import { createHash } from "node:crypto";
 import { siteImageName } from "../app/content/site-featured-image.mjs";
-import { createIsolatedModuleLoader } from "./production-module.mjs";
+import { createIsolatedModuleLoader, loadProductionModule } from "./production-module.mjs";
 import { EventEmitter } from "node:events";
 import { testSiteBridge } from "../scripts/test-site-bridge.mjs";
 import { createStudioHttpFixture } from "./helpers/studio-http-fixture.mjs";
@@ -107,4 +107,39 @@ test("closing a disposable fixture drains and releases retained proxy responses"
     await fixture.close();
     await new Promise(resolve => frontend.close(resolve));
   }
+});
+
+test("both fixture gateways save and reload eight-column Group revisions with their document owner", { timeout: 60000 }, async () => {
+  const { fixtureDocumentRevisions, restoreCurrentDocumentRevision } = await loadProductionModule(new URL("../app/studio/document-revisions.ts", import.meta.url));
+  const { testSiteWorkspace } = await loadProductionModule(new URL("../app/studio/test-site/contract.ts", import.meta.url));
+  const fixture = await createStudioHttpFixture();
+  try {
+    for (const siteId of ["test", "test2"]) {
+      const headers = { "Content-Type": "application/json", "X-Studio-Client": "codex-history", Origin: fixture.origin };
+      const request = async (action, payload = {}) => {
+        const response = await fetch(fixture.origin + "/__studio/test-site", { method: "POST", headers, body: JSON.stringify({ siteId, action, ...payload }) });
+        const result = await response.json();
+        assert.equal(response.status, 200, JSON.stringify(result));
+        return result;
+      };
+      const connected = await request("connect");
+      headers["X-Studio-Test-Token"] = connected.token;
+      await request("claim");
+      const source = connected.document;
+      const previous = source.documents[0];
+      const blocks = [{ id: "grid", type: "group", layout: "grid", columns: 8, children: [] }];
+      const current = { ...previous, blocks };
+      const saved = await request("save", { baseRevision: connected.revision, document: { ...source, documents: [current] } });
+      const history = await request("revisions", { documentId: current.id });
+      const revisions = fixtureDocumentRevisions(history.revisions, current);
+      assert.deepEqual(revisions.find(item => item.id === saved.revision).document.blocks, blocks);
+      const earlier = revisions.find(item => item.id === connected.revision);
+      const restored = restoreCurrentDocumentRevision(testSiteWorkspace(saved.document), earlier.document, current);
+      assert.deepEqual(restored.documents[0].blocks, previous.blocks);
+      const ack = await request("save", { baseRevision: saved.revision, document: { ...saved.document, documents: restored.documents } });
+      assert.deepEqual(ack.document.documents[0].blocks, previous.blocks);
+      assert.equal(ack.document.siteId, siteId);
+      await request("release");
+    }
+  } finally { await fixture.close(); }
 });

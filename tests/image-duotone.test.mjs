@@ -96,7 +96,7 @@ for (const duotone of [effect, null]) test(`Image Duotone ${duotone ? 'colours' 
     payload = JSON.stringify({ ...JSON.parse(encoded), version: 8 }); assert.equal(readBlockClipboardPayload(html), null);
   } finally { globalThis.DOMParser = original; }
   const fixture = testSiteCollection(structuredClone(legacyFixture)); fixture.documents[0].blocks = [block];
-  assert.equal(fixture.version, 57); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 66);
+  assert.equal(fixture.version, 57); assert.equal(validTestSiteDocument(fixture), true); assert.equal(validTestSiteDocument({ ...fixture, version: 14 }), false); assert.equal(testSiteWorkspace(fixture).version, 67);
   const library = createGlobalTemplateLibrary({ test: testSiteCollection(structuredClone(legacyFixture)), test2: { ...testSiteCollection(structuredClone(legacyFixture)), siteId: 'test2' } });
   library.migrations.test.bases[0].parts[0].nodes = [block];
   assert.equal(validateGlobalTemplateLibrary(library).version, 49); assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 6 }), /Image Duotone/);

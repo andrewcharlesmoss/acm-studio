@@ -1,3 +1,4 @@
+import { WORKSPACE_VERSION } from "../editor-model";
 import { containsGeneralTemplatePart } from "../reference-template-parts-contract";
 import { containsWebsiteFont } from "../../content/website-fonts";
 import { containsBoxSideOverrides } from "../../content/box-lengths";
@@ -310,7 +311,7 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
     templates: emptyTemplateStore(), browserImportComplete: false }));
 }
 export function testSiteWorkspace(document: CurrentTestSiteCollection, selectedId = document.activeDocumentId): StudioWorkspace {
-  return { version: 66, documents: document.documents, categories: document.categories, bin: document.bin,
+  return { version: WORKSPACE_VERSION, documents: document.documents, categories: document.categories, bin: document.bin,
     activeDocumentId: document.documents.some(item => item.id === selectedId) ? selectedId : document.homeDocumentId };
 }
 /** Explicit restore completes the import decision, including for older backups. */

@@ -205,7 +205,7 @@ test("Group Grid Fill available space survives current Test/Test2 fixture projec
   assert.equal(site.version, 57);
   valid(site);
   const workspace = contract.testSiteWorkspace(site);
-  assert.equal(workspace.version, 66);
+  assert.equal(workspace.version, 67);
   assert.equal(workspace.documents[0].blocks[0].fillAvailableSpace, false);
   assert.equal(contract.validTestSiteDocument({ ...site, version: 17 }), false);
 });

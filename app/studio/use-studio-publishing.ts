@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { normalisePostSlug, UnreadablePublicationsError, validateDocumentForPublication } from "../content/local-publishing";
 import { browserPublishingRepository, type PublishingRepository } from "../content/publishing-repository";
 import { articles } from "../content/sample-content";
+import type { PublicationPresentation } from "./template-model";
 import type { StudioDocument, StudioWorkspace } from "./editor-model";
 import { formatPublishDate, parsePublicationDate } from "./publication-date";
 
 export function useStudioPublishing({
   activeDocument,
   resolvedDocument,
+  presentation,
+  presentationReady = true,
   workspace,
   updateActiveDocument,
   setSaveLabel,
@@ -19,6 +22,8 @@ export function useStudioPublishing({
 }: {
   activeDocument: StudioDocument;
   resolvedDocument?: StudioDocument;
+  presentation?: PublicationPresentation;
+  presentationReady?: boolean;
   workspace: StudioWorkspace;
   updateActiveDocument: (update: (document: StudioDocument) => StudioDocument) => void;
   setSaveLabel: (label: string) => void;
@@ -38,6 +43,7 @@ export function useStudioPublishing({
 
   function publish() {
     if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }
+    if (!presentationReady) { setPublishFeedback("Wait for the document template to finish loading or resolve its error before publishing."); return false; }
     const normalisedPublishAt = parsePublicationDate(activeDocument.publishAt)?.toISOString() ?? activeDocument.publishAt;
     const normalisedPublishedAt = parsePublicationDate(activeDocument.publishedAt)?.toISOString() ?? activeDocument.publishedAt;
     const documentToPublish = { ...activeDocument, publishAt: normalisedPublishAt, publishedAt: normalisedPublishedAt };
@@ -59,7 +65,7 @@ export function useStudioPublishing({
       updatedAt: timestamp,
     };
     try {
-      publishingRepository.publish(resolvedDocument ? { ...publication, author: resolvedDocument.author, category: resolvedDocument.category, tags: resolvedDocument.tags } : publication);
+      publishingRepository.publish(resolvedDocument ? { ...publication, author: resolvedDocument.author, category: resolvedDocument.category, tags: resolvedDocument.tags, parentPageId: resolvedDocument.parentPageId, displayOverrides: resolvedDocument.displayOverrides } : publication, presentation);
     } catch (error) {
       setPublishFeedback(error instanceof UnreadablePublicationsError ? error.message : "This browser could not store the published document. Your draft is still safe in Studio.");
       return false;

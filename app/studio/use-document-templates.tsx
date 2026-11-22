@@ -7,12 +7,13 @@ import { localPublicationHref } from "../content/publication-address";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryRouter } from "./use-studio-history-router";
 import { updateDocumentWithHistory } from "./document-update-history";
-import { resolveTemplate, templateMediaIds, type TemplateSnapshot } from "./template-model";
+import { resolveTemplate, templateMediaIds, TEMPLATE_VERSION, type TemplateSnapshot } from "./template-model";
 import { documentFieldUsage, resolveDocumentDisplay, resolveDocumentFields } from "./document-fields";
 import { useTemplateMedia } from "./use-template-media";
+import { PublicationHeaderView } from "./publication-header";
 import { TemplateDocument } from "./template-renderer";
 import { DocumentTemplateControls } from "./document-template-controls";
-import { createWorkspacePreviewDocument } from "./editor-model";
+import { createWorkspacePreviewDocument, type StudioDocument } from "./editor-model";
 import type { useStudioWorkspace } from "./use-studio-workspace";
 import type { StudioPresentation } from "./studio-presentation";
 import { sharedHeaderReference, templateContainsHeader, type GlobalTemplateLibrary } from "./global-template-contract";
@@ -82,6 +83,8 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
   const fallbackSet = templates.store.sets.find(set => set.id === fallbackHeader?.setId);
   const media = useTemplateMedia([...new Set([...(snapshot ? templateMediaIds(snapshot.set) : []), ...(fallbackSet ? templateMediaIds(fallbackSet) : [])])]);
   const selectedTemplate = snapshot?.set.templates.find(item => item.id === snapshot.templateId);
+  const inheritedHeader = fallbackHeader && fallbackSet && !(snapshot && selectedTemplate && templateContainsHeader(selectedTemplate.nodes, snapshot.set))
+    ? { version: TEMPLATE_VERSION, set: fallbackSet, partId: fallbackHeader.partId } : undefined;
   const resolvedFields = document ? resolveDocumentFields(document, snapshot?.set, selectedTemplate?.defaults) : undefined;
   const resolvedDocument = document && resolvedFields ? { ...document, author: resolvedFields.author, category: resolvedFields.category, tags: resolvedFields.tags, parentPageId: resolvedFields.parentPageId, displayOverrides: resolveDocumentDisplay(document, selectedTemplate) } : document;
   const fieldUsage = document ? documentFieldUsage(document, snapshot?.set, snapshot?.templateId) : undefined;
@@ -119,11 +122,19 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
   }}><option value="keep">Keep recovery assignment</option><option value="">Existing Presentation</option>{globals.library.templates.sets.flatMap(set => set.templates.filter(item => item.kind === document.kind).map(item => <option key={`${set.id}/${item.id}`} value={`${set.id}/${item.id}`}>{item.name}</option>))}</SelectControl></label></div> : null}</>;
   function templatePresentation(blockUrls: Record<string, string>, onChangeCover: () => void, onRemoveCover: () => void, showAssigned = true, hostedPreview?: HostedSitePreview | null): StudioPresentation | undefined {
     const header = fallbackHeader;
-    if (!snapshot || !showAssigned) return header ? { renderDocument: (context, content) => <><TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onSelectPart={context.onClearBlockSelection} onEdit={onEditPart} />{content}</> } : undefined;
+    function renderHeader(context: Parameters<NonNullable<StudioPresentation["renderDocument"]>>[0]) {
+      if (!header || !fallbackSet) return null;
+      if (context.mode === "edit") return <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }}
+        mediaUrls={media.urls} headerReference={header} document={context.document} editing onSelectPart={context.onClearBlockSelection} onEdit={onEditPart} />;
+      const href = (page: StudioDocument) => localPublicationHref({ ...page, slug: page.publishedSlug ?? page.slug });
+      return <PublicationHeaderView header={{ version: TEMPLATE_VERSION, set: fallbackSet, partId: header.partId }} document={context.document}
+        documentHref={href(context.document)} mediaUrls={media.urls} navigationPageListLinks={node => navigationPageListLinks(workspace.documents, href, node.pageListBlock?.parentPageId)} navigationSearchEntries={browserLocalPublicationSearchEntries} />;
+    }
+    if (!snapshot || !showAssigned) return header ? { renderDocument: (context, content) => <>{renderHeader(context)}{content}</> } : undefined;
     const resolved = snapshot;
     return {
       renderHeader: () => <></>, allowCoverImage: false, showPublicationDetails: false, hideDividers: false,
-      renderDocument: (context, content) => <>{header && !templateContainsHeader(resolved.set.templates.find(item => item.id === resolved.templateId)!.nodes, resolved.set) ? <TestSiteNavigation site={{ templates: templates.store, siteNavigation: header, documents: workspace.documents }} mediaUrls={media.urls} headerReference={header} document={context.document} editing={context.mode === "edit"} onSelectPart={context.onClearBlockSelection} onEdit={onEditPart} /> : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} navigationPageListLinks={node => navigationPageListLinks(siteContext?.collection?.documents ?? workspace.documents, page => siteContext ? testDocumentHref(page.id) : localPublicationHref({ ...page, slug: page.publishedSlug ?? page.slug }), node.pageListBlock?.parentPageId)} navigationSearchEntries={siteContext?.collection ? () => fixtureNavigationSearchEntries(siteContext.collection!.documents, page => testDocumentHref(page.id), { includeDrafts: true }) : browserLocalPublicationSearchEntries} navigationMenuLinks={siteContext?.collection ? node => fixtureNavigationMenuLinks(node.id, siteContext.collection!, resolved.set.navigation, hostedPreview?.navigation) : undefined} queryCandidates={queryCandidates} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} onSelectPart={context.mode === "edit" ? context.onClearBlockSelection : undefined} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
+      renderDocument: (context, content) => <>{header && inheritedHeader ? renderHeader(context) : null}<TemplateDocument documentHref={siteContext ? testDocumentHref(document.id) : undefined} snapshot={resolved} document={resolvedDocument ?? document} content={content} mediaUrls={{ ...blockUrls, ...media.urls }} navigationPageListLinks={node => navigationPageListLinks(siteContext?.collection?.documents ?? workspace.documents, page => siteContext ? testDocumentHref(page.id) : localPublicationHref({ ...page, slug: page.publishedSlug ?? page.slug }), node.pageListBlock?.parentPageId)} navigationSearchEntries={siteContext?.collection ? () => fixtureNavigationSearchEntries(siteContext.collection!.documents, page => testDocumentHref(page.id), { includeDrafts: true }) : browserLocalPublicationSearchEntries} navigationMenuLinks={siteContext?.collection ? node => fixtureNavigationMenuLinks(node.id, siteContext.collection!, resolved.set.navigation, hostedPreview?.navigation) : undefined} queryCandidates={queryCandidates} editingDocument={context.mode === "edit" && writable} editorCanvas={context.mode === "edit"} onSelectPart={context.mode === "edit" ? context.onClearBlockSelection : undefined} selectedDocumentField={context.selectedDocumentField} onFocusDocumentField={context.onFocusDocumentField} onDocumentChange={updateActiveField} onChangeCover={onChangeCover} onRemoveCoverImage={onRemoveCover} onEditPart={context.mode === "edit" && onEditPart ? partId => onEditPart(resolved.set.id, partId) : undefined} /></>,
     };
   }
   function setFieldOverride(field: "author" | "category" | "tags" | "parentPageId", useTemplate: boolean) {
@@ -139,7 +150,7 @@ export function useDocumentTemplates(browserSession: ReturnType<typeof useStudio
     retryEditing: () => { session.retryEditing(); templates.retryConnection(); },
     undo: history.undo, redo: history.redo, canUndo: writable && history.canUndo, canRedo: writable && history.canRedo,
     templateSession: templates, browserTemplateSession: browserTemplates, templateMediaReady: media.ready,
-    templateControls, templatePresentation, hasTemplate: Boolean(snapshot), resolvedDocument: resolvedDocument ?? document, fieldUsage, templateSnapshot: snapshot, templateAuthoringSnapshot, setFieldOverride,
+    templateControls, templatePresentation, hasTemplate: Boolean(snapshot), resolvedDocument: resolvedDocument ?? document, fieldUsage, templateSnapshot: snapshot, publicationPresentation: { templateSnapshot: snapshot, fallbackHeader: inheritedHeader }, publicationPresentationReady: templates.ready && !templates.error && !resolutionError, templateAuthoringSnapshot, setFieldOverride,
     saveLabel: templates.error ? "Templates need attention" : templates.saveLabel === "Saving…" && !session.saveLabel.startsWith("Could not") ? templates.saveLabel : session.saveLabel,
   };
 }

@@ -44,7 +44,7 @@ test('Pullquote is separately insertable, inspectable and selectable without cha
 
 test('current workspace/publication preserve Pullquote while previous envelopes reject new blocks and allowlists', () => {
   for (const value of [block, { id:'group',type:'group',layout:'flow',allowedBlocks:['pullquote'],children:[] }]) {
-    const current=state([value]); assert.equal(current.version, 66);
+    const current=state([value]); assert.equal(current.version, 67);
     assert.equal(workspace.validateStudioWorkspace(current).documents[0].blocks[0].type,value.type);
     for (const read of [workspace.validateStudioWorkspace,workspace.migrateStudioWorkspace]) assert.throws(()=>read({...current,version:56}));
     const post=toLocallyPublishedArticle(doc([value]));

@@ -31,10 +31,10 @@ export function SiteFooter() {
   );
 }
 
-export function PageFrame({ children }: { children: ReactNode }) {
+export function PageFrame({ children, header = <SiteHeader /> }: { children: ReactNode; header?: ReactNode }) {
   return (
     <div className="page-shell" id="top">
-      <SiteHeader />
+      {header}
       {children}
       <SiteFooter />
     </div>

@@ -563,13 +563,13 @@ test("per-child legacy sizing opt-in is retained only by the new envelopes while
   assert.throws(() => migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [invalidMarker] }), /invalid|unsupported/i);
   assert.equal(validContentBlocks(invalidMarker.blocks), false);
   const workspace = migrateStudioWorkspace({ ...initialStudioWorkspace, version: 64, documents: [document] });
-  assert.equal(workspace.version, 66);
+  assert.equal(workspace.version, 67);
   assert.equal(workspace.documents[0].blocks[0].children[0].visualStyle.flexItemSizingActive, true);
-  assert.equal(migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [{ ...document, blocks: [{ ...row, children: [{ ...child, visualStyle: { flexItemSizing: { mode: "grow" } } }] }] }] }).version, 66);
+  assert.equal(migrateStudioWorkspace({ ...initialStudioWorkspace, version: 63, documents: [{ ...document, blocks: [{ ...row, children: [{ ...child, visualStyle: { flexItemSizing: { mode: "grow" } } }] }] }] }).version, 67);
 
   const post = { localDocumentId: "scoped-sizing", slug: "scoped-sizing", title: "Row", summary: "", displayDate: "", readingTime: "", publishedAt: "2026-01-01T00:00:00.000Z", section: "", blocks: [row], mediaIds: [] };
   assert.throws(() => validatePublicationSnapshot({ version: 54, posts: [post] }), /snapshot v55/);
-  assert.equal(validatePublicationSnapshot({ version: 55, posts: [post] }).version, 57);
+  assert.equal(validatePublicationSnapshot({ version: 55, posts: [post] }).version, 58);
 
   const set = createTemplateSet("Scoped sizing");
   set.parts[0].nodes = [row];

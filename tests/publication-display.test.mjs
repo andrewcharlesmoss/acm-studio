@@ -19,6 +19,9 @@ const { TemplateDocument } = await load("../app/studio/template-renderer.tsx");
 const { ArticleByline, PageFrame } = await load("../app/components/site-shell.tsx");
 const { readingTimeLabel } = await load("../app/content/reading-time.ts");
 const { safeImageSource } = await load("../app/content/rich-text.ts");
+const { PublicationHeaderView } = await load("../app/studio/publication-header.tsx");
+const { navigationPageListLinks } = await load("../app/studio/navigation-page-list.ts");
+const { localPublicationHref } = await load("../app/content/publication-address.ts");
 const { browserLocalPublicationSearchEntries } = await load("../app/studio/navigation-search.ts");
 
 const policy = mode => Object.fromEntries(DOCUMENT_DISPLAY_FIELDS.map(field => [field, mode]));
@@ -84,6 +87,7 @@ function pageHtml(article) {
     useState: initial => [hook++ === 0 ? article : typeof initial === "function" ? initial() : initial, () => {}],
     useRef: current => ({ current }), useEffect() {},
     ...publications, BlockRenderer, TemplateDocument, ArticleByline, PageFrame, readingTimeLabel, safeImageSource, documentFieldVisible, browserLocalPublicationSearchEntries,
+    PublicationHeaderView, localPublicationHref, navigationPageListLinks,
   });
   return renderToStaticMarkup(page({ slug: article.slug }));
 }
@@ -96,7 +100,7 @@ for (const withTemplate of [false, true]) test(`owned publish â†’ JSON reader â†
     const before = JSON.stringify(document);
     publications.publishDocumentLocally(document, template);
     const serialised = bytes.get(publications.LOCAL_PUBLICATIONS_KEY);
-    assert.equal(JSON.parse(serialised).version, 57);
+    assert.equal(JSON.parse(serialised).version, 58);
     const article = publications.parseLocallyPublishedArticles(serialised)[0];
     assert.deepEqual(article.displayOverrides, policy("hide"));
     assert.equal(JSON.stringify(document), before);
@@ -186,7 +190,7 @@ test("unpublish and Bin restore retain the current publication policy", async ()
     publications.publishDocumentLocally(document);
     const recoverable = publications.getLocallyPublishedArticle(document.id);
     publications.unpublishDocumentLocally(document.id);
-    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 57);
+    assert.equal(JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY)).version, 58);
     publications.restoreLocallyPublishedArticle(recoverable);
     assert.deepEqual(publications.parseLocallyPublishedArticles(bytes.get(publications.LOCAL_PUBLICATIONS_KEY))[0].displayOverrides, recoverable.displayOverrides);
   });
@@ -210,4 +214,26 @@ test("current publication envelopes retain published pages", async () => {
   const saved = validatePublicationSnapshot({ version: PUBLICATION_VERSION, posts: [page] });
   assert.equal(saved.posts[0].kind, "page");
   assert.equal(saved.posts[0].localDocumentId, page.localDocumentId);
+});
+
+test("published Page List parents survive the public document projection", async () => {
+  await withStorage(({ bytes }) => {
+    const parent = { ...documentFixture(), kind: "page", id: "parent", title: "Parent", slug: "parent" };
+    const child = { ...parent, id: "child", title: "Child", slug: "child", parentPageId: parent.id };
+    publications.publishDocumentLocally(parent);
+    publications.publishDocumentLocally(child);
+    const saved = JSON.parse(bytes.get(publications.LOCAL_PUBLICATIONS_KEY));
+    const documents = validateTemplatePublicationSnapshot(saved).posts.map(publications.locallyPublishedDocument);
+    const links = navigationPageListLinks(documents, localPublicationHref, parent.id);
+    assert.deepEqual(links, [{ id: "page-list-child", label: "Child", url: "/pages/child" }]);
+    assert.equal(navigationPageListLinks(documents, localPublicationHref)[0].children[0].label, "Child");
+    assert.throws(() => validateTemplatePublicationSnapshot({ ...saved, version: 57 }), /v58/);
+    const article = saved.posts.find(item => item.localDocumentId === child.id);
+    for (const parentPageId of [0, {}, "", child.id]) {
+      assert.throws(() => validateTemplatePublicationSnapshot({ ...saved, posts: [{ ...article, parentPageId }] }));
+    }
+    assert.throws(() => validateTemplatePublicationSnapshot({ ...saved, posts: [{ ...article, kind: "post" }] }));
+    const { parentPageId, ...legacy } = article;
+    assert.equal(validateTemplatePublicationSnapshot({ version: 57, posts: [legacy] }).posts[0].parentPageId, undefined);
+  });
 });

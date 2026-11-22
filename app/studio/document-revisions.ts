@@ -1,4 +1,4 @@
-import type { StudioDocument, StudioWorkspace } from "./editor-model";
+import { WORKSPACE_VERSION, type StudioDocument, type StudioWorkspace } from "./editor-model";
 import { validateStudioWorkspace } from "./workspace-validation";
 
 export type DocumentRevision = { id: string; savedAt: string; document: StudioDocument; confirmed?: boolean };
@@ -47,7 +47,7 @@ export function fixtureDocumentRevisions(revisions: unknown, expected: Pick<Stud
   return revisions.map(item => {
     if (!item || typeof item.id !== "string" || !/^[a-f0-9]{64}$/.test(item.id) || !Number.isFinite(Date.parse(item.savedAt)) || typeof item.confirmed !== "boolean" || item.document?.id !== expected.id || item.document.kind !== expected.kind) throw new Error("The revision history is invalid.");
     const document = revisionDocument(item.document);
-    validateStudioWorkspace({ version: 61, documents: [document], activeDocumentId: document.id, categories: [], bin: [] });
+    validateStudioWorkspace({ version: WORKSPACE_VERSION, documents: [document], activeDocumentId: document.id, categories: [], bin: [] });
     return { ...item, document };
   });
 }
