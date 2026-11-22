@@ -32,7 +32,7 @@ export function createStudioPreferenceRepository({ storage, key, read, validate,
               temporary.loaded(token, false);
               resolve({ saved: false, reason: "storage" });
             }
-          }, claimedLocks);
+          }, claimedLocks, () => resolve({ saved: false, reason: "storage" }));
         });
         release();
         temporary.dispose();
@@ -59,7 +59,7 @@ export function createStudioPreferenceRepository({ storage, key, read, validate,
           release = temporary.acquire(token => {
             temporary.loaded(token, true);
             void temporary.write(writeLatest).then(resolve, () => resolve({ saved: false, reason: "storage" }));
-          }, claimedLocks);
+          }, claimedLocks, () => resolve({ saved: false, reason: "storage" }));
         });
         release();
         temporary.dispose();

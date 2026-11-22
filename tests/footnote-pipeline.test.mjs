@@ -6,7 +6,8 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
-import { loadProductionModule } from "./production-module.mjs";
+import { mediaDatabase } from "./support/media-browser-fixture.mjs";
+import { createIsolatedModuleLoader, loadProductionModule } from "./production-module.mjs";
 
 const load = path => loadProductionModule(new URL(path, import.meta.url));
 const { footnoteReferenceRun: reference, INLINE_OBJECT_CHARACTER: atom } = await load("../app/content/footnote-runs.ts");
@@ -174,6 +175,12 @@ async function backupConsumer(name, bindings) {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
   const context = { validateStudioBackup, structuredClone, prepareStudioBackupRestore: async backup => ({ backup, assets: [] }), LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY, Blob, ...bindings };
+  if (name === "restoreStudioBackup") {
+    const window = { ...bindings.window, indexedDB: mediaDatabase().indexedDB };
+    const journal = createIsolatedModuleLoader({ globals: { crypto, window } })("app/studio/restore-journal.ts");
+    Object.assign(context, journal, { RESTORE_PENDING_KEY: "acm-studio-pending-restore-v1", RESTORE_RECEIPT_KEY: "acm-studio-restore-receipt-v1" });
+    Object.assign(context.studioWriteOwnership, { captureRestoreToken: () => Symbol(), canRestore: () => true, subscribe: () => () => {} });
+  }
   runInNewContext(code, context);
   return context.consumer;
 }
@@ -197,7 +204,7 @@ test("actual backup restore saves canonical content in its restore permit and re
     listMediaLibrary: async () => { assert.equal(restoring, true); calls.push("snapshot-media"); return { assets: [], folders: [] }; },
     replaceMediaLibrary: async (assets, folders, actualPermit) => { assert.equal(actualPermit, permit); assert.equal(restoring, true); assert.deepEqual(assets, []); assert.deepEqual(folders, []); calls.push("write-media"); },
     window: { localStorage: {
-      getItem(key) { assert.equal(restoring, true); calls.push(`read:${key}`); return null; },
+      getItem(key) { assert.equal(restoring, true); calls.push(`read:${key}`); return saved.get(key) ?? null; },
       setItem(key, value) { assert.equal(restoring, true); saved.set(key, value); calls.push(`write:${key}`); },
       removeItem(key) { assert.equal(restoring, true); saved.delete(key); calls.push(`remove:${key}`); },
     } },
@@ -239,11 +246,11 @@ test("actual canonical backup restore rolls back exact original stores after a l
     } },
   });
   await assert.rejects(restore(source), /publication write failed/);
+  assert.match(saved.get("acm-studio-restore-receipt-v1"), /^original:/);
+  saved.delete("acm-studio-restore-receipt-v1");
   assert.deepEqual(saved, originals);
-  assert.equal(mediaWrites.length, 2);
-  assert.equal(mediaWrites[1].assets, oldLibrary.assets);
-  assert.equal(mediaWrites[1].folders, oldLibrary.folders);
-  assert.deepEqual(storageWrites.slice(-4), [LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, DESIGN_STORAGE_KEY, TEMPLATE_STORAGE_KEY]);
+  assert.equal(mediaWrites.length, 0, "A failed aggregate write leaves the original Files in place");
+  assert.ok(storageWrites.includes(TEMPLATE_STORAGE_KEY));
 });
 
 test("actual backup download exports the canonical result without altering its source or accessing storage", async () => {

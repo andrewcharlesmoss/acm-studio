@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
+import { buildMediaAdapter } from './helpers/media-adapter';
 
 test('image sizes and receipts commit atomically under the existing writer', async ({ page }) => {
   test.setTimeout(60000);
@@ -9,7 +10,7 @@ test('image sizes and receipts commit atomically under the existing writer', asy
     'app/studio/image-rendition-generation.ts', 'app/studio/image-rendition-validation.ts',
     'app/studio/image-rendition-preparation.ts', 'app/studio/media-database-migration.ts',
     'app/studio/media-database-open.ts', 'app/studio/media-command.ts',
-    'app/studio/write-ownership.ts', 'app/studio/image-rendition-transaction.ts',
+    'app/studio/image-rendition-transaction.ts',
   ];
   const sources = await Promise.all(paths.map(async path => ts.transpileModule(await readFile(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -17,13 +18,14 @@ test('image sizes and receipts commit atomically under the existing writer', asy
   const fixture = await readFile('public/specimens/landscape.png');
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Image transaction test</title>' }));
   await page.goto('http://localhost:3011/');
+  await page.addScriptTag({ content: await buildMediaAdapter() });
   const result = await page.evaluate(async ({ sources, fixture }) => {
-    const modules: Record<string, unknown> = {};
-    const ids = ['image-resolution', 'raster-dimensions', 'image-rendition-generation', 'image-rendition-validation', 'image-rendition-preparation', 'media-database-migration', 'media-database-open', 'media-command', 'write-ownership', 'image-rendition-transaction'];
+    const modules: Record<string, unknown> = { "write-ownership": window.StudioMediaAdapter };
+    const ids = ['image-resolution', 'raster-dimensions', 'image-rendition-generation', 'image-rendition-validation', 'image-rendition-preparation', 'media-database-migration', 'media-database-open', 'media-command', 'image-rendition-transaction'];
     for (let index = 0; index < ids.length; index++) {
       const loadedModule = { exports: {} };
       new Function('exports', 'module', 'require', sources[index])(loadedModule.exports, loadedModule, (name: string) => {
-        const id = name.split('/').at(-1)!;
+        const id = name.split('/').at(-1)!.replace(/\.ts$/, '');
         if (!(id in modules)) throw new Error(`Unexpected module: ${name}`);
         return modules[id];
       });

@@ -26,7 +26,7 @@ export function createSharedStylesClient({ fetcher = globalThis.fetch, ownership
           release = temporary.acquire(token => {
             temporary.loaded(token, true);
             void temporary.write(operation).then(resolve, reject);
-          }, { request: (_name, _options, callback) => callback(lock) });
+          }, { request: (_name, _options, callback) => callback(lock) }, reject);
         });
       } finally { release?.(); temporary.dispose(); }
     });

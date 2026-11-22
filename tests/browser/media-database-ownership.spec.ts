@@ -1,23 +1,24 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
+import { buildMediaAdapter } from './helpers/media-adapter';
 
 test('blocked media upgrades abort if ownership or the request is lost', async ({ page }) => {
   const compile = async (path: string) => ts.transpileModule(await readFile(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const [migrationSource, openSource, ownershipSource] = await Promise.all([
-    compile('app/studio/media-database-migration.ts'), compile('app/studio/media-database-open.ts'), compile('app/studio/write-ownership.ts'),
+    compile('app/studio/media-database-migration.ts'), compile('app/studio/media-database-open.ts'), buildMediaAdapter(),
   ]);
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Ownership test</title>' }));
   await page.goto('http://localhost:3011/');
-  const result = await page.evaluate(async ({ migrationSource, openSource, ownershipSource }) => {
+  await page.addScriptTag({ content: ownershipSource });
+  const result = await page.evaluate(async ({ migrationSource, openSource }) => {
     const migration = { exports: {} };
     new Function('exports', 'module', migrationSource)(migration.exports, migration);
     const opening = { exports: {} };
     new Function('exports', 'module', 'require', openSource)(opening.exports, opening, () => migration.exports);
-    const coordinatorModule = { exports: {} };
-    new Function('exports', 'module', ownershipSource)(coordinatorModule.exports, coordinatorModule);
+    const coordinatorModule = { exports: window.StudioMediaAdapter };
     const api = opening.exports as { openMediaDatabase: (factory: IDBFactory, name: string, options: { mode: 'owned'; authorised: () => boolean; subscribeOwnership: (listener: () => void) => () => void; onBlocked?: () => void; signal?: AbortSignal } | { mode: 'read'; signal?: AbortSignal }) => Promise<IDBDatabase> };
     const noSubscription = (_listener: () => void) => () => {};
     const base = `acm-owner-test-${crypto.randomUUID()}`;
@@ -165,6 +166,6 @@ test('blocked media upgrades abort if ownership or the request is lost', async (
     try { (await api.openMediaDatabase(indexedDB, absentName, { mode: 'read' })).close(); } catch { absentReadRejected = true; }
     await Promise.all([deleteLibrary(deniedName), deleteLibrary(cancelledName), deleteLibrary(activeName), deleteLibrary(coordinatorName), deleteLibrary(reservedName), deleteLibrary(absentName)]);
     return { ownerLossRejected, preservedVersion, preservedBytes: await stored.blob.text(), cancelledRejected, cancelledVersion, guardSeen, activeAbortRejected, lockHeldDuringAbort, activeVersion, coordinatorRejected, physicalLockDuringAbort, earlyAcquisition, lateAcquisition, coordinatorVersion, reservedAbortHeldLock, reservedAbortBeforeSettlement, reservedMessage: reservedMessage.includes('kept unchanged'), reservedVersion, readVersion, upgradedVersion, hasNewStore, throwingGuardRejected, initialThrowRejected, absentReadRejected };
-  }, { migrationSource, openSource, ownershipSource });
+  }, { migrationSource, openSource });
   expect(result).toEqual({ ownerLossRejected: true, preservedVersion: 2, preservedBytes: 'safe', cancelledRejected: true, cancelledVersion: 2, guardSeen: true, activeAbortRejected: true, lockHeldDuringAbort: true, activeVersion: 2, coordinatorRejected: true, physicalLockDuringAbort: true, earlyAcquisition: false, lateAcquisition: true, coordinatorVersion: 2, reservedAbortHeldLock: true, reservedAbortBeforeSettlement: true, reservedMessage: true, reservedVersion: 2, readVersion: 2, upgradedVersion: 3, hasNewStore: true, throwingGuardRejected: true, initialThrowRejected: true, absentReadRejected: true });
 });

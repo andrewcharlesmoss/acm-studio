@@ -1,3 +1,4 @@
+import { mediaDatabase } from "./support/media-browser-fixture.mjs";
 import { createHostModuleEvaluator, createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
 import { readStudioSource } from "./studio-module-source.mjs";
@@ -27,7 +28,7 @@ function environment(overrides = {}) {
   const library = { assets: [], folders: [] };
   let failKey = null; let failures = 0;
   const storage = { getItem: key => records.get(key) ?? null, setItem: (key, value) => { if (key === failKey && failures-- > 0) throw new Error("Quota exceeded"); records.set(key, value); }, removeItem: key => records.delete(key) };
-  const window = { localStorage: storage, atob: value => Buffer.from(value, "base64").toString("binary"), dispatchEvent() {} };
+  const window = { indexedDB: mediaDatabase().indexedDB, localStorage: storage, atob: value => Buffer.from(value, "base64").toString("binary"), dispatchEvent() {} };
   class FileReader {
     readAsDataURL(blob) { blob.arrayBuffer().then(buffer => { this.result = `data:${blob.type};base64,${Buffer.from(buffer).toString("base64")}`; this.onload(); }); }
   }
@@ -783,6 +784,7 @@ test("full backup includes templates and restores legacy absence, with template 
   env.storage.setItem(m.TEMPLATE_STORAGE_KEY, JSON.stringify(store));
   const backup = await b.createStudioBackup(documents); assert.equal(backup.templates.sets[0].id, store.sets[0].id);
   const { owner, release } = await env.own();
+  backup.templates.sets[0].name = "Replaced template set";
   env.fail(m.TEMPLATE_STORAGE_KEY);
   await assert.rejects(b.restoreStudioBackup(backup), /Quota/);
   assert.equal(JSON.parse(env.storage.getItem(m.TEMPLATE_STORAGE_KEY)).sets[0].id, store.sets[0].id); assert.equal(owner.getState(), "writable");

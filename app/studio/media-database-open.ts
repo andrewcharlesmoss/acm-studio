@@ -1,4 +1,4 @@
-import { MEDIA_DATABASE_VERSION, MEDIA_METADATA_STORE, mediaAssetStoreName, upgradeMediaDatabase } from "./media-database-migration";
+import { MEDIA_DATABASE_VERSION, MEDIA_METADATA_STORE, mediaAssetStoreName, upgradeMediaDatabase } from "./media-database-migration.ts";
 
 type ReadOptions = { mode: "read"; signal?: AbortSignal };
 type OwnedOptions = { mode: "owned"; authorised: () => boolean; subscribeOwnership: (listener: () => void) => () => void; onBlocked?: () => void; signal?: AbortSignal };

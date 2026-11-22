@@ -86,7 +86,7 @@ export function createIdentityRepository({ store, ownership = studioWriteOwnersh
           release = temporary.acquire(token => {
             temporary.loaded(token, true);
             void temporary.write(operation).then(resolve, reject);
-          }, { request: (_name, _options, callback) => callback(lock) } as Pick<LockManager, "request">);
+          }, { request: (_name, _options, callback) => callback(lock) } as Pick<LockManager, "request">, reject);
         });
       } finally { release(); temporary.dispose(); }
     });

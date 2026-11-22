@@ -27,7 +27,7 @@ async function publicationFixture(raw = null, failWrite = false) {
   let writes = 0;
   const feedback = [];
   const storage = {
-    getItem: () => raw,
+    getItem: key => key === "acm-studio-publications-v1" ? raw : null,
     setItem(_key, value) { writes++; if (failWrite) throw Error("Storage unavailable"); raw = value; },
   };
   const load = modules({ window: { localStorage: storage } }, {
@@ -224,6 +224,25 @@ test("refresh remains compatible with an active coordinator created before the d
   assert.equal(manager.held(), false);
 });
 
+test("a retained pre-journal coordinator installs the recovery gate without dropping its live lock", async () => {
+  const map = new Map();
+  const browserGlobal = { window: { localStorage: { getItem: key => map.get(key) ?? null } } };
+  const manager = locks();
+  const first = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  const release = await own(first, manager);
+  Object.getPrototypeOf(first).acquire = () => assert.fail("stale pre-journal acquisition method");
+  const second = modules({ globalThis: browserGlobal })("app/studio/write-ownership.ts").studioWriteOwnership;
+  assert.equal(second, first);
+  assert.ok(second.canWrite());
+  assert.ok(manager.held());
+  release(); await tick();
+  map.set("acm-studio-pending-restore-v1", "invalid");
+  const close = second.acquire(() => assert.fail("unverified load"), manager);
+  await tick();
+  assert.equal(second.getState(), "blocked");
+  close();
+});
+
 test("explicit disposal still drains writes before a replacement can acquire", async () => {
   const browserGlobal = {};
   const manager = locks();
@@ -402,8 +421,8 @@ test("peer installs the owner snapshot before editing and does not echo stale lo
   const manager = locks();
   const sync = controlledStudioSync();
   let ownerRaw = null; let peerRaw = null;
-  const ownerStorage = { getItem: () => ownerRaw, setItem: (_key, value) => { ownerRaw = value; } };
-  const peerStorage = { getItem: () => peerRaw, setItem: (_key, value) => { peerRaw = value; } };
+  const ownerStorage = { getItem: key => key === "acm-studio-workspace-v2" ? ownerRaw : null, setItem: (_key, value) => { ownerRaw = value; } };
+  const peerStorage = { getItem: key => key === "acm-studio-workspace-v2" ? peerRaw : null, setItem: (_key, value) => { peerRaw = value; } };
   const ownerTab = hookTab(ownerStorage, manager, sync.module);
   let owner = await ownerTab.flush();
   owner.updateActiveField("title", "Authoritative owner title");
@@ -435,7 +454,7 @@ test("an in-flight peer edit survives becoming the persistence owner", async () 
   const manager = locks();
   const sync = controlledStudioSync({ deferPeerSubmissions: true });
   let raw = null;
-  const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; } };
+  const storage = { getItem: key => key === "acm-studio-workspace-v2" ? raw : null, setItem: (_key, value) => { raw = value; } };
   const ownerTab = hookTab(storage, manager, sync.module);
   let owner = await ownerTab.flush();
   owner.updateActiveField("title", "Saved owner title");
@@ -464,7 +483,7 @@ for (const choice of ["mine", "theirs"]) test(`a takeover conflict resolves ${ch
   const manager = locks();
   const sync = controlledStudioSync({ deferPeerSubmissions: true });
   let raw = null;
-  const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; } };
+  const storage = { getItem: key => key === "acm-studio-workspace-v2" ? raw : null, setItem: (_key, value) => { raw = value; } };
   const ownerTab = hookTab(storage, manager, sync.module);
   let owner = await ownerTab.flush();
   owner.updateActiveField("title", "Shared base title"); owner = await ownerTab.flush();
@@ -489,7 +508,7 @@ for (const choice of ["mine", "theirs"]) test(`a takeover conflict resolves ${ch
 
 test("read-only tab can browse; ownership retry reloads fresh content and old closures cannot save", async () => {
   const manager = locks(); let raw = null; let writes = 0;
-  const storage = { getItem: () => raw, setItem: (_key, value) => { raw = value; writes++; } };
+  const storage = { getItem: key => key === "acm-studio-workspace-v2" ? raw : null, setItem: (_key, value) => { raw = value; writes++; } };
   const first = hookTab(storage, manager); const second = hookTab(storage, manager);
   const owner = await first.flush(); const stale = await second.flush();
   assert.equal(owner.writable, true); assert.equal(stale.writable, false);

@@ -1,3 +1,4 @@
+import { MEDIA_DATABASE_NAME, commitRestoreGeneration, renewMediaGeneration, type RestoreValues } from "./restore-journal";
 import { openMediaDatabase } from "./media-database-open";
 import { mediaAssetStoreName } from "./media-database-migration";
 import { applyImageRenditionRequest } from "./image-rendition-transaction";
@@ -39,7 +40,7 @@ export type MediaAsset = {
 export type MediaAssetMetadata = Omit<MediaAsset, "blob">;
 type StoredMediaAsset = MediaAsset & { imageRenditions?: ImageRenditions };
 
-const DATABASE_NAME = "acm-studio-media";
+const DATABASE_NAME = MEDIA_DATABASE_NAME;
 const DATABASE_VERSION = 2;
 const RECEIPT_STORE = "commandReceipts";
 const META_STORE = "metadata";
@@ -128,11 +129,11 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
     });
   }
 
-  function runTransaction<T>(database: IDBDatabase, stores: string | string[], mode: IDBTransactionMode, operation: (transaction: IDBTransaction) => T) {
+  function runTransaction<T>(database: IDBDatabase, stores: string | string[], mode: IDBTransactionMode, operation: (transaction: IDBTransaction) => T, optionsForTransaction?: IDBTransactionOptions) {
     const authority = mode === "readwrite" ? activeAuthority : undefined;
     if (authority && !authority.authorised()) return Promise.reject(new Error("Media saving is no longer owned by this tab."));
     return new Promise<T>((resolve, reject) => {
-      const transaction = database.transaction(stores, mode);
+      const transaction = database.transaction(stores, mode, optionsForTransaction);
       let result: T;
       let failure: unknown;
       let unsubscribe = () => { };
@@ -348,7 +349,8 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
     });
   }
 
-  async function replaceMediaLibrary(assets: MediaAsset[], folders: MediaFolder[], permit?: RestorePermit) {
+  async function replaceMediaLibrary(assets: MediaAsset[], folders: MediaFolder[], permit?: RestorePermit, restore?: { id: string; values: RestoreValues }) {
+    if (restore && !permit) throw new Error("A restore permit is required.");
     const capturedAssets = options ? structuredClone(assets) : assets;
     const capturedFolders = options ? structuredClone(folders) : folders;
     return writeMedia(async () => {
@@ -364,12 +366,14 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
           const assetStore = transaction.objectStore(assetStoreFor(database));
           const folderStore = transaction.objectStore(FOLDER_STORE);
           transaction.objectStore(RECEIPT_STORE).clear();
-          transaction.objectStore(META_STORE).put(crypto.randomUUID(), "generation");
+          const metadata = transaction.objectStore(META_STORE);
+          if (restore) commitRestoreGeneration(metadata, restore.id, restore.values, transaction);
+          else renewMediaGeneration(metadata, transaction);
           assetStore.clear();
           folderStore.clear();
           capturedFolders.forEach((folder) => folderStore.put(folder));
           capturedAssets.forEach((asset) => assetStore.put(asset));
-        });
+        }, restore ? { durability: "strict" } : undefined);
       } finally { database.close(); }
     }, permit);
   }
@@ -384,8 +388,12 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
           const store = transaction.objectStore(META_STORE);
           const request = store.get("generation");
           request.onsuccess = () => {
-            generation = typeof request.result === "string" ? request.result : crypto.randomUUID();
-            store.put(generation, "generation");
+            if (typeof request.result === "string") generation = request.result;
+            else {
+              const next = crypto.randomUUID();
+              renewMediaGeneration(store, transaction, next);
+              generation = next;
+            }
           };
         });
         if (options) v3Ready = true;

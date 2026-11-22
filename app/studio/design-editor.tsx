@@ -1,5 +1,6 @@
 "use client";
 
+import { restoreReadyForBrowsing } from "./restore-journal";
 import { CheckboxControl } from "./controls/checkbox-control";
 import { DesignApplicationHeader } from "./application-section-headers";
 import { NumberInput, SelectControl, TextArea, TextInput } from "./controls/native-fields";
@@ -588,6 +589,7 @@ export function DesignEditor() {
   const [ownershipAttempt, setOwnershipAttempt] = useState(0);
   const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const initialDesignLoad = useRef(false);
+  const [storageReady, setStorageReady] = useState(false);
   const newDesignId = useRef<string | null>(null);
   const bootstrappingDesign = useRef(false);
   const [ownershipState, setOwnershipState] = useState<OwnershipState>(studioWriteOwnership.getState());
@@ -794,9 +796,19 @@ export function DesignEditor() {
 
 
   useEffect(() => {
+    if (initialDesignLoad.current) return;
     let mounted = true;
-    const unsubscribe = studioWriteOwnership.subscribe(() => setOwnershipState(studioWriteOwnership.getState()));
-    if (!initialDesignLoad.current) {
+    // A read-only tab can open first, after Chrome has lost its localStorage
+    // marker. Wait for a verified aggregate before installing a new canvas.
+    void restoreReadyForBrowsing().then(ready => {
+      if (mounted) setStorageReady(ready);
+    }).catch(loadError => { if (mounted) setError(loadError instanceof Error ? loadError.message : "Saved designs could not be read."); });
+    return () => { mounted = false; };
+  }, [ownershipState, ownershipAttempt]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!initialDesignLoad.current && storageReady) {
       try {
         const saved = loadDesigns();
         const requested = requestedDesignId ? saved.find(item => item.id === requestedDesignId) : undefined;
@@ -805,6 +817,11 @@ export function DesignEditor() {
         queueMicrotask(() => { if (mounted) { initialDesignLoad.current = true; designsRef.current = saved; setDesigns(saved); setDesign(initial); setLoaded(true); setStatus(saved.length ? "Saved locally" : "New design ready"); } });
       } catch (loadError) { queueMicrotask(() => { if (mounted) { initialDesignLoad.current = true; setError(loadError instanceof Error ? loadError.message : "Saved designs could not be read."); setDesign(createDesign()); setLoaded(true); } }); }
     }
+    return () => { mounted = false; };
+  }, [requestedDesignId, storageReady]);
+
+  useEffect(() => {
+    const unsubscribe = studioWriteOwnership.subscribe(() => setOwnershipState(studioWriteOwnership.getState()));
     const release = studioWriteOwnership.canWrite() ? () => {} : studioWriteOwnership.acquire(token => {
       try {
         // Validate the latest aggregate before accepting ownership. The sync session
@@ -818,8 +835,8 @@ export function DesignEditor() {
         studioWriteOwnership.loaded(token, false);
       }
     });
-    return () => { mounted = false; unsubscribe(); release(); };
-  }, [requestedDesignId, ownershipAttempt]);
+    return () => { unsubscribe(); release(); };
+  }, [ownershipAttempt]);
 
   useEffect(() => {
     const retry = () => { if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); syncRef.current?.retryConnection(); };
@@ -1973,7 +1990,12 @@ export function DesignEditor() {
     finally { if (importInputRef.current) importInputRef.current.value = ""; }
   }
 
-  if (!loaded || !design || !activePage) return <div className="design-loading">Loading the design canvas…</div>;
+  if (ownershipState === "unreadable" && error) return <div className="design-notice" role="alert">{error} Keep this browser profile intact and recover a checked backup in a separate profile.</div>;
+  if (!loaded || !design || !activePage) {
+    if (ownershipState === "blocked") return <div className="design-notice" role="alert">{ownershipMessage("blocked")}</div>;
+    if (error) return <div className="design-notice" role="alert">{error} Keep this browser profile intact and recover a checked backup in a separate profile.</div>;
+    return <div className="design-loading">Loading the design canvas…</div>;
+  }
 
   return <div className="design-shell" onPaste={handlePaste}>
       <DesignApplicationHeader section="Design Canvas" />

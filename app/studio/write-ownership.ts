@@ -1,3 +1,5 @@
+import { checkRestoreBeforeLoad } from "./restore-journal.ts";
+
 export type OwnershipState = "unavailable" | "waiting" | "loading" | "writable" | "unreadable" | "restoring" | "blocked";
 export type RestorePermit = { readonly token: symbol };
 type LockManagerLike = Pick<LockManager, "request">;
@@ -33,7 +35,7 @@ export class StudioWriteOwnership {
     if (this.owner) this.releaseOwner(this.owner);
   }
 
-  acquire(onLoad: (token: symbol) => void, locks: LockManagerLike | undefined = globalThis.navigator?.locks) {
+  acquire(onLoad: (token: symbol) => void, locks: LockManagerLike | undefined = globalThis.navigator?.locks, onRecoveryFailure?: (error: unknown) => void) {
     // An overlapping mount in this document must not demote the existing
     // owner while that owner's lifetime lock remains held.
     if (this.owner) return () => {};
@@ -65,8 +67,21 @@ export class StudioWriteOwnership {
             // its release before notifying so that handover cannot orphan a lock.
             this.notify("loading");
             if (cancelled || this.disposed || this.owner !== token) return;
-            try { onLoad(token!); }
-            catch { this.loaded(token!, false); }
+            const authorised = () => !cancelled && !this.disposed && this.owner === token && this.state === "loading";
+            const load = () => {
+              if (!authorised()) return;
+              try { onLoad(token!); } catch { this.loaded(token!, false); }
+            };
+            const block = (error: unknown) => {
+              if (authorised()) this.notify("blocked");
+              onRecoveryFailure?.(error);
+            };
+            try {
+              const recovery = checkRestoreBeforeLoad(lifecycleWindow, { authorised, subscribeOwnership: this.subscribe });
+              if (!recovery) { load(); return; }
+              this.pending.add(recovery);
+              void recovery.then(load, block).finally(() => this.pending.delete(recovery));
+            } catch (error) { block(error); }
           });
         });
       }).catch(() => { if (!cancelled && !token) this.notify("unavailable"); });
@@ -137,6 +152,10 @@ export class StudioWriteOwnership {
 const ownershipGlobal = globalThis as typeof globalThis & { __acmStudioWriteOwnershipV1?: StudioWriteOwnership };
 const existingOwnership = ownershipGlobal.__acmStudioWriteOwnershipV1;
 export const studioWriteOwnership = existingOwnership && !existingOwnership.isDisposed ? existingOwnership : new StudioWriteOwnership();
+// HMR also has to install new acquisition guards on the retained object.
+if (existingOwnership === studioWriteOwnership && Object.getPrototypeOf(existingOwnership) !== StudioWriteOwnership.prototype) {
+  Object.setPrototypeOf(existingOwnership, StudioWriteOwnership.prototype);
+}
 ownershipGlobal.__acmStudioWriteOwnershipV1 = studioWriteOwnership;
 
 export function ownershipMessage(state: OwnershipState) {
@@ -144,6 +163,6 @@ export function ownershipMessage(state: OwnershipState) {
   if (state === "waiting") return "Waiting for safe local saving. Try editing here again.";
   if (state === "loading") return "Loading the latest local workspace…";
   if (state === "restoring") return "Restoring backup. Editing is paused.";
-  if (state === "blocked") return "Editing is paused. Reload after a successful restore; retain your backup if recovery failed.";
+  if (state === "blocked") return "Editing is paused. Reload Studio to retry. If recovery still fails, keep this browser profile intact and restore a checked backup in a separate profile.";
   return null;
 }

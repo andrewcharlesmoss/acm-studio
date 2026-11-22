@@ -99,7 +99,7 @@ export type DesignProject = {
   assets: DesignAsset[];
 };
 
-export const DESIGN_STORAGE_KEY = "acm-studio-designs-v1";
+export { DESIGN_STORAGE_KEY } from "../content/local-storage-keys";
 export const DESIGN_MAX_DIMENSION = 4096;
 export const DESIGN_ARROWHEAD_SCALE_MIN = 0.5;
 export const DESIGN_ARROWHEAD_SCALE_MAX = 2;

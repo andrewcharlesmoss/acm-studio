@@ -23,3 +23,5 @@ export { containsGroupHeadingStyles, containsExtendedGroupShadow, containsExtraB
 export { containsQueryLoop } from "../../../app/studio/workspace-validation";
 export { contentMediaIds } from "../../../app/content/media-references";
 export { containsPublicationPresentation } from "../../../app/studio/publication-presentation-contract";
+export { beginRestore, resumePendingRestore, writeRestoreValues } from "../../../app/studio/restore-journal";
+export { RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY } from "../../../app/content/local-storage-keys";

@@ -12,8 +12,10 @@ import { containsCoreSocialLink } from "../content/social-services";
 import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../content/site-featured-image.mjs";
 import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
 import { withSavedDocumentRevisions } from "./workspace-repository";
+import { beginRestore, resumePendingRestore, writeRestoreValues } from "./restore-journal";
+import { RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY } from "../content/local-storage-keys";
 import { studioWriteOwnership } from "./write-ownership";
-import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, type LocallyPublishedArticle } from "../content/local-publishing";
+import { LOCAL_PUBLICATIONS_KEY, type LocallyPublishedArticle } from "../content/local-publishing";
 import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, containsScopedFlexItemSizing, containsGroupLayoutExtensions } from "../content/layout";
 import { containsGridItemSizing } from "../content/grid-child-sizing";
 import { containsExtendedGroupShadow, containsExtraBlackAppearance, containsGroupHeadingStyles } from "../content/quote-presentation";
@@ -26,12 +28,12 @@ import { containsAuthoredCoverCrop, containsAuthoredImageCrop } from "../content
 import { containsPostDateTimeOverride } from "../content/document-metadata";
 import { containsTemplateElementsInCover, containsSiteTitle, containsAutomaticNavigationPageList, containsNavigationSearch, containsNavigationSearchStyle, containsNavigationSearchDisplayWidth, containsNavigationHomeLink, containsNavigationSpacer, containsNavigationPageListBlock } from "./template-model";
 import { containsColumnWidthUnit } from "../content/columns";
-import { DESIGN_STORAGE_KEY, validateDesignProject, type DesignProject } from "./design-model";
+import { validateDesignProject, type DesignProject } from "./design-model";
 import { loadDesigns } from "./design-store";
 import type { StudioDocument, StudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
 import { containsQueryLoop, isRecord, migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
-import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, binnedTemplateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
+import { validateTemplateStore, templateMediaIds, binnedTemplateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
 import { blobToBase64, base64ToBlob } from "./media-serialization";
 import { encodeBackupArchive, decodeBackupArchive, isBackupArchive } from "./backup-archive";
@@ -462,32 +464,26 @@ export async function restoreStudioBackup(backup: StudioBackup | Blob) {
   const captured = archive ? archive.backup : structuredClone(validateStudioBackup(backup));
   return studioWriteOwnership.restore(async (permit) => {
     const { backup: canonical, assets } = archive ?? await prepareStudioBackupRestore(captured);
-    const previousLibrary = await listMediaLibrary();
-    const previousWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
-    const previousPublications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
-    const previousDesigns = window.localStorage.getItem(DESIGN_STORAGE_KEY);
-    const previousTemplates = window.localStorage.getItem(TEMPLATE_STORAGE_KEY);
+    const token = studioWriteOwnership.captureRestoreToken(permit);
+    const guard = { authorised: () => studioWriteOwnership.canRestore(permit, token), subscribeOwnership: studioWriteOwnership.subscribe };
+    const storage = window.localStorage;
+    const id = await beginRestore(storage, guard);
     try {
-      await replaceMediaLibrary(assets, canonical.media.folders, permit);
-      window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(canonical.workspace));
-      if (canonical.templates) window.localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(canonical.templates));
-      else window.localStorage.removeItem(TEMPLATE_STORAGE_KEY);
-      if (canonical.designs) window.localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(canonical.designs));
-      else window.localStorage.removeItem(DESIGN_STORAGE_KEY);
-      if (canonical.publications) window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, canonical.publications);
-      else window.localStorage.removeItem(LOCAL_PUBLICATIONS_KEY);
+      const values = {
+        workspace: JSON.stringify(canonical.workspace),
+        publications: canonical.publications,
+        designs: canonical.designs ? JSON.stringify(canonical.designs) : null,
+        templates: canonical.templates ? JSON.stringify(canonical.templates) : null,
+      };
+      writeRestoreValues(storage, values);
+      // The original blobs remain in place until this final, atomic decision.
+      await replaceMediaLibrary(assets, canonical.media.folders, permit, { id, values });
+      storage.removeItem(RESTORE_PENDING_KEY);
+      storage.setItem(RESTORE_RECEIPT_KEY, `committed:${id}`);
     } catch (error) {
-      const rollbackFailures: unknown[] = [];
-      try { await replaceMediaLibrary(previousLibrary.assets, previousLibrary.folders, permit); }
-      catch (rollbackError) { rollbackFailures.push(rollbackError); }
-      for (const [key, previous] of [[LOCAL_WORKSPACE_KEY, previousWorkspace], [LOCAL_PUBLICATIONS_KEY, previousPublications], [DESIGN_STORAGE_KEY, previousDesigns], [TEMPLATE_STORAGE_KEY, previousTemplates]] as const) {
-        try {
-          if (previous !== null) window.localStorage.setItem(key, previous);
-          else window.localStorage.removeItem(key);
-        } catch (rollbackError) { rollbackFailures.push(rollbackError); }
-      }
-      if (rollbackFailures.length) {
-        throw new AggregateError([error, ...rollbackFailures], `Restore failed: ${error instanceof Error ? error.message : "storage write failed"}. The original data could not be fully recovered. Keep this page open and retain your backup.`);
+      try { if (await resumePendingRestore(storage, guard) === "committed") return; }
+      catch (rollbackError) {
+        throw new AggregateError([error, rollbackError], "The original data could not be fully recovered. Keep this page open and retain your backup.");
       }
       throw error;
     }

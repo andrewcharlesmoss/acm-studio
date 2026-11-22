@@ -7,6 +7,7 @@ import test from "node:test";
 import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mediaDatabase } from "./support/media-browser-fixture.mjs";
 import { createIsolatedModuleLoader, loadProductionModule } from "./production-module.mjs";
 
 const require = createRequire(import.meta.url);
@@ -22,8 +23,9 @@ function modules(overrides = {}, globals = {}) {
     acquire: (onLoad) => { onLoad(Symbol("test writer")); return () => {}; },
     loaded: (_token, readable) => { ownershipState = readable ? "writable" : "unreadable"; },
     canWrite: () => ownershipState === "writable", assertWritable: () => {},
-    restore: (operation) => operation({}),
+    restore: (operation) => operation({}), captureRestoreToken: () => Symbol(), canRestore: () => true,
   };
+  if (globals.window) globals.window.indexedDB ??= mediaDatabase().indexedDB;
   return createIsolatedModuleLoader({ overrides,
     fileOverrides: { "app/studio/write-ownership.ts": { studioWriteOwnership: writer, ownershipMessage: () => null } },
     globals: { structuredClone, crypto: globalThis.crypto, ...globals },
@@ -602,12 +604,12 @@ test("failed restore preserves even empty original values", async () => {
   } }, { Blob, window: { localStorage: {
     getItem: (key) => original.get(key) ?? null,
     setItem: (key, value) => original.set(key, value),
-    removeItem() { throw Error("storage write failed"); },
+    removeItem(key) { if (key === LOCAL_PUBLICATIONS_KEY) throw Error("storage write failed"); original.delete(key); },
   } } })("app/studio/backup-store.ts").restoreStudioBackup;
   await assert.rejects(restore(validBackup()), /storage write failed/);
   assert.equal(original.get(LOCAL_WORKSPACE_KEY), "");
   assert.equal(original.get(LOCAL_PUBLICATIONS_KEY), "");
-  assert.equal(restoredMedia, 2);
+  assert.equal(restoredMedia, 0, "The old library is never replaced when localStorage fails");
 });
 
 test("backup export rejects encoded media over its limit before reading blobs", async () => {
@@ -620,21 +622,24 @@ test("backup export rejects encoded media over its limit before reading blobs", 
   await assert.rejects(create(initialStudioWorkspace), /100 MB/);
 });
 
-test("restore attempts every original store even when media rollback fails", async () => {
+test("a failed Files transaction attempts every changed original even if one rollback write fails", async () => {
   const { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY } = load("app/content/local-publishing.ts");
   const originals = new Map([[LOCAL_WORKSPACE_KEY, "original workspace"], [LOCAL_PUBLICATIONS_KEY, "original publications"]]);
-  let mediaWrites = 0;
   const restoredKeys = [];
   const restore = modules({ "./media-store": {
-    listMediaLibrary: async () => ({ assets: [], folders: [] }),
-    replaceMediaLibrary: async () => { if (++mediaWrites === 2) throw Error("media rollback failed"); },
+    replaceMediaLibrary: async () => { throw Error("media write failed"); },
   } }, { Blob, window: { localStorage: {
-    getItem: (key) => originals.get(key),
-    setItem: (key, value) => { if (value.startsWith("original")) restoredKeys.push(key); },
-    removeItem: () => { throw Error("publication write failed"); },
+    getItem: key => originals.get(key) ?? null,
+    setItem: (key, value) => {
+      if (value.startsWith("original")) restoredKeys.push(key);
+      if (value === "original workspace") throw Error("workspace rollback failed");
+      originals.set(key, value);
+    },
+    removeItem: key => originals.delete(key),
   } } })("app/studio/backup-store.ts").restoreStudioBackup;
   await assert.rejects(restore(validBackup()), /could not be fully recovered/);
   assert.deepEqual(restoredKeys, [LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY]);
+  assert.ok(originals.get("acm-studio-pending-restore-v1"), "another owner can retry recovery");
 });
 
 test("the backup interface exposes incomplete recovery instead of suggesting a simple retry", async () => {
