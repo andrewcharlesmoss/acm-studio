@@ -23,18 +23,39 @@ test('backup v7 retains image sizes and restores them into the current media sch
     let restores = 0; let restoredAssets: RestoredAsset[] = [];
     function requireSizes<T>(asset: { imageRenditions?: T }): T { if (!asset.imageRenditions) throw new Error('Expected retained image sizes.'); return asset.imageRenditions; }
     function isForeignRevision(value: unknown) { return Boolean(value && typeof value === 'object' && 'unsupported' in value && value.unsupported === true); }
+    const live = window.BackupPredicates;
+    const owner = live.studioWriteOwnership;
+    let release = () => {};
+    async function acquire() {
+      release = owner.acquire(token => owner.loaded(token, true));
+      const deadline = Date.now() + 5000;
+      while (!owner.canWrite() && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+      if (!owner.canWrite()) throw new Error(`Backup fixture could not acquire editing (${owner.getState()}).`);
+    }
+    await acquire();
+    await live.ensureMediaGeneration();
     const dependencies: Record<string, unknown> = {
       'featured-images': { collectSiteImages: async () => [] },
       'site-featured-image.mjs': { siteImageNames: () => [], SITE_IMAGE_MAX_BYTES: 2 * 1024 * 1024 },
       'global-template-contract': { validateGlobalTemplateLibrary: (value: unknown) => value },
-      'workspace-repository': { withSavedDocumentRevisions: (value: unknown) => value },
-      'local-storage-keys': window.BackupPredicates,
-      'restore-journal': window.BackupPredicates,
-      'write-ownership': { studioWriteOwnership: { captureRestoreToken: () => Symbol(), canRestore: () => true, subscribe: () => () => {}, restore: async (operation: (permit: object) => Promise<void>) => { restores++; await operation({}); } } },
+      'local-storage-keys': live,
+      'restore-journal': live,
+      'write-ownership': { studioWriteOwnership: {
+        captureRestoreToken: owner.captureRestoreToken.bind(owner), canRestore: owner.canRestore.bind(owner), subscribe: owner.subscribe,
+        restore: (operation: Parameters<typeof owner.restore>[0]) => { restores++; return owner.restore(operation); },
+      } },
       'local-publishing': { LOCAL_WORKSPACE_KEY: 'workspace', LOCAL_PUBLICATIONS_KEY: 'publications' },
       'design-model': { DESIGN_STORAGE_KEY: 'design', validateDesignProject: () => {} },
       'design-store': { loadDesigns: () => [] },
-      'media-store': { listMediaLibrary: async () => ({ folders: [], assets: [asset] }), replaceMediaLibrary: async (assets: RestoredAsset[]) => { restoredAssets = assets; } },
+      'media-store': {
+        readMediaLibrarySnapshot: async (...args: Parameters<typeof live.readMediaLibrarySnapshot>) => ({
+          ...await live.readMediaLibrarySnapshot(...args), assets: [asset],
+        }),
+        replaceMediaLibrary: async (...args: Parameters<typeof live.replaceMediaLibrary>) => {
+          await live.replaceMediaLibrary(...args);
+          restoredAssets = args[0];
+        },
+      },
       'workspace-validation': { isRecord: (value: unknown) => !!value && typeof value === 'object' && !Array.isArray(value), migrateStudioWorkspace: (value: unknown) => value, validateStudioWorkspace: () => {} },
       'template-model': { validateTemplateStore: (value: unknown) => value, validateWorkspacePublicationTemplates: (value: unknown) => value, validateTemplatePublicationSnapshot: (value: unknown) => value, templateMediaIds: () => [] },
       'template-store': { loadTemplates: () => undefined },
@@ -94,6 +115,9 @@ test('backup v7 retains image sizes and restores them into the current media sch
     old.media.assets[0].sourceRevision = { unsupported: true };
     const preparedLegacy = await api.prepareStudioBackupRestore(old);
     const foreignLegacyRevisionPreserved = isForeignRevision(preparedLegacy.assets[0].backupRecovery?.sourceRevision);
+    release();
+    await navigator.locks.request('acm-studio-writer-v1', async () => {});
+    await acquire();
     const priorRestores = restores;
     const pendingRestore = api.restoreStudioBackup(old);
     const ownershipRequestedImmediately = restores === priorRestores + 1;

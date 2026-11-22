@@ -671,7 +671,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             }
             return media.insertImage(asset, media.targetBackground ? { target: "background" } : undefined, altText, signal);
           }}
-        /> : selectedSite ? <TestSiteBackup globalTemplates={globalTemplates.library} site={testSite} /> : <BackupManager workspace={workspace} globalTemplates={globalTemplates.library} />}
+        /> : selectedSite ? <TestSiteBackup globalTemplates={globalTemplates.library} site={testSite} /> : <BackupManager workspace={workspace} getBackupDraft={studioSession.getBackupDraft} globalTemplates={globalTemplates.library} />}
         </>}
       </main>
       <StudioDocumentDialogs actions={documentActions} workspace={workspace} templates={templateSession.store} writable={writable} templateWritable={templateSession.writable} />

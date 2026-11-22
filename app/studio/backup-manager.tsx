@@ -11,7 +11,7 @@ import {
   createCompleteBackupFile,
   checkCompleteBackupFile,
   restoreStudioBackup,
-  type StudioBackupSummary,
+  type StudioBackupSummary, type BackupDraft,
 } from "./backup-store";
 import { listMediaLibrary } from "./media-store";
 import { loadDesigns } from "./design-store";
@@ -24,7 +24,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function BackupManager({ workspace, globalTemplates }: { workspace: StudioWorkspace; globalTemplates?: GlobalTemplateLibrary | null }) {
+export function BackupManager({ workspace, getBackupDraft, globalTemplates }: { workspace: StudioWorkspace; getBackupDraft?: () => BackupDraft; globalTemplates?: GlobalTemplateLibrary | null }) {
   const [currentSummary, setCurrentSummary] = useState<StudioBackupSummary | null>(null);
   const [selectedBackup, setSelectedBackup] = useState<Awaited<ReturnType<typeof checkCompleteBackupFile>> | null>(null);
   const [selectedSummary, setSelectedSummary] = useState<StudioBackupSummary | null>(null);
@@ -59,7 +59,7 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
     setBusy(true);
     setStatus("Preparing content and media files…");
     try {
-      const backup = await createCompleteBackupFile(workspace, globalTemplates);
+      const backup = await createCompleteBackupFile(getBackupDraft ?? workspace, globalTemplates);
       const url = URL.createObjectURL(backup.file);
       try {
         const link = document.createElement("a");

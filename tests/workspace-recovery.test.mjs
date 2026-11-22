@@ -615,7 +615,11 @@ test("failed restore preserves even empty original values", async () => {
 test("backup export rejects encoded media over its limit before reading blobs", async () => {
   const size = 76 * 1024 * 1024;
   const create = modules({ "./media-store": {
-    listMediaLibrary: async () => ({ folders: [], assets: [{ id: "large", size, blob: { size } }] }),
+    readMediaLibrarySnapshot: async (capture) => ({
+      folders: [],
+      assets: [{ id: "large", size, blob: { size } }],
+      related: capture(new Map()),
+    }),
   } }, { Blob, window: { localStorage: { getItem: () => null } }, FileReader: class {
     constructor() { assert.fail("oversized media must not be read"); }
   } })("app/studio/backup-store.ts").createStudioBackup;

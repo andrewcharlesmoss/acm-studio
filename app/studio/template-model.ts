@@ -113,7 +113,7 @@ export const LEGACY_TEMPLATE_VERSION_5 = "0.5.0" as const;
 export const LEGACY_TEMPLATE_VERSION_4 = "0.4.0" as const;
 export const LEGACY_TEMPLATE_VERSION_2 = "0.2.0" as const;
 export const LEGACY_TEMPLATE_VERSION_3 = "0.3.0" as const;
-export { TEMPLATE_STORAGE_KEY } from "../content/local-storage-keys";
+export { TEMPLATE_STORAGE_KEY } from "../content/local-storage-keys.ts";
 export const templateElements = ["site-identity", "site-title", "site-tagline", "site-logo", "navigation", "document-title", "subtitle", "cover-image", "post-metadata", "content", "copyright", "social-links", "site-credit"] as const;
 export type TemplateElement = typeof templateElements[number];
 export type TemplateImage = { src: string; mediaId?: string; alt: string };

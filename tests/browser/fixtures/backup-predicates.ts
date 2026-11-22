@@ -23,5 +23,7 @@ export { containsGroupHeadingStyles, containsExtendedGroupShadow, containsExtraB
 export { containsQueryLoop } from "../../../app/studio/workspace-validation";
 export { contentMediaIds } from "../../../app/content/media-references";
 export { containsPublicationPresentation } from "../../../app/studio/publication-presentation-contract";
-export { beginRestore, resumePendingRestore, writeRestoreValues } from "../../../app/studio/restore-journal";
-export { RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY } from "../../../app/content/local-storage-keys";
+export { beginRestore, RESTORE_JOURNAL_KEY, restoreAcknowledgement, resumePendingRestore, writeRestoreValues } from "../../../app/studio/restore-journal";
+export { DESIGN_STORAGE_KEY, LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY, TEMPLATE_STORAGE_KEY } from "../../../app/content/local-storage-keys";
+export { ensureMediaGeneration, readMediaLibrarySnapshot, replaceMediaLibrary } from "../../../app/studio/media-store";
+export { studioWriteOwnership } from "../../../app/studio/write-ownership";

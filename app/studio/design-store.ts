@@ -1,8 +1,8 @@
 import { compactDesignAssets, DESIGN_STORAGE_KEY, migrateDesignProject, validateDesignProject, type DesignProject } from "./design-model";
 import { studioWriteOwnership } from "./write-ownership";
 
-export function loadDesigns() {
-  const raw = window.localStorage.getItem(DESIGN_STORAGE_KEY);
+export function loadDesigns(storage: Pick<Storage, "getItem"> = window.localStorage) {
+  const raw = storage.getItem(DESIGN_STORAGE_KEY);
   if (raw === null) return [];
   let value: unknown;
   try { value = JSON.parse(raw); } catch { throw new Error("Saved designs could not be read. Export a backup before continuing."); }

@@ -11,11 +11,11 @@ import { containsVideoBlock } from "../content/video-block";
 import { containsCoreSocialLink } from "../content/social-services";
 import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../content/site-featured-image.mjs";
 import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
-import { withSavedDocumentRevisions } from "./workspace-repository";
-import { beginRestore, resumePendingRestore, writeRestoreValues } from "./restore-journal";
-import { RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY } from "../content/local-storage-keys";
+import { DESIGN_STORAGE_KEY, LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY, TEMPLATE_STORAGE_KEY } from "../content/local-storage-keys";
+import { beginRestore, RESTORE_JOURNAL_KEY, restoreAcknowledgement, resumePendingRestore, writeRestoreValues } from "./restore-journal";
+import type { StudioPendingSave } from "./studio-pending-save";
 import { studioWriteOwnership } from "./write-ownership";
-import { LOCAL_PUBLICATIONS_KEY, type LocallyPublishedArticle } from "../content/local-publishing";
+import type { LocallyPublishedArticle } from "../content/local-publishing";
 import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, containsScopedFlexItemSizing, containsGroupLayoutExtensions } from "../content/layout";
 import { containsGridItemSizing } from "../content/grid-child-sizing";
 import { containsExtendedGroupShadow, containsExtraBlackAppearance, containsGroupHeadingStyles } from "../content/quote-presentation";
@@ -31,7 +31,7 @@ import { containsColumnWidthUnit } from "../content/columns";
 import { validateDesignProject, type DesignProject } from "./design-model";
 import { loadDesigns } from "./design-store";
 import type { StudioDocument, StudioWorkspace } from "./editor-model";
-import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
+import { readMediaLibrarySnapshot, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
 import { containsQueryLoop, isRecord, migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
 import { validateTemplateStore, templateMediaIds, binnedTemplateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
@@ -288,13 +288,49 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
   };
 }
 
-async function captureStudioBackup(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
-  workspace = structuredClone(withSavedDocumentRevisions(workspace));
-  validateStudioWorkspace(workspace);
+export type BackupDraft = { workspace: StudioWorkspace; pending: StudioPendingSave<StudioWorkspace> | null; conflicted: boolean };
+// A plain workspace supplies the first-run fallback. The live editor supplies
+// its pending operation as well, so unsaved input can be retained or reported.
+type BackupWorkspace = StudioWorkspace | (() => BackupDraft);
+
+function captureBrowserRecords(source: BackupWorkspace, metadata: ReadonlyMap<string, unknown>) {
+  const requiredReceipt = restoreAcknowledgement(metadata.get(RESTORE_JOURNAL_KEY), metadata.get("generation"));
+  const storage = window.localStorage;
+  const keys = [LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY];
+  function checkRestore() {
+    if (storage.getItem(RESTORE_PENDING_KEY) !== null || storage.getItem(RESTORE_RECEIPT_KEY) !== requiredReceipt) throw new Error("A Studio restore is pending. Finish recovery and retry the backup.");
+  }
+  checkRestore();
+  const records = new Map(keys.map(key => [key, storage.getItem(key)]));
+  const draft = structuredClone(typeof source === "function" ? source() : { workspace: source, pending: null, conflicted: false });
+  if (keys.some(key => storage.getItem(key) !== records.get(key))) throw new Error("Studio changed during backup. Retry to capture the current content and files together.");
+  checkRestore();
+  return { storage: { getItem: (key: string) => records.get(key) ?? null }, draft };
+}
+
+function backupWorkspace(raw: string | null, draft: BackupDraft) {
+  const saved = raw === null ? null : validateWorkspacePublicationTemplates(migrateStudioWorkspace(JSON.parse(raw)));
+  const conflict = "The saved workspace and this tab's unsaved changes differ. Resolve the changes and retry the complete backup. Your draft is still in this tab.";
+  if (draft.conflicted) throw new Error(conflict);
+  if (!saved) return structuredClone(draft.workspace);
+  if (!draft.pending) return saved;
+  // Selection and saved history have independent owners. An acknowledged
+  // draft can still await its receipt, and a peer can advance either value.
+  const contents = (value: StudioWorkspace) => JSON.stringify([value.documents, value.categories, value.bin]);
+  const persisted = contents(saved);
+  if (persisted === contents(draft.pending.snapshot)) return saved;
+  if (persisted !== contents(draft.pending.base)) throw new Error(conflict);
+  return structuredClone({ ...draft.pending.snapshot, documentRevisions: saved.documentRevisions });
+}
+
+async function captureStudioBackup(source: BackupWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
   const capturedGlobalTemplates = globalTemplates ? structuredClone(validateGlobalTemplateLibrary(globalTemplates)) : undefined;
-  const publications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
+  const library = await readMediaLibrarySnapshot(metadata => captureBrowserRecords(source, metadata), [RESTORE_JOURNAL_KEY, "generation"]);
+  const { storage, draft } = library.related;
+  const workspace = backupWorkspace(storage.getItem(LOCAL_WORKSPACE_KEY), draft);
+  validateStudioWorkspace(workspace);
+  const publications = storage.getItem(LOCAL_PUBLICATIONS_KEY);
   if (publications !== null) validatePublicationSnapshot(JSON.parse(publications));
-  const library = await listMediaLibrary();
   const originalBlobs = library.assets.map(asset => asset.blob);
   const folders = structuredClone(library.folders);
   const capturedRenditions = library.assets.map(asset => {
@@ -315,8 +351,8 @@ async function captureStudioBackup(workspace: StudioWorkspace, globalTemplates?:
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     workspace,
-    designs: loadDesigns(),
-    templates: loadTemplates(),
+    designs: loadDesigns(storage),
+    templates: loadTemplates(storage),
     ...(capturedGlobalTemplates ? { globalTemplates: capturedGlobalTemplates } : {}),
     ...(capturedGlobalTemplates?.websiteDesignDefaults ? { globalDesignImages: await collectSiteImages(capturedGlobalTemplates.websiteDesignDefaults,"global",true) } : {}),
     publications,
@@ -325,7 +361,7 @@ async function captureStudioBackup(workspace: StudioWorkspace, globalTemplates?:
   return { backup, capturedRenditions, originalBlobs };
 }
 
-export async function createStudioBackup(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
+export async function createStudioBackup(workspace: BackupWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
   const { backup, capturedRenditions, originalBlobs } = await captureStudioBackup(workspace, globalTemplates);
   const { assets } = backup.media;
   // Account for base64 expansion before reading media into memory. The empty
@@ -388,7 +424,7 @@ async function prepareArchiveContents(value: unknown, blobs: Blob[]) {
   return { backup, assets };
 }
 
-export async function createCompleteBackupFile(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
+export async function createCompleteBackupFile(workspace: BackupWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
   const { backup, originalBlobs, capturedRenditions } = await captureStudioBackup(workspace, globalTemplates);
   const blobs: Blob[] = [];
   for (const [index, original] of originalBlobs.entries()) {

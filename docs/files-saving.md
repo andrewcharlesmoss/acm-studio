@@ -36,6 +36,28 @@ operational receipts. Pending commands from the previous generation require
 review; they cannot silently apply to restored content. Receipts and generation
 are excluded from portable media exports and backups.
 
+### Complete browser backups
+
+A complete backup reads Files and the saved browser documents, revisions,
+publications, templates, and designs together. This works from a read-only tab.
+The editing tab can include pending document edits when their saved base still
+matches. If Studio reports a conflict, keep that tab open, resolve the changes,
+and retry. The optional shared template library comes from its own gateway.
+
+If a tab or the browser closes during a full restore, reopen Studio at the
+same address in the same browser profile. Before editing resumes, Studio checks
+which Files generation committed and recovers its matching documents,
+publications, designs and templates. Once recovery is acknowledged, later
+edits take precedence. If another tab attempts a complete backup while recovery
+is pending, Studio asks you to finish recovery and retry the export.
+
+To make this possible after a browser restart, IndexedDB keeps one recovery
+copy of those four records. A rollback preserves the original stored text,
+including unreadable values. The copy contains no media blobs, stays in this
+browser profile and is replaced by the next full restore. If recovery stays
+blocked, keep the original profile intact. Restore a checked backup through
+**Backup and restore** in a separate browser profile and inspect it there.
+
 Every successful media write sends a small change notification. Open file
 libraries read one coherent IndexedDB snapshot, retaining search, selection,
 folder location and unfinished metadata fields. Content and template editors

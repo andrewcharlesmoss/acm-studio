@@ -135,7 +135,7 @@ test("keeps hosted database, login and starter-preview surfaces out of the found
   assert.match(backupStore, /acm-studio-backup/);
   assert.match(backupStore, /validateStudioBackup/);
   assert.match(backupStore, /dataBase64/);
-  assert.match(backupStore, /previousLibrary/);
+  assert.match(backupStore, /studioWriteOwnership\.restore/);
   assert.match(backupManager, /Download complete backup/);
   assert.match(backupManager, /Restore checked backup/);
   assert.match(backupManager, /I understand that this will replace/);
