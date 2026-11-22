@@ -8,12 +8,9 @@ import { useEffect, useRef, useState } from "react";
 import { LOCAL_PUBLICATIONS_KEY, parseLocallyPublishedDocuments } from "../content/local-publishing";
 import type { StudioWorkspace } from "./editor-model";
 import {
-  createStudioBackup,
-  downloadStudioBackup,
-  readStudioBackup,
+  createCompleteBackupFile,
+  checkCompleteBackupFile,
   restoreStudioBackup,
-  summariseStudioBackup,
-  type StudioBackup,
   type StudioBackupSummary,
 } from "./backup-store";
 import { listMediaLibrary } from "./media-store";
@@ -29,7 +26,7 @@ function formatBytes(bytes: number) {
 
 export function BackupManager({ workspace, globalTemplates }: { workspace: StudioWorkspace; globalTemplates?: GlobalTemplateLibrary | null }) {
   const [currentSummary, setCurrentSummary] = useState<StudioBackupSummary | null>(null);
-  const [selectedBackup, setSelectedBackup] = useState<StudioBackup | null>(null);
+  const [selectedBackup, setSelectedBackup] = useState<Awaited<ReturnType<typeof checkCompleteBackupFile>> | null>(null);
   const [selectedSummary, setSelectedSummary] = useState<StudioBackupSummary | null>(null);
   const [selectedFilename, setSelectedFilename] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -62,9 +59,15 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
     setBusy(true);
     setStatus("Preparing content and media files…");
     try {
-      const backup = await createStudioBackup(workspace, globalTemplates);
-      downloadStudioBackup(backup);
-      setStatus(`Complete backup downloaded · ${backup.media.assets.length} ${backup.media.assets.length === 1 ? "file" : "files"} included`);
+      const backup = await createCompleteBackupFile(workspace, globalTemplates);
+      const url = URL.createObjectURL(backup.file);
+      try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = backup.filename;
+        link.click();
+      } finally { window.setTimeout(() => URL.revokeObjectURL(url), 0); }
+      setStatus(`Complete backup downloaded · ${backup.files} ${backup.files === 1 ? "file" : "files"} included`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "The complete backup could not be created");
     } finally {
@@ -80,9 +83,9 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
     setConfirmed(false);
     setStatus("Checking the selected backup…");
     try {
-      const backup = await readStudioBackup(file);
+      const backup = await checkCompleteBackupFile(file);
       setSelectedBackup(backup);
-      setSelectedSummary(summariseStudioBackup(backup));
+      setSelectedSummary(backup.summary);
       setSelectedFilename(file.name);
       setStatus("Backup checked successfully. Review it before restoring.");
     } catch (error) {
@@ -100,7 +103,7 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
     setBusy(true);
     setStatus("Restoring the checked backup…");
     try {
-      await restoreStudioBackup(selectedBackup);
+      await restoreStudioBackup(selectedBackup.source);
       window.location.reload();
     } catch (error) {
       setBusy(false);
@@ -125,7 +128,7 @@ export function BackupManager({ workspace, globalTemplates }: { workspace: Studi
         <article className="backup-panel backup-restore-panel">
           <div className="backup-panel-heading"><span>02</span><div><h2>Check and restore a backup</h2><p>Selecting a file only checks it. Nothing is replaced until you review and confirm the restore.</p></div></div>
           <button className="backup-select-action" type="button" onClick={() => restoreInputRef.current?.click()} disabled={busy}>Choose backup file</button>
-          <input ref={restoreInputRef} className="visually-hidden" type="file" accept="application/json,.json" onChange={(event) => void selectBackup(event.target.files?.[0])} />
+          <input ref={restoreInputRef} className="visually-hidden" type="file" accept=".acmbackup,.json,application/json,application/octet-stream" onChange={(event) => void selectBackup(event.target.files?.[0])} />
           {selectedFilename ? <p className="backup-filename"><span>Selected file</span><strong>{selectedFilename}</strong></p> : null}
           {selectedSummary ? (
             <div className="restore-preview">

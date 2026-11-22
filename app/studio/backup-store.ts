@@ -1,3 +1,4 @@
+import { contentMediaIds } from "../content/media-references";
 import { containsGeneralTemplatePart } from "./reference-template-parts-contract";
 import { containsUnsetWebsiteGradient } from "./site-editor/website-design";
 import { containsWebsiteFont } from "../content/website-fonts";
@@ -11,7 +12,7 @@ import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../con
 import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
 import { withSavedDocumentRevisions } from "./workspace-repository";
 import { studioWriteOwnership } from "./write-ownership";
-import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY } from "../content/local-publishing";
+import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, type LocallyPublishedArticle } from "../content/local-publishing";
 import { containsGroupGridFillAvailableSpace, containsFlexItemSizing, containsScopedFlexItemSizing, containsGroupLayoutExtensions } from "../content/layout";
 import { containsGridItemSizing } from "../content/grid-child-sizing";
 import { containsExtendedGroupShadow, containsExtraBlackAppearance, containsGroupHeadingStyles } from "../content/quote-presentation";
@@ -32,13 +33,15 @@ import { containsQueryLoop, isRecord, migrateStudioWorkspace, validateStudioWork
 import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
 import { blobToBase64, base64ToBlob } from "./media-serialization";
-import { captureImageRenditions } from "./image-rendition-validation";
+import { encodeBackupArchive, decodeBackupArchive, isBackupArchive } from "./backup-archive";
+import { captureImageRenditions, validateImageRenditions } from "./image-rendition-validation";
 import { captureSerializedImageRenditions, type SerializedImageRenditions } from "./image-rendition-serialization";
 import { deserializeRenditionCollection, serializeRenditionCollection } from "./image-rendition-backup";
 import type { ImageRenditions } from "../content/image-resolution";
 import { captureLegacyMediaRecovery, captureStoredMediaRecovery, isMediaSourceRevision } from "./media-backup-recovery";
 export { blobToBase64, base64ToBlob } from "./media-serialization";
 
+export const BACKUP_VERSION = 47 as const;
 const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
 
 export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
@@ -48,7 +51,7 @@ export type StudioBackupAsset = Omit<MediaAsset, "blob"> & {
 
 export type StudioBackup = {
   format: "acm-studio-backup";
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47;
   exportedAt: string;
   workspace: StudioWorkspace;
   designs?: DesignProject[];
@@ -99,7 +102,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if ((version as number) < 36 && containsWebsiteFont(content)) throw new Error("Website fonts require backup v36.");
   if ((version as number) < 35 && containsBoxSideOverrides(content)) throw new Error("Per-side spacing or border values require backup v35.");
   if ((version as number) < 34 && containsPullquote(content)) throw new Error("Pullquote requires backup v34. Original data has been retained.");
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47].includes(version as number)) throw new Error("This is not a supported ACM Studio backup.");
   if ((version as number) < 42 && containsGroupHeadingStyles(content)) throw new Error("Per-level Group heading styles require backup v42.");
   if ((version as number) < 42 && containsExtendedGroupShadow(content)) throw new Error("Expanded Group shadow presets require backup v42.");
   if ((version as number) < 42 && containsExtraBlackAppearance(content)) throw new Error("Extra Black font appearance requires backup v42.");
@@ -132,6 +135,8 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
+  if ((version as number) < 47 && isRecord(value.workspace) && Array.isArray(value.workspace.bin) &&
+    value.workspace.bin.some(item => isRecord(item) && isRecord(item.publication) && item.publication.fallbackHeader !== undefined)) throw new Error("Frozen shared headers require backup v47.");
   const workspace = validateWorkspacePublicationTemplates(migrateStudioWorkspace(value.workspace));
   if (value.globalTemplates !== undefined && (version as number) < 5) throw new Error("Shared template snapshots require backup v5.");
   const globalTemplates = value.globalTemplates === undefined ? undefined : validateGlobalTemplateLibrary(value.globalTemplates);
@@ -202,23 +207,33 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (value.publications !== null && typeof value.publications !== "string") {
     throw new Error("The published-post snapshot is invalid.");
   }
+  const missingPublicationMedia = (post: LocallyPublishedArticle) =>
+    post.mediaIds.some(id => !assetIds.has(id)) || Boolean(post.coverImage?.mediaId && !assetIds.has(post.coverImage.mediaId));
   let publications = value.publications;
   if (typeof value.publications === "string") {
     try {
       const parsedPublications = JSON.parse(value.publications);
+      if ((version as number) < 47 && Array.isArray(parsedPublications?.posts) && parsedPublications.posts.some((post: unknown) => isRecord(post) && post.fallbackHeader !== undefined)) throw new Error("Frozen shared headers require backup v47.");
       if ((version as number) < 40 && containsGeneralTemplatePart(parsedPublications)) throw new Error("General template parts require backup v40.");
       if ((version as number) < 39 && containsSiteTitle(parsedPublications)) throw new Error("Site Title requires backup v39.");
       if ((version as number) < 36 && containsWebsiteFont(parsedPublications)) throw new Error("Website fonts require backup v36.");
       if ((version as number) < 35 && containsBoxSideOverrides(parsedPublications)) throw new Error("Per-side spacing or border values require backup v35.");
       if ((version as number) < 34 && containsPullquote(parsedPublications)) throw new Error("Pullquote requires backup v34.");
       const snapshot = validatePublicationSnapshot(parsedPublications);
-      for (const post of snapshot.posts) if (post.templateSnapshot && post.mediaIds.some((id: string) => !assetIds.has(id))) throw new Error("A published template image is missing from the backup.");
+      for (const post of snapshot.posts) if (missingPublicationMedia(post)) throw new Error("A published template image is missing from the backup.");
       publications = JSON.stringify(snapshot);
     } catch {
       throw new Error("The published-post snapshot is invalid.");
     }
   }
-  for (const item of workspace.bin) if (item.publication && item.publication.mediaIds.some(id => !assetIds.has(id))) throw new Error("A binned published post is missing one or more media files from the backup.");
+  const documents = [...workspace.documents, ...workspace.bin.map(item => item.document), ...(workspace.documentRevisions ?? []).map(item => item.document)];
+  for (const document of documents) {
+    const ids = contentMediaIds(document.blocks);
+    if (document.coverImage?.mediaId) ids.push(document.coverImage.mediaId);
+    const missing = ids.find(id => !assetIds.has(id));
+    if (missing) throw new Error(`The backup is missing file "${missing}" used by "${document.title || document.id}". Keep the original backup and recover the missing file before restoring.`);
+  }
+  for (const item of workspace.bin) if (item.publication && missingPublicationMedia(item.publication)) throw new Error("A binned published post is missing one or more media files from the backup.");
   if (templates !== undefined) for (const set of templates.sets) {
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A template image is missing from the backup.");
   }
@@ -226,7 +241,9 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     const set = item.kind === "set" ? item.set : item.setSnapshot;
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A binned template image is missing from the backup.");
   }
-  if (globalTemplates) for (const set of [...globalTemplates.templates.sets, ...globalTemplates.migrations.test.bases, ...globalTemplates.migrations.test2.bases]) {
+  if (globalTemplates) for (const set of [...globalTemplates.templates.sets, ...globalTemplates.migrations.test.bases, ...globalTemplates.migrations.test2.bases,
+    ...(globalTemplates.navigationRecovery ? [globalTemplates.navigationRecovery] : []),
+    ...globalTemplates.templates.bin.map(item => item.kind === "set" ? item.set : item.setSnapshot)]) {
     if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A shared template recovery image is missing from the backup.");
   }
   return { ...(value as unknown as StudioBackup), version: version as StudioBackup["version"], workspace, media: { ...(value.media as StudioBackup["media"]), assets: validatedAssets },
@@ -260,7 +277,7 @@ export function summariseStudioBackup(backup: StudioBackup): StudioBackupSummary
   };
 }
 
-export async function createStudioBackup(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
+async function captureStudioBackup(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
   workspace = structuredClone(withSavedDocumentRevisions(workspace));
   validateStudioWorkspace(workspace);
   const capturedGlobalTemplates = globalTemplates ? structuredClone(validateGlobalTemplateLibrary(globalTemplates)) : undefined;
@@ -284,7 +301,7 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
   });
   const backup: StudioBackup = {
     format: "acm-studio-backup",
-    version: 46,
+    version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     workspace,
     designs: loadDesigns(),
@@ -294,6 +311,12 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
     publications,
     media: { folders, assets },
   };
+  return { backup, capturedRenditions, originalBlobs };
+}
+
+export async function createStudioBackup(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
+  const { backup, capturedRenditions, originalBlobs } = await captureStudioBackup(workspace, globalTemplates);
+  const { assets } = backup.media;
   // Account for base64 expansion before reading media into memory. The empty
   // strings already include each JSON field's quotes and surrounding metadata.
   let encodedBytes = new Blob([JSON.stringify(backup)]).size;
@@ -309,6 +332,80 @@ export async function createStudioBackup(workspace: StudioWorkspace, globalTempl
     if (serialized[index]) assets[index].imageRenditions = serialized[index];
   }
   return validateStudioBackup(backup);
+}
+
+/** A binary manifest carries the existing content contract, with each original and
+ * rendition file in order in the container. Convert file metadata separately
+ * from the existing JSON/base64 codec so the payload is never materialised as text. */
+async function prepareArchiveContents(value: unknown, blobs: Blob[]) {
+  if (!isRecord(value) || !isRecord(value.media) || !Array.isArray(value.media.assets) || (typeof value.version !== "number" || value.version < 47)) throw new Error("Unsupported Studio backup file.");
+  let next = 0;
+  function takeBlob(size: unknown) {
+    const blob = blobs[next++];
+    if (!blob || size !== blob.size) throw new Error("A file is missing or has the wrong size in this backup.");
+    return blob;
+  }
+  const binary: { blob: Blob; imageRenditions?: ImageRenditions }[] = [];
+  const metadata = [];
+  for (const raw of value.media.assets) {
+    if (!isRecord(raw) || raw.dataBase64 !== "" || "blob" in raw) throw new Error("Invalid archived file.");
+    const { size, imageRenditions, ...asset } = raw;
+    const blob = takeBlob(size);
+    let sizes: ImageRenditions | undefined;
+    if (imageRenditions !== undefined) {
+      if (!isRecord(imageRenditions) || imageRenditions.version !== 1 || !Array.isArray(imageRenditions.bundles)) throw new Error("Invalid archived image sizes.");
+      const restored = { ...imageRenditions, bundles: imageRenditions.bundles.map(bundle => {
+        if (!isRecord(bundle) || !Array.isArray(bundle.variants)) throw new Error("Invalid archived image sizes.");
+        return { ...bundle, variants: bundle.variants.map(variant => {
+          if (!isRecord(variant) || variant.dataBase64 !== "" || "blob" in variant) throw new Error("Invalid archived image size.");
+          const { dataBase64: _empty, ...fields } = variant;
+          return { ...fields, blob: takeBlob(variant.size) };
+        }) };
+      }) };
+      sizes = await validateImageRenditions(restored);
+    }
+    binary.push({ blob, ...(sizes ? { imageRenditions: sizes } : {}) });
+    // Use the established validator for every non-binary field and reference.
+    // The returned restore data below takes sizes and original bytes from the container.
+    metadata.push({ ...asset, size: 0 });
+  }
+  if (next !== blobs.length) throw new Error("Unexpected media files in the backup.");
+  const backup = validateStudioBackup({ ...value, media: { ...value.media, assets: metadata } });
+  const assets: RenditionMediaAsset[] = backup.media.assets.map(({ dataBase64: _empty, imageRenditions: _none, ...asset }, index) => ({
+    ...asset, size: binary[index].blob.size, ...binary[index],
+  }));
+  return { backup, assets };
+}
+
+export async function createCompleteBackupFile(workspace: StudioWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
+  const { backup, originalBlobs, capturedRenditions } = await captureStudioBackup(workspace, globalTemplates);
+  const blobs: Blob[] = [];
+  for (const [index, original] of originalBlobs.entries()) {
+    blobs.push(original);
+    for (const bundle of capturedRenditions[index]?.bundles ?? []) for (const variant of bundle.variants) blobs.push(variant.blob);
+  }
+  await prepareArchiveContents(backup, blobs);
+  return {
+    file: await encodeBackupArchive(backup, blobs),
+    filename: `acm-studio-backup-${backup.exportedAt.slice(0, 10)}.acmbackup`,
+    files: originalBlobs.length,
+  };
+}
+
+async function prepareArchiveFile(file: Blob) {
+  const { content, blobs } = await decodeBackupArchive(file);
+  return prepareArchiveContents(content, blobs);
+}
+
+export async function checkCompleteBackupFile(file: File) {
+  if (await isBackupArchive(file)) {
+    const { backup, assets } = await prepareArchiveFile(file);
+    const summary = summariseStudioBackup(backup);
+    summary.fileBytes = assets.reduce((total, asset) => total + asset.size, 0);
+    return { source: file, summary, globalTemplates: backup.globalTemplates, globalDesignImages: backup.globalDesignImages };
+  }
+  const backup = await readStudioBackup(file);
+  return { source: backup, summary: summariseStudioBackup(backup), globalTemplates: backup.globalTemplates, globalDesignImages: backup.globalDesignImages };
 }
 
 export function downloadStudioBackup(backup: StudioBackup) {
@@ -351,10 +448,11 @@ export async function prepareStudioBackupRestore(input: StudioBackup): Promise<{
   return { backup, assets };
 }
 
-export async function restoreStudioBackup(backup: StudioBackup) {
-  const captured = structuredClone(validateStudioBackup(backup));
+export async function restoreStudioBackup(backup: StudioBackup | Blob) {
+  const archive = typeof Blob !== "undefined" && backup instanceof Blob ? await prepareArchiveFile(backup) : null;
+  const captured = archive ? archive.backup : structuredClone(validateStudioBackup(backup));
   return studioWriteOwnership.restore(async (permit) => {
-    const { backup: canonical, assets } = await prepareStudioBackupRestore(captured);
+    const { backup: canonical, assets } = archive ?? await prepareStudioBackupRestore(captured);
     const previousLibrary = await listMediaLibrary();
     const previousWorkspace = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
     const previousPublications = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);

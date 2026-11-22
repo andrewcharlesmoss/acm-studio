@@ -4,3 +4,7 @@ export { studioWriteOwnership, StudioWriteOwnership } from "../../../app/studio/
 export { imageContentDigest } from "../../../app/studio/image-rendition-generation";
 export * as backupStore from "../../../app/studio/backup-store";
 export { createDocument } from "../../../app/studio/editor-model";
+export { generateImageRenditions } from "../../../app/studio/image-rendition-generation";
+export { BackupManager } from "../../../app/studio/backup-manager";
+export { createElement } from "react";
+export { createRoot } from "react-dom/client";

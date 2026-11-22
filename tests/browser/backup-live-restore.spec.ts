@@ -35,7 +35,7 @@ for (const version of [6, 37] as const) test(`backup v${version} recovery surviv
       activeRevision: restored.sourceRevision, repeatedRevision: preparedAgain.assets[0].sourceRevision, unchanged: JSON.stringify(input) === unchanged,
       storedCount: read.assets.length };
   }, version);
-  expect(result).toMatchObject({ paused: true, version: 38, bytes: 'x', unchanged: true, storedCount: 1 });
+  expect(result).toMatchObject({ paused: true, version: 47, bytes: 'x', unchanged: true, storedCount: 1 });
   const expected = { version: 1, ...(version === 6 ? { sourceRevision: { foreign: [null, false, 42] } } : {}), previousValue: { version: 1, previousValue: ['foreign existing field'] } };
   expect(result.recovery).toEqual(expected);
   expect(result.exportedRecovery).toEqual(expected);
@@ -73,4 +73,81 @@ test('live media edits preserve recovery metadata and export wraps an unowned st
     return { edited: edited.backupRecovery, first: first.media.assets[0].backupRecovery, wrapped: exported.media.assets[0].backupRecovery, bytes: await edited.blob.text(), name: edited.name };
   });
   expect(result).toEqual({ edited: { version: 1, sourceRevision: { foreign: true } }, first: { version: 1, sourceRevision: { foreign: true } }, wrapped: { version: 1, previousValue: { unrelated: ['preserve', false] } }, bytes: 'z', name: 'Renamed' });
+});
+
+test('complete backup downloads and restores large Files libraries, metadata, and image sizes through the recovery screen', async ({ page }) => {
+  test.setTimeout(120_000);
+  const source = await buildMediaAdapter();
+  await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><main id="app"></main>' }));
+  await page.goto('http://localhost:3011/');
+  await page.addScriptTag({ content: source });
+  const expected = await page.evaluate(async () => {
+    const { studioWriteOwnership: owner, mediaStore: store, createDocument, generateImageRenditions, imageContentDigest, createElement, createRoot, BackupManager } = window.StudioMediaAdapter;
+    owner.acquire(token => owner.loaded(token, true));
+    for (let pass = 0; !owner.canWrite() && pass < 100; pass++) await new Promise(resolve => setTimeout(resolve, 0));
+    const now = '2026-11-22T00:00:00Z';
+    const folder = { id: 'originals', name: 'Originals', parentId: null, createdAt: now };
+    const metadata = { name: 'My original', folderId: folder.id, caption: 'Caption', altText: 'Alternative text', updatedAt: now, createdAt: now, sourceRevision: 'original-revision' };
+    const canvas = new OffscreenCanvas(1000, 600);
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = '#a73e26';
+    context.fillRect(0, 0, 1000, 600);
+    const photo = await canvas.convertToBlob({ type: 'image/png' });
+    const bundle = await generateImageRenditions(photo);
+    if (!bundle || !bundle.variants.length) throw new Error('Expected image sizes.');
+    const chunk = new Blob([new Uint8Array(1024 * 1024).fill(73)]);
+    const assets = [80, 24].map(size => {
+      const blob = new Blob(Array(size).fill(chunk), { type: 'application/octet-stream' });
+      return { ...metadata, id: 'file-' + size, size: blob.size, type: blob.type, blob };
+    });
+    const all = [...assets, { ...metadata, id: 'photo', size: photo.size, type: photo.type, blob: photo, imageRenditions: { version: 1 as const, bundles: [bundle] } }];
+    await store.replaceMediaLibrary(all, [folder]);
+    const doc = createDocument('page', 'large-library');
+    doc.blocks = [{ id: 'photo-block', type: 'image', src: '', mediaId: 'photo', alt: 'Original' }];
+    const workspace = { version: 66 as const, documents: [doc], categories: [], bin: [], activeDocumentId: doc.id };
+    createRoot(document.getElementById('app')!).render(createElement(BackupManager, { workspace }));
+    return { bytes: await Promise.all(all.map(file => imageContentDigest(file.blob))), rendition: bundle.variants[0].digest };
+  });
+  const file = page.locator('input[type=file]');
+  const incomplete = await page.evaluate(async () => {
+    const { createDocument } = window.StudioMediaAdapter;
+    const doc = createDocument('page', 'missing-original');
+    doc.blocks = [{ id: 'image', type: 'image', src: '', mediaId: 'photo', alt: 'Current photo' }];
+    return JSON.stringify({ format: 'acm-studio-backup', version: 46, exportedAt: new Date().toISOString(),
+      workspace: { version: 66, documents: [doc], categories: [], bin: [], activeDocumentId: doc.id }, publications: null, media: { folders: [], assets: [] } });
+  });
+  await file.setInputFiles({ name: 'incomplete.json', mimeType: 'application/json', buffer: Buffer.from(incomplete) });
+  await expect(page.getByText('The backup is missing file "photo"', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Restore checked backup' })).toHaveCount(0);
+  expect(await page.evaluate(async () => Boolean(await window.StudioMediaAdapter.mediaStore.getMediaAsset('photo')))).toBe(true);
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download complete backup' }).click();
+  const archive = await download;
+  expect(archive.suggestedFilename()).toMatch(/\.acmbackup$/);
+  const path = await archive.path();
+  if (!path) throw new Error('Backup download unavailable.');
+  await file.setInputFiles(path);
+  await expect(page.getByText('Backup checked successfully.', { exact: false })).toBeVisible();
+  await page.evaluate(() => window.StudioMediaAdapter.mediaStore.replaceMediaLibrary([], []));
+  await page.getByRole('checkbox').check();
+  page.once('dialog', dialog => dialog.accept());
+  await Promise.all([
+    page.waitForEvent('load'),
+    page.getByRole('button', { name: 'Restore checked backup' }).click(),
+  ]);
+  await page.addScriptTag({ content: source });
+  const actual = await page.evaluate(async () => {
+    const { mediaStore: store, imageContentDigest } = window.StudioMediaAdapter;
+    const library = await store.listMediaLibrary();
+    const ordered = ['file-80', 'file-24', 'photo'].map(id => library.assets.find(file => file.id === id)!);
+    const photo = ordered[2] as typeof ordered[number] & { imageRenditions: import("../../app/content/image-resolution").ImageRenditions };
+    const variant = photo.imageRenditions.bundles[0].variants[0];
+    return {
+      bytes: await Promise.all(ordered.map(file => imageContentDigest(file.blob))),
+      rendition: await imageContentDigest(variant.blob),
+      metadata: ordered.map(file => [file.sourceRevision, file.caption, file.altText, file.folderId]),
+      folders: library.folders.map(folder => folder.name),
+    };
+  });
+  expect(actual).toEqual({ ...expected, metadata: Array(3).fill(['original-revision', 'Caption', 'Alternative text', 'originals']), folders: ['Originals'] });
 });

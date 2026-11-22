@@ -5,7 +5,7 @@ import { buildBackupPredicates } from './helpers/media-adapter';
 declare global { interface Window { BackupPredicates: typeof import('./fixtures/backup-predicates') } }
 
 test('backup v7 retains image sizes and restores them into the current media schema', async ({ page }) => {
-  const paths = ['app/content/raster-dimensions.ts', 'app/content/image-resolution.ts', 'app/studio/image-rendition-generation.ts', 'app/studio/image-rendition-validation.ts', 'app/studio/media-serialization.ts', 'app/studio/image-rendition-serialization.ts', 'app/studio/image-rendition-backup.ts', 'app/studio/media-backup-recovery.ts', 'app/studio/backup-store.ts'];
+  const paths = ['app/content/raster-dimensions.ts', 'app/content/image-resolution.ts', 'app/studio/image-rendition-generation.ts', 'app/studio/image-rendition-validation.ts', 'app/studio/media-serialization.ts', 'app/studio/image-rendition-serialization.ts', 'app/studio/image-rendition-backup.ts', 'app/studio/media-backup-recovery.ts', 'app/studio/backup-archive.ts', 'app/studio/backup-store.ts'];
   const sources = await Promise.all(paths.map(async path => ts.transpileModule(await readFile(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText));
   const fixture = await readFile('public/specimens/landscape.png');
   const predicateSource = await buildBackupPredicates();
@@ -13,7 +13,7 @@ test('backup v7 retains image sizes and restores them into the current media sch
   await page.goto('http://localhost:3011/');
   await page.addScriptTag({ content: predicateSource });
   const result = await page.evaluate(async ({ sources, fixture, predicateOwners }) => {
-    const ids = ['raster-dimensions', 'image-resolution', 'image-rendition-generation', 'image-rendition-validation', 'media-serialization', 'image-rendition-serialization', 'image-rendition-backup', 'media-backup-recovery', 'backup-store'];
+    const ids = ['raster-dimensions', 'image-resolution', 'image-rendition-generation', 'image-rendition-validation', 'media-serialization', 'image-rendition-serialization', 'image-rendition-backup', 'media-backup-recovery', 'backup-archive', 'backup-store'];
     const modules: Record<string, unknown> = {};
     const bytes = Uint8Array.from(atob(fixture), character => character.charCodeAt(0));
     const original = new Blob([bytes], { type: 'image/png' });
@@ -105,7 +105,7 @@ test('backup v7 retains image sizes and restores them into the current media sch
     delete asset.imageRenditions;
     const legacy = await api.createStudioBackup(workspace);
     return { version: saved.version, sourceDigest: requireSizes(read.media.assets[0]).bundles[0].sourceDigest, originalData: read.media.assets[0].dataBase64 === fixture, variantCount: requireSizes(read.media.assets[0]).bundles[0].variants.length, restoreSnapshotCaptured, restoreRejected, restoredWithSizes, restores, oldRejected, capturedVersion, ownershipRequestedImmediately, foreignLegacyRevisionPreserved, legacyRestorePreserved, corruptionRejected, invalidRevisionRejected, legacyVersion: legacy.version };
-  }, { sources, fixture: fixture.toString('base64'), predicateOwners: ['website-design', 'website-fonts', 'box-lengths', 'pullquote-block', 'code-runs', 'video-block', 'social-services', 'layout', 'grid-child-sizing', 'featured-image-overlay', 'details-block', 'cover-block', 'author-profile-presentation', 'image-duotone', 'image-edit', 'document-metadata', 'template-model', 'columns'] });
-  expect(result).toMatchObject({ version: 38, originalData: true, variantCount: 2, restoreSnapshotCaptured: true, restoreRejected: false, restoredWithSizes: true, restores: 2, oldRejected: true, capturedVersion: 6, ownershipRequestedImmediately: true, foreignLegacyRevisionPreserved: true, legacyRestorePreserved: true, corruptionRejected: true, invalidRevisionRejected: true, legacyVersion: 38 });
+  }, { sources, fixture: fixture.toString('base64'), predicateOwners: ['quote-presentation', 'media-references', 'reference-template-parts-contract', 'site-title-contract', 'website-design', 'website-fonts', 'box-lengths', 'pullquote-block', 'code-runs', 'video-block', 'social-services', 'layout', 'grid-child-sizing', 'featured-image-overlay', 'details-block', 'cover-block', 'author-profile-presentation', 'image-duotone', 'image-edit', 'document-metadata', 'template-model', 'columns'] });
+  expect(result).toMatchObject({ version: 47, originalData: true, variantCount: 2, restoreSnapshotCaptured: true, restoreRejected: false, restoredWithSizes: true, restores: 2, oldRejected: true, capturedVersion: 6, ownershipRequestedImmediately: true, foreignLegacyRevisionPreserved: true, legacyRestorePreserved: true, corruptionRejected: true, invalidRevisionRejected: true, legacyVersion: 47 });
   expect(result.sourceDigest).toMatch(/^[a-f0-9]{64}$/);
 });
