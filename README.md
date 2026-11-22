@@ -123,9 +123,10 @@ as the source of the second clone.
 
 The guide revision is a build input; advance it deliberately and verify Studio
 when the guide changes. Local development continues to use the adjacent working
-copy of the guide and its revision-checked editing gateway. Package sources are maintained in this repository under `packages/`. Original
-Git histories remain in the retained historical sibling repositories. These
-local source revisions were imported without rewriting their histories:
+copy of the guide and its revision-checked editing gateway. Package sources are
+maintained in this repository under `packages/`. Original Git histories are
+retained locally in `_Recovery/acm-packages-2026-11-22`, alongside `_Projects`.
+These local source revisions were imported without rewriting their histories:
 
 | Package | Historical source revision |
 | --- | --- |
@@ -134,9 +135,10 @@ local source revisions were imported without rewriting their histories:
 | `@acm/ribbon` | `7f9ed087fe18bdf7233a1fca7b98e7b439c83c57` |
 | `@acm/styles` | `83d2db2a907137f38f423d8080bbde98cee21cf8` |
 
-The original histories are local-only and are not included in a normal Studio
-GitHub push. Keep those repositories and their task branches until a separate
-archive has been authorised and verified.
+The archive is local-only and is not included in a normal Studio GitHub push.
+It retains the historical branches and uncommitted files. In particular, Icons
+commit `c23b378` contains Mobile and Update Linked Media artwork that differs
+from Studio; restoring it requires a separate design review.
 
 ## Local checks
 

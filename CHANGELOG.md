@@ -51,6 +51,8 @@
 
 ### Changed
 
+- Preserve the original shared package repositories in the local recovery archive while maintaining active sources within Studio.
+
 - Split specialist interface, local site, and Site Editor instructions into
   task-linked guides so the root project instructions fit the Codex reading budget.
 

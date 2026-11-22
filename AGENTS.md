@@ -34,8 +34,9 @@ portable publishing data, but it does not own the Andrew Moss public site.
 The canonical ACM Icons, Panel, Ribbon, and Styles packages live in
 `packages/acm-icons`, `packages/acm-panel`, `packages/acm-ribbon`, and
 `packages/acm-styles`. They keep their package identities and public exports
-for other ACM consumers. The original repositories retain their histories and remain historical
-checkouts; preserve their branches and uncommitted work.
+for other ACM consumers. The original repositories are historical checkouts in
+the local `_Recovery/acm-packages-2026-11-22` archive; preserve their histories,
+branches and uncommitted work.
 
 For a reproducible checkout, follow the guide revision and commands in README.
 The adjacent workspace-governance checkout remains the canonical style source.
