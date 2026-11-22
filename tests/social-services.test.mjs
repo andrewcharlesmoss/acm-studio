@@ -61,7 +61,7 @@ test('generic Social Link records are direct Social Icons children, while legacy
 
 test('workspace and publication versions round-trip new services and reject them under older envelopes', () => {
   const { workspace, post } = currentWorkspace();
-  assert.equal(workspace.version, 66);
+  assert.equal(workspace.version, 67);
   assert.equal(validation.validateStudioWorkspace(workspace).documents.find(item => item.id === post.id).blocks[0].children[0].service, 'chain');
   assert.throws(() => validation.validateStudioWorkspace({ ...workspace, version: 49 }), /saved workspace is invalid/);
   const article = publication.toLocallyPublishedArticle(post);
@@ -102,7 +102,7 @@ test('template, package, global library and fixture envelopes preserve service c
   fixture.documents[0].blocks = [structuredClone(block)];
   assert.equal(fixture.version, 57);
   assert.equal(fixtures.validTestSiteDocument(fixture), true);
-  assert.equal(fixtures.testSiteWorkspace(fixture).version, 66);
+  assert.equal(fixtures.testSiteWorkspace(fixture).version, 67);
   assert.equal(fixtures.validTestSiteDocument({ ...fixture, version: 38 }), false);
 });
 

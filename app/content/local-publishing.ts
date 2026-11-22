@@ -7,7 +7,7 @@ import { readableContentText, readingTimeLabel } from "./reading-time";
 import { readableRichText } from "./footnote-runs";
 import { contentMediaIds } from "./media-references";
 import { socialServiceHref } from "./social-services";
-import { copyTemplateData, templateMediaIds, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateSnapshot } from "../studio/template-model";
+import { copyTemplateData, templateMediaIds, templatePartReference, visitTemplateNodes, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateSnapshot, type PublicationHeader, type TemplateSet } from "../studio/template-model";
 import { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY } from "./local-storage-keys";
 import { resolveDocumentDisplay } from "../studio/document-fields";
 import { validDocumentDisplay } from "./document-metadata";
@@ -21,6 +21,8 @@ export { LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY };
 export type LocallyPublishedArticle = Article & {
   kind?: "post" | "page";
   templateSnapshot?: TemplateSnapshot;
+  fallbackHeader?: PublicationHeader;
+  parentPageId?: string;
   localDocumentId: string;
   mediaIds: string[];
   coverImage?: { src: string; mediaId?: string; alt: string } | null;
@@ -64,7 +66,7 @@ export function restoreLegacyPublicationCover(article: LocallyPublishedArticle, 
 }
 
 type LocalPublicationStore = {
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | typeof PUBLICATION_VERSION;
   posts: LocallyPublishedArticle[];
 };
 
@@ -138,8 +140,22 @@ export function validatePostForPublication(document: StudioDocument, documents: 
   return validateDocumentForPublication(document, documents, reservedSlugs);
 }
 
-export function toLocallyPublishedArticle(document: StudioDocument, templateSnapshot?: TemplateSnapshot): LocallyPublishedArticle {
+export function toLocallyPublishedArticle(document: StudioDocument, templateSnapshot?: TemplateSnapshot, fallbackHeader?: PublicationHeader): LocallyPublishedArticle {
   if (document.displayOverrides !== undefined && !validDocumentDisplay(document.displayOverrides)) throw new Error("The document display settings are invalid.");
+  // Retain the header's styling, navigation and transitive part dependencies only.
+  if (fallbackHeader) {
+    const { set, partId } = fallbackHeader;
+    const included = new Set([partId]);
+    for (const id of included) {
+      const part = set.parts.find(item => item.id === id);
+      if (!part) throw new Error("The shared header references a missing part.");
+      visitTemplateNodes(part.nodes, node => {
+        const reference = templatePartReference(node);
+        if (reference) included.add(reference);
+      });
+    }
+    fallbackHeader = { ...fallbackHeader, set: { ...set, templates: [], parts: set.parts.filter(part => included.has(part.id)) } };
+  }
   const selectedTemplate = templateSnapshot?.set.templates.find(template => template.id === templateSnapshot.templateId);
   const scheduledAt = document.status === "scheduled" ? document.publishAt : undefined;
   const publishedAt = scheduledAt ?? document.publishedAt ?? document.updatedAt;
@@ -148,10 +164,11 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
   const coverImage = document.coverImage === undefined && document.kind === "post"
     ? { src: "", alt: "Mock featured image" }
     : document.coverImage === null ? null : document.coverImage;
-  const mediaIds = Array.from(new Set([...contentMediaIds(document.blocks), ...(templateSnapshot ? templateMediaIds(templateSnapshot.set) : []), coverImage?.mediaId].filter((id): id is string => Boolean(id))));
+  const mediaIds = Array.from(new Set([...contentMediaIds(document.blocks), ...(fallbackHeader ? templateMediaIds(fallbackHeader.set) : []), ...(templateSnapshot ? templateMediaIds(templateSnapshot.set) : []), coverImage?.mediaId].filter((id): id is string => Boolean(id))));
   return {
     kind: document.kind,
     localDocumentId: document.id,
+    ...(document.kind === "page" && document.parentPageId ? { parentPageId: document.parentPageId } : {}),
     slug: normalisePostSlug(document.slug),
     title: document.title,
     subtitle: document.subtitle?.trim() || undefined,
@@ -170,7 +187,8 @@ export function toLocallyPublishedArticle(document: StudioDocument, templateSnap
     ...(scheduledAt ? { scheduledAt } : {}),
     section: document.templateOverrides?.category === true ? (document.category ?? "") : (document.category ?? "Technology"),
     blocks: publicationBlocks(copyTemplateData(document.blocks)),
-    ...(templateSnapshot ? { templateSnapshot: publicationTemplateSnapshot(templateSnapshot) } : {}),
+    ...(templateSnapshot ? { templateSnapshot: { ...templateSnapshot, set: publicationTemplateSet(templateSnapshot.set) } } : {}),
+    ...(fallbackHeader ? { fallbackHeader: { ...fallbackHeader, set: publicationTemplateSet(fallbackHeader.set) } } : {}),
     mediaIds,
     coverImage,
   };
@@ -182,7 +200,7 @@ export function locallyPublishedDocument(article: LocallyPublishedArticle): Stud
     slug: article.slug, excerpt: article.summary, status: "published", author: article.author,
     metadataBlocksVersion: article.metadataBlocksVersion,
     displayOverrides: article.displayOverrides ? { ...article.displayOverrides } : undefined,
-    publishedAt: article.publishedAt, updatedAt: article.updatedAt ?? "", blocks: article.blocks,
+    parentPageId: article.parentPageId, publishedAt: article.publishedAt, updatedAt: article.updatedAt ?? "", blocks: article.blocks,
     tags: [], category: article.section || undefined, coverImage: article.coverImage,
     seoTitle: article.title, seoDescription: article.summary,
   };
@@ -233,10 +251,10 @@ function readPublicationsForMutation(serialisedPublications: string | null): Loc
   }
 }
 
-export function publishDocumentLocally(document: StudioDocument, template?: TemplateSnapshot | (() => TemplateSnapshot | undefined)) {
+export function publishDocumentLocally(document: StudioDocument, template?: TemplateSnapshot | (() => TemplateSnapshot | undefined), fallbackHeader?: PublicationHeader) {
   studioWriteOwnership.assertWritable();
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
-  const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template);
+  const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template, fallbackHeader);
   if (existing.some(item => item.localDocumentId !== article.localDocumentId && (item.kind ?? "post") === document.kind && item.slug === article.slug)) {
     throw new Error("That address already belongs to another local publication.");
   }
@@ -270,8 +288,8 @@ export function restoreLocallyPublishedArticle(article: LocallyPublishedArticle)
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(validatePublicationSnapshot(store)));
 }
 
-function publicationTemplateSnapshot(snapshot: TemplateSnapshot): TemplateSnapshot {
-  const copy = copyTemplateData(snapshot);
+function publicationTemplateSet(set: TemplateSet): TemplateSet {
+  const copy = copyTemplateData(set);
   function strip(nodes: import("../studio/template-model").TemplateNode[]) {
     for (const node of nodes) {
       node.editorial = node.editorial?.hidden ? { hidden: true } : undefined;
@@ -279,6 +297,6 @@ function publicationTemplateSnapshot(snapshot: TemplateSnapshot): TemplateSnapsh
       if (node.type === "list") for (const item of node.items) if (typeof item !== "string" && item.children) strip(item.children as import("../studio/template-model").TemplateNode[]);
     }
   }
-  for (const item of [...copy.set.templates, ...copy.set.parts]) strip(item.nodes);
+  for (const item of [...copy.templates, ...copy.parts]) strip(item.nodes);
   return copy;
 }

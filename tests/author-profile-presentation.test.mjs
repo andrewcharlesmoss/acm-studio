@@ -57,7 +57,7 @@ test("Author profile data renders in local publication output and preserves the 
   const captured = publication.toLocallyPublishedArticle(post);
   assert.equal(captured.blocks[0].biography, author.biography);
   assert.equal(captured.blocks[0].profileImage.src, profileImage.src);
-  assert.equal(validation.PUBLICATION_VERSION, 57);
+  assert.equal(validation.PUBLICATION_VERSION, 58);
   assert.throws(() => validation.validatePublicationSnapshot({ version: 38, posts: [captured] }), /Author profile presentation/);
   assert.equal(validation.validatePublicationSnapshot({ version: 39, posts: [captured] }).posts[0].blocks[0].profileUrl, author.profileUrl);
 });
@@ -155,7 +155,7 @@ test("Author Duotone is round-tripped only by carriers with the new format gates
   fixture.documents[0].blocks = [block];
   assert.equal(fixture.version, 57);
   assert.equal(fixtureContract.validTestSiteDocument(fixture), true);
-  assert.equal(fixtureContract.testSiteWorkspace(fixture).version, 66);
+  assert.equal(fixtureContract.testSiteWorkspace(fixture).version, 67);
   assert.equal(fixtureContract.validTestSiteDocument({ ...fixture, version: 37 }), false);
 });
 

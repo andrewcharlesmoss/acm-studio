@@ -15,7 +15,7 @@ const page = (id = "page-one", extra = {}) => ({ id, kind: "page", title: id, sl
 
 test("pageOrder is accepted only on v29 pages and v28 workspaces upgrade without inventing an order", () => {
   const previous = { version: 28, activeDocumentId: "page-one", documents: [page()], categories: [], bin: [] };
-  assert.equal(validation.migrateStudioWorkspace(previous).version, 66);
+  assert.equal(validation.migrateStudioWorkspace(previous).version, 67);
   assert.equal(Object.hasOwn(validation.migrateStudioWorkspace(previous).documents[0], "pageOrder"), false);
   assert.equal(validation.validateStudioWorkspace({ ...previous, version: 29, documents: [page("page-one", { pageOrder: -2147483648 })] }).documents[0].pageOrder, -2147483648);
   for (const invalid of [

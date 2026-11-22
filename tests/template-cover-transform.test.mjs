@@ -64,8 +64,8 @@ test('publication envelope v57 protects nested template Covers', () => {
  header.nodes = [{ id: 'cover-published', type: 'cover', src: '', alt: '', dimRatio: 50, children: header.nodes }];
  const post = { localDocumentId: 'published-page', slug: 'published-page', title: 'Page', summary: '', displayDate: '', readingTime: '', publishedAt: '2026-11-09T00:00:00.000Z', section: '', blocks: [], mediaIds: [], templateSnapshot: { version: '0.78.0', set, templateId: 'template-test' } };
  assert.throws(() => validatePublicationSnapshot({ version: 56, posts: [post] }), /published-post snapshot v57/);
- assert.equal(validatePublicationSnapshot({ version: 57, posts: [post] }).version, 57);
- assert.equal(validatePublicationSnapshot({ version: 56, posts: [] }).version, 57);
+ assert.equal(validatePublicationSnapshot({ version: 57, posts: [post] }).version, 58);
+ assert.equal(validatePublicationSnapshot({ version: 56, posts: [] }).version, 58);
 });
 
 test('workspace v66 gates retained Cover template revisions', () => {
@@ -90,7 +90,7 @@ test('workspace repository retains binned publication with nested Cover template
  const oldWindow = globalThis.window; globalThis.window = { localStorage: { getItem: () => null } };
  try {
    const saved = withSavedDocumentRevisions(workspace);
-   assert.equal(saved.version, 66);
+   assert.equal(saved.version, 67);
    assert.equal(validateWorkspacePublicationTemplates(saved).bin[0].publication.templateSnapshot.set.parts.find(item => item.kind === 'header').nodes[0].type, 'cover');
    assert.throws(() => validateStudioWorkspace({ ...workspace, version: 65 }));
  } finally { globalThis.window = oldWindow; }

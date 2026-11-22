@@ -154,7 +154,7 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
     return () => { cancelled = true; };
   }, [globalTemplates.library, templateTarget, selectedSite, previewWindow]);
   const testContext = useTestSiteContext(testSite, studioSession, previewDocumentId, globalTemplates.library, globalTemplates.initialised);
-  const { workspace, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, templateAuthoringSnapshot, browserTemplateSession, templateMediaReady } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
+  const { workspace, writable, exclusiveWritable, syncConflict, syncResolutionError, resolveSyncConflict, canRetryEditing, retryEditing, saveLabel, setSaveLabel, commit, undo, redo, canUndo, canRedo, updateActiveDocument: updateWorkspaceDocument, setActiveDocument, templateSession, templateControls, templatePresentation, hasTemplate, resolvedDocument, fieldUsage, setFieldOverride, templateSnapshot, publicationPresentation, publicationPresentationReady, templateAuthoringSnapshot, browserTemplateSession, templateMediaReady } = useDocumentTemplates(studioSession, openTemplateTarget, selectedSite ? testContext : undefined, globalTemplates);
   useEffect(() => {
     if (!selectedSite || !testContext.session.ready) return;
     saveStudioNavigationPreview(selectedSite, {
@@ -290,6 +290,8 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
   const publishing = useStudioPublishing({
     activeDocument: workspaceDocument,
     resolvedDocument,
+    presentation: publicationPresentation,
+    presentationReady: publicationPresentationReady,
     workspace,
     updateActiveDocument: updateWorkspaceDocument,
     setSaveLabel,

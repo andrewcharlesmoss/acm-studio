@@ -10,6 +10,9 @@ import { documentFieldVisible } from "../../content/document-metadata";
 import { getMediaAsset } from "../../studio/media-store";
 import { safeImageSource } from "../../content/rich-text";
 import { createManagedImageUrl } from "../../content/image-source";
+import { PublicationHeaderView } from "../../studio/publication-header";
+import { navigationPageListLinks } from "../../studio/navigation-page-list";
+import { localPublicationHref } from "../../content/publication-address";
 import { TemplateDocument } from "../../studio/template-renderer";
 import { verifyPassword } from "../../content/password-protection";
 import { StudioIcon } from "../../studio/studio-icons";
@@ -20,6 +23,7 @@ export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?:
   const returnHref = kind === "page" ? "/studio?library=page" : "/writing";
   const returnLabel = kind === "page" ? "Return to Pages" : "Return to writing";
   const [article, setArticle] = useState<LocallyPublishedArticle | null | undefined>(undefined);
+  const [publishedPages, setPublishedPages] = useState<LocallyPublishedArticle[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
   const [passwordInput, setPasswordInput] = useState("");
@@ -31,11 +35,12 @@ export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?:
   useEffect(() => {
     let cancelled = false;
     function refresh() {
-      const localArticle = parseLocallyPublishedDocuments(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY)).find((item) => item.slug === slug && (item.kind ?? "post") === kind) ?? null;
+      const publications = parseLocallyPublishedDocuments(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
+      const localArticle = publications.find((item) => item.slug === slug && (item.kind ?? "post") === kind) ?? null;
       const restoredArticle = localArticle
         ? restoreLegacyPublicationCover(localArticle, window.localStorage.getItem(LOCAL_WORKSPACE_KEY))
         : null;
-      queueMicrotask(() => { if (!cancelled) { setArticle(restoredArticle); setPasswordUnlocked(false); } });
+      queueMicrotask(() => { if (!cancelled) { setArticle(restoredArticle); setPublishedPages(publications.filter(item => item.kind === "page" && !item.passwordProtection)); setPasswordUnlocked(false); } });
     }
     function storageChanged(event: StorageEvent) {
       if (event.key === LOCAL_PUBLICATIONS_KEY || event.key === null) refresh();
@@ -121,12 +126,17 @@ export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?:
   }
 
   const publicationDocument = locallyPublishedDocument(article);
+  const pageList = (node: import("../../studio/template-model").NavigationTemplateNode) => navigationPageListLinks(
+    publishedPages.filter(page => !page.scheduledAt || Date.parse(page.scheduledAt) <= now).map(locallyPublishedDocument),
+    localPublicationHref, node.pageListBlock?.parentPageId);
+  const frozenHeader = article.fallbackHeader ? <PublicationHeaderView header={article.fallbackHeader} document={publicationDocument}
+    documentHref={localPublicationHref(publicationDocument)} mediaUrls={mediaUrls} navigationPageListLinks={pageList} navigationSearchEntries={browserLocalPublicationSearchEntries} /> : null;
   if (article.templateSnapshot) {
-    return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This {noun} is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div><TemplateDocument snapshot={article.templateSnapshot} document={publicationDocument} mediaUrls={mediaUrls} navigationSearchEntries={browserLocalPublicationSearchEntries} /></main>;
+    return <main><div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This {noun} is visible only in this browser.</span><a href="/studio">Edit in Studio</a></div>{frozenHeader}<TemplateDocument snapshot={article.templateSnapshot} document={publicationDocument} documentHref={localPublicationHref(publicationDocument)} navigationPageListLinks={pageList} mediaUrls={mediaUrls} navigationSearchEntries={browserLocalPublicationSearchEntries} /></main>;
   }
   const legacyMetadata = article.metadataBlocksVersion !== 2;
   return (
-    <PageFrame>
+    <PageFrame header={frozenHeader ?? undefined}>
       <main className="article-page">
         <div className="local-publication-banner" role="note"><strong>Locally published preview</strong><span>This {noun} is visible only in this browser.</span><a href="/studio">Edit in Studio →</a></div>
         <header className="article-hero">
