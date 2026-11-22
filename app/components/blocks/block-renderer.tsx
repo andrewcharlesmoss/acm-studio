@@ -121,7 +121,10 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           const source = resolveVideoSource(block);
           const poster = block.poster;
           return <figure key={block.id} className={`content-video${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
-            {source ? <video src={source} controls={block.controls !== false} autoPlay={block.autoplay === true} loop={block.loop === true} muted={block.muted === true} playsInline={block.playsInline === true} preload={block.preload ?? "metadata"} poster={poster || undefined} /> : studio ? <div className="content-video-placeholder"><StudioIcon name="video" /><strong>Video block</strong><small>Add a direct video file URL.</small></div> : null}
+            {
+              // eslint-disable-next-line jsx-a11y/media-has-caption -- The Video contract supports figure captions. Timed captions need an authored track source.
+              source ? <video src={source} controls={block.controls !== false} autoPlay={block.autoplay === true} loop={block.loop === true} muted={block.muted === true} playsInline={block.playsInline === true} preload={block.preload ?? "metadata"} poster={poster || undefined} /> : studio ? <div className="content-video-placeholder"><StudioIcon name="video" /><strong>Video block</strong><small>Add a direct video file URL.</small></div> : null
+            }
             {block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}
           </figure>;
         }
