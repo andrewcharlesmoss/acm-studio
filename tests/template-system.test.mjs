@@ -34,7 +34,7 @@ function environment(overrides = {}) {
   const load = createIsolatedModuleLoader({ root: new URL("../app/", import.meta.url), overrides,
     fileOverrides: {
       "studio/ui/styles/canonical-style-guide.ts": canonicalStyles,
-      "studio/media-store.ts": { readMediaLibrarySnapshot: async capture => ({ assets: [...library.assets], folders: [...library.folders], related: capture() }), listMediaLibrary: async () => ({ assets: [...library.assets], folders: [...library.folders] }), replaceMediaLibrary: async (assets, folders) => { library.assets = [...assets]; library.folders = [...folders]; } },
+      "studio/media-store.ts": { readMediaLibrarySnapshot: async capture => ({ assets: [...library.assets], folders: [...library.folders], related: capture(new Map()) }), listMediaLibrary: async () => ({ assets: [...library.assets], folders: [...library.folders] }), replaceMediaLibrary: async (assets, folders) => { library.assets = [...assets]; library.folders = [...folders]; } },
       "studio/design-store.ts": { loadDesigns: () => [] },
     },
     resolveImport: (name, fallback) => fallback({ native: name.endsWith(".mjs") }),

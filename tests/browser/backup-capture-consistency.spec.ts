@@ -171,7 +171,76 @@ test('an exporting peer preserves a legacy database and clearly refuses an unava
       request.onerror = () => reject(request.error);
     });
     const backup = await backupStore.createStudioBackup(workspace);
-    return { bytes: atob(backup.media.assets[0].dataBase64), unavailable, afterFirstRead, databases: await indexedDB.databases(), writable: studioWriteOwnership.canWrite() };
+    localStorage.setItem('acm-studio-restore-receipt-v1', 'committed:' + crypto.randomUUID());
+    let missingDecision = '';
+    try { await backupStore.createStudioBackup(workspace); } catch (error) { missingDecision = String(error); }
+    return { bytes: atob(backup.media.assets[0].dataBase64), unavailable, missingDecision, afterFirstRead, databases: await indexedDB.databases(), writable: studioWriteOwnership.canWrite() };
   });
-  expect(result).toMatchObject({ bytes: 'L', unavailable: expect.stringMatching(/not available for read-only access/), afterFirstRead: [], databases: [{ name: 'acm-studio-media', version: 2 }], writable: false });
+  expect(result).toMatchObject({ bytes: 'L', unavailable: expect.stringMatching(/not available for read-only access/), missingDecision: expect.stringMatching(/restore/i), afterFirstRead: [], databases: [{ name: 'acm-studio-media', version: 2 }], writable: false });
+});
+
+test('a peer requires the durable restore receipt even if a stopped browser lost its localStorage intent', async ({ context, page }) => {
+  const adapter = await buildMediaAdapter();
+  const peer = await context.newPage();
+  await context.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<title>Restore receipt recovery</title>' }));
+  for (const tab of [page, peer]) {
+    await tab.goto('http://localhost:3011/');
+    await tab.addScriptTag({ content: adapter });
+  }
+  const { original, restored, id } = await page.evaluate(async () => {
+    const { studioWriteOwnership: owner, mediaStore, createDocument, LOCAL_WORKSPACE_KEY } = window.StudioMediaAdapter;
+    owner.acquire(token => owner.loaded(token, true));
+    const deadline = Date.now() + 5000;
+    while (!owner.canWrite() && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+    if (!owner.canWrite()) throw new Error('Workspace owner unavailable');
+    const doc = createDocument('page', 'receipt');
+    doc.title = 'Original workspace A';
+    doc.blocks = [{ id: 'file', type: 'image', src: '', alt: '', mediaId: 'same-file' }];
+    const original = { version: 67 as const, documents: [doc], activeDocumentId: doc.id, categories: [], bin: [] };
+    const restored = structuredClone(original);
+    restored.documents[0].title = 'Restored workspace B';
+    // Recreate the cold-start state: localStorage retained A, but
+    // IndexedDB committed B's Files and recovery decision atomically.
+    localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(original));
+    await mediaStore.ensureMediaGeneration();
+    const id = crypto.randomUUID();
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open('acm-studio-media');
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(['metadata', 'assets-v3'], 'readwrite');
+        const now = new Date().toISOString();
+        tx.objectStore('assets-v3').put({ id: 'same-file', name: 'file.txt', folderId: null, type: 'text/plain', size: 1, blob: new Blob(['B']), altText: '', caption: '', createdAt: now, updatedAt: now });
+        const meta = tx.objectStore('metadata');
+        meta.put(id, 'generation');
+        meta.put({ version: 1, id, phase: 'committed', generation: id, values: [JSON.stringify(restored), null, null, null] }, 'fullRestore');
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onabort = () => { db.close(); reject(tx.error); };
+      };
+    });
+    return { original, restored, id };
+  });
+  const exportFromPeer = () => peer.evaluate(async workspace => {
+    const { backupStore, studioWriteOwnership } = window.StudioMediaAdapter;
+    if (studioWriteOwnership.canWrite()) throw new Error('The exporting peer unexpectedly owns recovery');
+    const snapshot = await backupStore.createStudioBackup(workspace);
+    return { title: snapshot.workspace.documents[0].title, bytes: atob(snapshot.media.assets[0].dataBase64) };
+  }, original);
+  await expect(exportFromPeer()).rejects.toThrow(/restore|recovery/i);
+  await page.evaluate(() => localStorage.setItem('acm-studio-restore-receipt-v1', 'original:' + crypto.randomUUID()));
+  await expect(peer.evaluate(source => window.StudioMediaAdapter.backupStore.createCompleteBackupFile(source), original)).rejects.toThrow(/restore|recovery/i);
+  await page.evaluate(({ restored, id }) => {
+    localStorage.setItem(window.StudioMediaAdapter.LOCAL_WORKSPACE_KEY, JSON.stringify(restored));
+    localStorage.setItem('acm-studio-restore-receipt-v1', 'committed:' + id);
+  }, { restored, id });
+  expect(await exportFromPeer()).toEqual({ title: 'Restored workspace B', bytes: 'B' });
+  await page.evaluate(async (restored) => {
+    const { browserWorkspaceRepository, mediaStore } = window.StudioMediaAdapter;
+    const next = structuredClone(restored);
+    next.documents[0].title = 'Later legitimate edit';
+    browserWorkspaceRepository.save(next);
+    await mediaStore.replaceMediaAssetContent('same-file', new File(['C'], 'file.txt', { type: 'text/plain' }));
+  }, restored);
+  expect(await exportFromPeer()).toEqual({ title: 'Later legitimate edit', bytes: 'C' });
 });

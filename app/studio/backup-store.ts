@@ -11,7 +11,8 @@ import { containsVideoBlock } from "../content/video-block";
 import { containsCoreSocialLink } from "../content/social-services";
 import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../content/site-featured-image.mjs";
 import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
-import { RESTORE_PENDING_KEY } from "../content/local-storage-keys";
+import { RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY } from "../content/local-storage-keys";
+import { RESTORE_JOURNAL_KEY, restoreAcknowledgement } from "./restore-journal";
 import type { StudioPendingSave } from "./studio-pending-save";
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, type LocallyPublishedArticle } from "../content/local-publishing";
@@ -292,11 +293,12 @@ export type BackupDraft = { workspace: StudioWorkspace; pending: StudioPendingSa
 // its pending operation as well, so unsaved input can be retained or reported.
 type BackupWorkspace = StudioWorkspace | (() => BackupDraft);
 
-function captureBrowserRecords(source: BackupWorkspace) {
+function captureBrowserRecords(source: BackupWorkspace, metadata: ReadonlyMap<string, unknown>) {
+  const requiredReceipt = restoreAcknowledgement(metadata.get(RESTORE_JOURNAL_KEY), metadata.get("generation"));
   const storage = window.localStorage;
   const keys = [LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY];
   function checkRestore() {
-    if (storage.getItem(RESTORE_PENDING_KEY) !== null) throw new Error("A Studio restore is pending. Finish recovery and retry the backup.");
+    if (storage.getItem(RESTORE_PENDING_KEY) !== null || storage.getItem(RESTORE_RECEIPT_KEY) !== requiredReceipt) throw new Error("A Studio restore is pending. Finish recovery and retry the backup.");
   }
   checkRestore();
   const records = new Map(keys.map(key => [key, storage.getItem(key)]));
@@ -323,7 +325,7 @@ function backupWorkspace(raw: string | null, draft: BackupDraft) {
 
 async function captureStudioBackup(source: BackupWorkspace, globalTemplates?: GlobalTemplateLibrary | null) {
   const capturedGlobalTemplates = globalTemplates ? structuredClone(validateGlobalTemplateLibrary(globalTemplates)) : undefined;
-  const library = await readMediaLibrarySnapshot(() => captureBrowserRecords(source));
+  const library = await readMediaLibrarySnapshot(metadata => captureBrowserRecords(source, metadata), [RESTORE_JOURNAL_KEY, "generation"]);
   const { storage, draft } = library.related;
   const workspace = backupWorkspace(storage.getItem(LOCAL_WORKSPACE_KEY), draft);
   validateStudioWorkspace(workspace);

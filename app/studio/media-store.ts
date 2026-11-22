@@ -181,20 +181,31 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
     } finally { database.close(); }
   }
 
-  async function readMediaLibrarySnapshot<T>(readRelatedRecords: () => T) {
+  async function readMediaLibrarySnapshot<T>(readRelatedRecords: (metadata: ReadonlyMap<string, unknown>) => T, metadataKeys: readonly string[] = []) {
     const database = await openDatabase();
     const library: { assets: StoredMediaAsset[]; folders: MediaFolder[] } = { assets: [], folders: [] };
     let related!: T;
     let failure: { error: unknown } | undefined;
     try {
-      await runTransaction(database, [assetStoreFor(database), FOLDER_STORE], "readonly", transaction => {
+      const stores = [assetStoreFor(database), FOLDER_STORE];
+      const readMetadata = metadataKeys.length > 0 && database.objectStoreNames.contains(META_STORE);
+      if (metadataKeys.length && database.version >= 2 && !readMetadata) throw new Error("The Files recovery metadata is missing. The backup could not be checked.");
+      if (readMetadata) stores.push(META_STORE);
+      await runTransaction(database, stores, "readonly", transaction => {
+        const metadata = new Map<string, unknown>();
+        if (readMetadata) {
+          for (const key of metadataKeys) {
+            const request = transaction.objectStore(META_STORE).get(key);
+            request.onsuccess = () => { metadata.set(key, request.result); };
+          }
+        }
         const assets = transaction.objectStore(assetStoreFor(database)).getAll();
         const folders = transaction.objectStore(FOLDER_STORE).getAll();
         assets.onsuccess = () => { library.assets = assets.result; };
         folders.onsuccess = () => {
           library.folders = folders.result;
-          // Both stores are locked against writes while this success handler runs.
-          try { related = readRelatedRecords(); } catch (error) { failure = { error }; }
+          // Earlier requests have completed, and every included store remains locked here.
+          try { related = readRelatedRecords(metadata); } catch (error) { failure = { error }; }
         };
       });
       if (failure) throw failure.error;
