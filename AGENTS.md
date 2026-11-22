@@ -38,6 +38,15 @@ for other ACM consumers. The original repositories are historical checkouts in
 the local `_Recovery/acm-packages-2026-11-22` archive; preserve their histories,
 branches and uncommitted work.
 
+For each shared package, keep notable in-progress changes under `Unreleased`.
+When a coherent set of package changes is complete and verified, make a
+deliberate local release: choose the semantic version for its compatibility
+impact and update the package metadata and changelog together. This applies to
+private packages too; individual edits do not each require a version bump.
+Assess compatibility across the public API and the documented visual and
+interaction contracts. A version bump does not publish the package or update
+other consumers; those remain separate, authorised actions.
+
 For a reproducible checkout, follow the guide revision and commands in README.
 The adjacent workspace-governance checkout remains the canonical style source.
 
