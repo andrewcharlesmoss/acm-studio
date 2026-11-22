@@ -36,6 +36,22 @@ operational receipts. Pending commands from the previous generation require
 review; they cannot silently apply to restored content. Receipts and generation
 are excluded from portable media exports and backups.
 
+### Complete browser backups
+
+A complete backup reads Files and the saved browser documents, revisions,
+publications, templates, and designs together. This works from a read-only tab.
+The editing tab can include pending document edits when their saved base still
+matches. If Studio reports a conflict, keep that tab open, resolve the changes,
+and retry. The optional shared template library comes from its own gateway.
+
+If a tab closes during a full restore, reopen Studio at the same address in the
+same browser profile. Before editing resumes, the saving tab checks which Files
+generation committed. It restores the original browser records if the media
+replacement did not commit, or keeps the restored records if it did. Finish
+recovery before exporting another complete backup. If recovery stays blocked,
+keep the original profile intact. A checked backup can be restored through
+**Backup and restore** in a separate browser profile, then inspected there.
+
 Every successful media write sends a small change notification. Open file
 libraries read one coherent IndexedDB snapshot, retaining search, selection,
 folder location and unfinished metadata fields. Content and template editors
