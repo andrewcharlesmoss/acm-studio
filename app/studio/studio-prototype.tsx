@@ -585,14 +585,14 @@ export function StudioPrototype({ initialView }: { initialView: StudioInitialVie
             paneCollapsed: inspectorPaneCollapsed,
             onPaneCollapsedChange: setInspectorPaneCollapsed,
             documentControls: templateControls,
-            revisionsControl: <DocumentRevisionsControl key={`${selectedSite ?? "browser"}:${activeDocument.id}`} document={activeDocument} writable={editorWritable && !codeEditorDirty && !previewWindow} refreshKey={selectedSite ? testSite.snapshot : workspace} refreshStatus={saveLabel}
+            revisionsControl: <DocumentRevisionsControl key={`${selectedSite ?? "browser"}:${activeDocument.id}`} document={activeDocument} writable={writable && !switchingSite && !codeEditorDirty && !previewWindow} refreshKey={selectedSite ? testSite.snapshot : workspace} refreshStatus={saveLabel}
               load={async () => {
                 if (!selectedSite) return (browserWorkspaceRepository.load()?.documentRevisions ?? []).filter(item => item.document.id === activeDocument.id && item.document.kind === activeDocument.kind);
                 const result = await testSite.loadDocumentRevisions(activeDocument.id);
                 return fixtureDocumentRevisions(result.revisions, activeDocument);
               }}
               restore={async (revision, expected) => {
-                if (!editorWritable || codeEditorDirtyRef.current || previewWindow) throw new Error("Editing is unavailable. Your draft was preserved.");
+                if (!writable || switchingSite || codeEditorDirtyRef.current || previewWindow) throw new Error("Editing is unavailable. Your draft was preserved.");
                 await currentWorkspaceSession.flush();
                 let changed = false;
                 const restored = commit(current => {
