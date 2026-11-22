@@ -30,7 +30,7 @@ test('media symbols use the universal Accent colour at every optical scale', () 
 
       const svg = createMediaSvg(name, scale, 24, '#0088FF');
       assert.match(svg, /stroke="#0088FF"/);
-      assert.match(svg, new RegExp(`<title>${label}<\/title>`));
+      assert.match(svg, new RegExp(`<title>${label}</title>`));
       assert.doesNotMatch(svg, /currentColor/);
     }
   }

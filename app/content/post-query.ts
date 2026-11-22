@@ -1,4 +1,4 @@
-/** A host-supplied post suitable for a Query Loop; private source data stays with the host. */
+/** A host-supplied post suitable for a Query Loop; availableAt marks a future boundary relative to the host’s snapshot clock. */
 export type QueryPost = { id: string; title: string; href: string; publishedAt: string; sticky?: boolean; availableAt?: number };
 export type PostQuery = { count: number; order: "asc" | "desc"; stickyFirst?: boolean };
 

@@ -22,7 +22,7 @@ export function parseMaster(source) {
     const paths = [];
     let body = group[3];
     while (body.trim()) {
-      const path = body.match(/^<path (?:d="([MLCQZ0-9., \-]+)"( fill="currentColor")?( fill-rule="evenodd")?( stroke="none")?|fill="currentColor"( fill-rule="evenodd")?( stroke="none")? d="([MLCQZ0-9., \-]+)") \/>\s*/);
+      const path = body.match(/^<path (?:d="([MLCQZ0-9., -]+)"( fill="currentColor")?( fill-rule="evenodd")?( stroke="none")?|fill="currentColor"( fill-rule="evenodd")?( stroke="none")? d="([MLCQZ0-9., -]+)") \/>\s*/);
       if (!path) throw new Error("Unsafe or unsupported SVG path");
       const d = path[1] || path[7];
       if (!d.startsWith("M ") || !/[0-9]/.test(d)) throw new Error("Invalid path data");
@@ -89,7 +89,7 @@ export function buildFiles() {
   files["dist/index.js"] += "export function resolveIconName(name) { const aliases = " + JSON.stringify(compatibilityAliases) + "; return Object.hasOwn(aliases, name) ? aliases[name] : (Object.hasOwn(iconGeometry, name) ? name : undefined); }\n";
   files["dist/index.js"] += "export const iconAddedAt = " + JSON.stringify(exportedAddedAt) + ";\n";
   files["dist/index.js"] += "export const iconModifiedAt = " + JSON.stringify(exportedModifiedAt) + ";\n";
-  files["dist/index.d.ts"] = "export type IconName = " + [...names, ...Object.keys(compatibilityAliases)].map((name) => JSON.stringify(name)).join(" | ") + ';\nexport type IconScale = "Regular-S" | "Regular-M" | "Regular-L";\nexport type IconMetadata = { name: IconName; label: string; description: string; keywords: string[]; golden: boolean; provenance: string; licenceNotice?: string };\nexport declare const iconNames: readonly IconName[];\nexport declare const iconScales: readonly IconScale[];\nexport declare const iconMetadata: Record<IconName, IconMetadata>;\nexport declare const iconGeometry: Record<IconName, Record<IconScale, { strokeWidth: number; paths: { d: string; fill?: string; fillRule?: \"evenodd\"; stroke?: \"none\" }[] }>>;\nexport declare function svgAssetPath(name: IconName, scale?: IconScale): string;\n';
+  files["dist/index.d.ts"] = "export type IconName = " + [...names, ...Object.keys(compatibilityAliases)].map((name) => JSON.stringify(name)).join(" | ") + ';\nexport type IconScale = "Regular-S" | "Regular-M" | "Regular-L";\nexport type IconMetadata = { name: IconName; label: string; description: string; keywords: string[]; golden: boolean; provenance: string; licenceNotice?: string };\nexport declare const iconNames: readonly IconName[];\nexport declare const iconScales: readonly IconScale[];\nexport declare const iconMetadata: Record<IconName, IconMetadata>;\nexport declare const iconGeometry: Record<IconName, Record<IconScale, { strokeWidth: number; paths: { d: string; fill?: string; fillRule?: "evenodd"; stroke?: "none" }[] }>>;\nexport declare function svgAssetPath(name: IconName, scale?: IconScale): string;\n';
   files["dist/index.d.ts"] += "export declare function resolveIconName(name: string): IconName | undefined;\n";
   files["dist/index.d.ts"] += "export declare const iconAddedAt: Record<IconName, string>;\n";
   files["dist/index.d.ts"] += "export declare const iconModifiedAt: Record<IconName, string>;\n";

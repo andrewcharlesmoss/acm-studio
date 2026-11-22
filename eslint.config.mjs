@@ -10,6 +10,12 @@ import tseslint from "typescript-eslint";
 const eslintConfig = defineConfig([
   globalIgnores([
     ".next/**",
+    ".vinext/**",
+    ".wrangler/**",
+    ".studio/**",
+    "work/**",
+    "test-results/**",
+    "playwright-report/**",
     "dist/**",
     "out/**",
     "build/**",
@@ -49,6 +55,11 @@ const eslintConfig = defineConfig([
         version: "detect",
       },
     },
+  },
+  {
+    // These published JavaScript entry points have matching TypeScript declarations.
+    files: ["packages/acm-icons/src/react.js", "packages/acm-icons/src/keyboard-react.js"],
+    rules: { "react/prop-types": "off" },
   },
 ]);
 

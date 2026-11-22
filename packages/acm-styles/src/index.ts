@@ -2,8 +2,6 @@ import type {
   ButtonStyle,
   FontFamily,
   FontSizeValue,
-  HoverTreatment,
-  InterfaceButtonStyle,
   InterfaceStylePreset,
   LayoutBorderWidthValue,
   LayoutContentWidthValue,

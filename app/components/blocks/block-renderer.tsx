@@ -195,8 +195,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           return date || showMissingMetadata ? <div className={`article-byline-detail metadata-block align-${block.align ?? "left"}`} key={block.id}><DocumentFieldLink href={href} enabled={block.isLink}>{value}</DocumentFieldLink></div> : null;
         }
         if (block.type === "query-loop") {
-          const now = Date.now();
-          const currentCandidates = queryCandidates.filter(post => post.availableAt === undefined || post.availableAt <= now);
+          const currentCandidates = queryCandidates.filter(post => post.availableAt === undefined);
           const matches = resolveQueryPosts(currentCandidates, { count: block.count, order: block.order, stickyFirst: block.stickyFirst });
           const postTemplate = block.children.find(child => child.type === "post-template");
           const noResults = block.children.find(child => child.type === "no-results");
@@ -205,7 +204,7 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           const renderPost = (post: QueryPost, hidden = false) => <div className="content-query-post" data-query-post-id={post.id} data-query-published-at={post.publishedAt} data-query-sticky={String(Boolean(post.sticky))} hidden={hidden} key={post.id}><BlockRenderer blocks={postTemplate.children} mediaUrls={mediaUrls} imageRenditionUrls={imageRenditionUrls} variant={variant} document={{ kind: "post", slug: post.href, title: post.title, publishedAt: post.publishedAt }} documentHref={post.href} readingTimeBlocks={postTemplate.children} showMissingMetadata={false} spacerOrientation={spacerOrientation} /></div>;
           if (!staticQuerySchedule) return <div className="content-query-loop" key={block.id}>{matches.map(post => renderPost(post))}</div>;
           const allCurrent = resolveQueryPosts(currentCandidates, { count: 100, order: block.order, stickyFirst: block.stickyFirst });
-          const future = queryCandidates.filter(post => post.availableAt !== undefined && post.availableAt > now).sort((a, b) => a.availableAt! - b.availableAt! || a.id.localeCompare(b.id, "en"));
+          const future = queryCandidates.filter(post => post.availableAt !== undefined).sort((a, b) => a.availableAt! - b.availableAt! || a.id.localeCompare(b.id, "en"));
           return <div className="content-query-loop" key={block.id} data-query-count={block.count} data-query-order={block.order} data-query-sticky-first={String(Boolean(block.stickyFirst))}>
             {allCurrent.map((post, index) => renderPost(post, index >= block.count))}
             {!matches.length && noResults?.type === "no-results" ? <div data-query-no-results><BlockRenderer blocks={noResults.children} mediaUrls={mediaUrls} imageRenditionUrls={imageRenditionUrls} variant={variant} document={document} documentHref={documentHref} readingTimeBlocks={readingTimeBlocks} showMissingMetadata={showMissingMetadata} spacerOrientation={spacerOrientation} queryCandidates={queryCandidates} /></div> : null}
