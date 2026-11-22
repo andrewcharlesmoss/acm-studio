@@ -68,7 +68,7 @@
 .motion-catalogue-heading p { color: var(--rl-muted, #62666b); }
 .motion-catalogue-options { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; }
 .motion-catalogue-search { display: grid; gap: 4px; font-size: var(--studio-ui-size, 13px); }
-.motion-catalogue-search input { width: min(280px, 100%); min-height: 40px; padding: 8px; border: 1px solid var(--rl-line, #dadde1); border-radius: 6px; }
+.motion-catalogue-search { width: min(280px, 100%); }
 .motion-catalogue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
 .motion-catalogue-card { display: grid; gap: 10px; text-align: left; padding: 12px; color: var(--rl-ink, #1c1c1e); background: white; border: 1px solid var(--rl-line, #dadde1); border-radius: 8px; font: inherit; }
 .motion-catalogue-card:hover { border-color: var(--rl-ink, #1c1c1e); }

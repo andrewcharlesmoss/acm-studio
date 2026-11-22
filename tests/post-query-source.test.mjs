@@ -18,6 +18,8 @@ test('fixture query source never exposes private, protected, future or page reco
   const href = document => `/#${document.id}`;
   assert.deepEqual(fixtureQueryPostSummaries(publications, activeIds, href, { now: Date.parse('2026-06-01T00:00:00Z') }).map(item => item.id), ['published']);
   assert.deepEqual(fixtureQueryPostSummaries(publications, activeIds, href, { now: Date.parse('2028-01-01T00:00:00Z') }).map(item => item.id), ['future', 'published']);
+  const atBoundary = fixtureQueryPostSummaries(publications, activeIds, href, { now: Date.parse('2027-01-01T00:00:00Z'), includeFutureScheduled: true });
+  assert.equal(atBoundary.find(item => item.id === 'future').availableAt, undefined);
   activeIds.delete('published');
   assert.deepEqual(fixtureQueryPostSummaries(publications, activeIds, href, { now: Date.parse('2026-06-01T00:00:00Z') }), []);
 });

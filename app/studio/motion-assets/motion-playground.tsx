@@ -3,7 +3,7 @@
 import { AcmIcon } from "@acm/icons/react";
 import { memo, useContext, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ReactNode } from "react";
 import { ColourPicker } from "../controls/colour-picker";
-import { TextInput } from "../controls/native-fields";
+import { SearchInput, TextInput } from "../controls/native-fields";
 import { NumberStepper } from "../controls/number-stepper";
 import { RangeControl } from "../controls/range-control";
 import { ToggleSetting } from "../controls/toggle-setting";
@@ -321,7 +321,7 @@ export function MotionPlayground() {
         <div><h1 id="motion-catalogue-title">Motion Assets</h1><p>Choose a sketch to preview, adjust and export.</p></div>
         <div className="motion-catalogue-options">
           <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
-          <label className="motion-catalogue-search"><span>Search motion assets</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches…" /></label>
+          <label className="motion-catalogue-search"><span>Search motion assets</span><SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches…" /></label>
         </div>
       </div>
       <div className="motion-catalogue-grid">

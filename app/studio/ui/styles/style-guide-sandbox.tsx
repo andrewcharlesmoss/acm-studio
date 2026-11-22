@@ -291,8 +291,11 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const [role, setRole] = useState<TypographyRole>("body");
   const [fontQuery, setFontQuery] = useState("");
   const [buttonWidthDraft, setButtonWidthDraft] = useState<string | null>(null);
-  const [buttonRole, setButtonRole] = useState<ButtonRole>("base");
-  useEffect(() => { setButtonWidthDraft(null); }, [buttonRole]);
+  const [buttonRole, selectButtonRole] = useState<ButtonRole>("base");
+  function setButtonRole(next: ButtonRole) {
+    if (next !== buttonRole) setButtonWidthDraft(null);
+    selectButtonRole(next);
+  }
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("settings");
   const [hoverInspection, setHoverInspection] = useState(false);
   const [selection, dispatchSelection] = useReducer(styleGuideSelectionReducer, initialStyleGuideSelection);

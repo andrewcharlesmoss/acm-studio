@@ -13,7 +13,7 @@ const { validContentBlocks, validParagraphStyle, validateStudioWorkspace, migrat
 const { toLocallyPublishedArticle } = await load("../app/content/local-publishing.ts");
 const { createTemplateSet, emptyTemplateStore, TEMPLATE_VERSION, validateTemplateStore, validateTemplateSnapshot } = await load("../app/studio/template-model.ts");
 const { validateTemplatePackage } = await load("../app/studio/template-package.ts");
-const { BLOCK_CLIPBOARD_VERSION, blockClipboardHtml, readBlockClipboardPayload } = await load("../app/studio/block-clipboard.ts");
+const { blockClipboardHtml, readBlockClipboardPayload } = await load("../app/studio/block-clipboard.ts");
 const { validTestSiteDocument, testSiteCollection, testSiteWorkspace } = await load("../app/studio/test-site/contract.ts");
 const { createGlobalTemplateLibrary, validateGlobalTemplateLibrary } = await load("../app/studio/global-template-contract.ts");
 const { validateStudioBackup } = await load("../app/studio/backup-store.ts");

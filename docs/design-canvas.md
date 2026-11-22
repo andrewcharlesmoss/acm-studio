@@ -12,7 +12,8 @@ artwork or Studio routes.
 
 The Pages pane can be collapsed while editing. Page thumbnails expose rename,
 duplicate, delete and ordering controls, and selected pages can be exported as
-a batch. The canvas remembers the most recently used style for each annotation
+a batch. The bulk delete action identifies how many selected pages it will
+remove. The per-page delete action applies to its own page. The canvas remembers the most recently used style for each annotation
 family, and the zoom toolbar includes a selectable zoom value plus a temporary
 Snap on / Snap off switch.
 
@@ -67,8 +68,10 @@ Designs are stored in this browser under the versioned
 `acm-studio-designs-v1` key and are guarded by the same `studioWriteOwnership`
 Web Lock as content and media. A tab without the writer lock can still edit a
 connected design through its persistence owner; an unavailable or disconnected
-sync channel leaves it read-only. Editable design backups are JSON files
-containing the scene and image data. They retain original image material behind
+sync channel leaves it read-only. Editable design backups normally contain the scene and image data in a
+single JSON file. A design above the safe import limits exports a recovery ZIP
+with the complete source and bounded editable sections. Extract the ZIP before
+opening a section. The complete Studio backup also includes saved designs. They retain original image material behind
 editable redaction objects and should be kept private.
 
 The first canvas release supports PNG, JPEG, WebP and GIF image input, file
@@ -97,12 +100,15 @@ scale, without editor selection controls.
 
 An existing image in Studio Files can be opened as a new design. A page already
 linked to rendered Studio media can update that media in place after editing;
-the design remains the source of truth for that linked render. Design payloads
+the design remains the source of truth for that linked render. New, duplicated,
+and imported pages start without a render link. If older pages share one output,
+save an independent render before updating that file. If Files saves the image
+but the design link fails, return to its page and choose **Retry source link**. Design payloads
 pass through an explicit migration boundary before schema validation so future
 versions can add migrations without changing storage callers.
 
-Imported design files are limited to 8 MB, 100 pages, 100 image assets and
-5,000 drawing objects. Each embedded image is limited to 4 MB and 16 megapixels,
+An editable import accepts up to 8 MB and 100 image assets. Pages and drawing
+objects share a limit of 5,100 entries, including at most 5,000 drawing objects. Each embedded image is limited to 4 MB and 16 megapixels,
 with a 32-megapixel total across the import. The importer checks raster headers
 and declared dimensions before decoding, then confirms the decoded dimensions
 match. Direct image selection and background removal use the same per-image

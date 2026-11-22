@@ -39,7 +39,7 @@ These dimensions are a visual reference; its artwork comes from the ACM icon
 collection. Keep the menu compact and do not infer CSS sizes from Retina
 screenshots.
 
-Studio interaction controls use original ACM artwork from the sibling
+Studio interaction controls use original ACM artwork from the Studio-owned
 `@acm/icons` catalogue. Use its React adapter and optical scales, and keep
 new shared symbols product-neutral. Preserve the `StudioIcon` and table-icon
 wrappers as compatibility APIs. Do not trace or copy third-party paths.

@@ -12,7 +12,7 @@ export function fixtureQueryPostSummaries(publications: readonly { document: Stu
     if (!Number.isFinite(Date.parse(publishedAt))) return [];
     const availableAt = document.status === "scheduled" ? Date.parse(publishedAt) : undefined;
     if (availableAt !== undefined && availableAt > now && !options.includeFutureScheduled) return [];
-    return [{ id: document.id, title: document.title || "Untitled", href: href(document), publishedAt, sticky: document.sticky === true, ...(availableAt !== undefined ? { availableAt } : {}) }];
+    return [{ id: document.id, title: document.title || "Untitled", href: href(document), publishedAt, sticky: document.sticky === true, ...(availableAt !== undefined && availableAt > now ? { availableAt } : {}) }];
   }).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || a.id.localeCompare(b.id, "en"));
   const requested = options.maxCandidates ?? 1000;
   const maximum = Number.isFinite(requested) ? Math.max(1, Math.min(1000, Math.trunc(requested))) : 1000;
