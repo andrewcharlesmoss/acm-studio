@@ -96,7 +96,7 @@ test('backup rejects missing shared artwork even when browser recovery originals
   library.templates.sets[0].parts[0].nodes.push({id:'shared-image',type:'image',src:'',mediaId:'missing-image',alt:''});
   const document = { ...editor.createDocument('post','draft'),categoryIds:[] };
   const value = {format:'acm-studio-backup',version:5,exportedAt:new Date().toISOString(),workspace:{version:25,documents:[document],categories:[],bin:[],activeDocumentId:document.id},templates:source,globalTemplates:library,publications:null,media:{folders:[],assets:[]}};
-  assert.throws(()=>backup.validateStudioBackup(value),/shared template recovery image/);
+  assert.throws(() => backup.validateStudioBackup(value), /missing file "missing-image" used by shared template set "Shared"/);
 });
 test('binned document restoration keeps its shared assignment and the original template Bin intact', () => {
   const { source, library } = fixture(); const assignment = source.assignments[0];
