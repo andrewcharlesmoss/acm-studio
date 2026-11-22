@@ -956,16 +956,21 @@ export function templateMediaIds(set: TemplateSet): string[] {
   return collectTemplateMediaIds(set);
 }
 
+/** A retained entry is independently restorable and may differ from its saved set. */
+export function binnedTemplateMediaIds(item: StudioBinnedTemplate): string[] {
+  return item.kind === "set" ? templateMediaIds(item.set) : collectTemplateMediaIds(item.setSnapshot, undefined, [item.entry]);
+}
+
 /** v0.14.0 and earlier indexed block assets, but no rich-field images. */
 function historicalTemplateMediaIds(set: TemplateSet, version: string): string[] {
   const minor = Number(version.split(".")[1]);
   return collectTemplateMediaIds(set, minor <= 14 ? "block-assets" : "rich-fields");
 }
 
-function collectTemplateMediaIds(set: TemplateSet, historical?: "block-assets" | "rich-fields"): string[] {
+function collectTemplateMediaIds(set: TemplateSet, historical?: "block-assets" | "rich-fields", retainedEntries: (PageTemplate | TemplatePart)[] = []): string[] {
   const ids = new Set<string>();
   if (set.identity.logo?.mediaId) ids.add(set.identity.logo.mediaId);
-  for (const item of [...set.templates, ...set.parts]) visitTemplateNodes(item.nodes, node => {
+  for (const item of [...set.templates, ...set.parts, ...retainedEntries]) visitTemplateNodes(item.nodes, node => {
     if (historical !== "block-assets" && node.type !== "element" && node.type !== "part" && node.type !== "group" && node.type !== "section" && node.type !== "columns" && node.type !== "column" && node.type !== "query-loop" && node.type !== "post-template" && node.type !== "no-results") for (const id of (historical ? historicalContentMediaIds : contentMediaIds)([node.type === "cover" ? { ...node, children: [] } : node])) ids.add(id);
     if (node.type === "image" && node.mediaId) ids.add(node.mediaId);
     const style = historical === "block-assets" ? (node.type === "group" || (node.type === "quote" || node.type === "pullquote") ? node.visualStyle : undefined)

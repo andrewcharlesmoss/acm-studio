@@ -22,3 +22,4 @@ export { containsSiteTitle } from "../../../app/studio/site-title-contract";
 export { containsGroupHeadingStyles, containsExtendedGroupShadow, containsExtraBlackAppearance } from "../../../app/content/quote-presentation";
 export { containsQueryLoop } from "../../../app/studio/workspace-validation";
 export { contentMediaIds } from "../../../app/content/media-references";
+export { containsPublicationPresentation } from "../../../app/studio/publication-presentation-contract";

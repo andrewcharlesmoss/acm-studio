@@ -157,12 +157,12 @@ test("actual backup validator requires recovered template and Bin image bytes", 
   const publication = { ...toLocallyPublishedArticle(document, { version: "0.24.0", set, templateId: set.templates.find(template => template.kind === "post").id }), mediaIds: [] };
   const workspace = { ...initialStudioWorkspace, activeDocumentId: document.id, documents: [document], bin: [] };
   const backup = { format: "acm-studio-backup", version: 4, exportedAt: "2026-10-04T00:00:00Z", workspace, publications: JSON.stringify({ version: 16, posts: [publication] }), media: { folders: [], assets: [] } };
-  assert.throws(() => validate(backup), /published-post snapshot is invalid/);
+  assert.throws(() => validate(backup), /missing file "recoverable-file" used by publication/);
   const asset = { id: "recoverable-file", name: "Fixture.png", type: "image/png", altText: "", caption: "", createdAt: backup.exportedAt, updatedAt: backup.exportedAt, folderId: null, size: 1, dataBase64: "AA==" };
   const repaired = validate({ ...backup, media: { folders: [], assets: [asset] } });
   assert.deepEqual(JSON.parse(repaired.publications).posts[0].mediaIds, ["recoverable-file"]);
   const binned = { ...backup, publications: null, workspace: { ...workspace, activeDocumentId: "", documents: [], bin: [{ id: "bin", deletedAt: backup.exportedAt, document, publication }] } };
-  assert.throws(() => validate(binned), /binned published post is missing/);
+  assert.throws(() => validate(binned), /missing file "recoverable-file" used by publication in Bin item bin/);
   assert.equal(validate({ ...binned, media: { folders: [], assets: [asset] } }).workspace.bin[0].publication.mediaIds[0], "recoverable-file");
 });
 

@@ -24,7 +24,7 @@ for (const [owner, changes] of [
 ]) {
   test(`complete backup checks the file owned by ${owner} before restore`, async () => {
     const incomplete = { ...backup, ...changes };
-    assert.throws(() => backups.validateStudioBackup(incomplete), /missing|snapshot is invalid/i);
+    assert.throws(() => backups.validateStudioBackup(incomplete), /missing file "required-photo" used by .+draft/);
     await assert.rejects(backups.prepareStudioBackupRestore(incomplete));
     assert.doesNotThrow(() => backups.validateStudioBackup({ ...incomplete, media: { folders: [], assets: [photo] } }));
   });
@@ -44,9 +44,45 @@ test("the archive rejects corrupt metadata, changed bytes, truncation and traili
   assert.deepEqual(await Promise.all((await decodeBackupArchive(file)).blobs.map(blob => blob.text())), ["one", "two"]);
 });
 
-test("pre-v47 backups reject frozen headers before a replacement can begin", () => {
-  const publication = { ...toLocallyPublishedArticle(draft), fallbackHeader: {} };
+for (const extra of [{ fallbackHeader: {} }, { parentPageId: "other-page" }]) test(`pre-v47 backups reject frozen ${Object.keys(extra)[0]} before a replacement can begin`, () => {
+  const publication = { ...toLocallyPublishedArticle(draft), ...extra };
   const binned = { id: "deleted", deletedAt: now, document: draft, publication };
   assert.throws(() => backups.validateStudioBackup({ ...backup, workspace: { ...workspace, documents: [], activeDocumentId: "", bin: [binned] } }), /backup v47/);
   assert.throws(() => backups.validateStudioBackup({ ...backup, publications: JSON.stringify({ version: 57, posts: [publication] }) }), /snapshot is invalid/);
+});
+
+test("local and shared Template Bins require files from both the retained entry and the saved set", async () => {
+  const { createTemplateSet, emptyTemplateStore, TEMPLATE_STORAGE_KEY } = await load("../app/studio/template-model.ts");
+  const { assertTemplateMediaCanBeDeleted } = await load("../app/studio/template-store.ts");
+  const active = createTemplateSet();
+  const image = id => ({ id: "image", type: "image", mediaId: id, src: "", alt: "" });
+  const retained = { id: "recovery-part", name: "Retained part", kind: "general", nodes: [image(photo.id)] };
+  const saved = structuredClone(active);
+  saved.parts.push({ ...retained, nodes: [image("snapshot-only")] });
+  const templates = { ...emptyTemplateStore(), sets: [active], bin: [{
+    id: "binned-part", deletedAt: now, kind: "template", setId: active.id, setName: active.name, entry: retained, setSnapshot: saved,
+  }] };
+  const globalTemplates = { format: "acm-global-templates", version: 49, templates,
+    header: { setId: active.id, partId: active.parts.find(part => part.kind === "header").id },
+    migrations: { test: { bases: [], bindings: [] }, test2: { bases: [], bindings: [] } } };
+  const files = [photo, { ...photo, id: "snapshot-only" }];
+  for (const contents of [{ templates }, { globalTemplates }]) {
+    const complete = { ...backup, ...contents, media: { folders: [], assets: files } };
+    assert.doesNotThrow(() => backups.validateStudioBackup(complete));
+    for (const file of files) {
+      const incomplete = { ...complete, media: { folders: [], assets: files.filter(item => item !== file) } };
+      const message = new RegExp(`missing file "${file.id}" used by ${contents.templates ? "local" : "shared"} template Bin item "Retained part" `);
+      assert.throws(() => backups.validateStudioBackup(incomplete), message);
+      await assert.rejects(backups.prepareStudioBackupRestore(incomplete), message);
+    }
+  }
+  const previous = globalThis.window;
+  globalThis.window = { localStorage: { getItem: key => key === TEMPLATE_STORAGE_KEY ? JSON.stringify(templates) : null } };
+  try {
+    for (const file of files) assert.throws(() => assertTemplateMediaCanBeDeleted(file.id), /template or an item in the Bin/);
+    assert.doesNotThrow(() => assertTemplateMediaCanBeDeleted("unrelated"));
+  } finally {
+    if (previous === undefined) delete globalThis.window;
+    else globalThis.window = previous;
+  }
 });

@@ -1,4 +1,4 @@
-import { TEMPLATE_STORAGE_KEY, emptyTemplateStore, validateTemplateStore, templateMediaIds, validateTemplatePublicationSnapshot, type TemplateStore } from "./template-model";
+import { TEMPLATE_STORAGE_KEY, emptyTemplateStore, validateTemplateStore, templateMediaIds, binnedTemplateMediaIds, validateTemplatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { studioWriteOwnership } from "./write-ownership";
 import { LOCAL_PUBLICATIONS_KEY } from "../content/local-storage-keys";
 
@@ -21,7 +21,7 @@ export function saveTemplates(store: TemplateStore, storage: Pick<Storage, "setI
 export function assertTemplateMediaCanBeDeleted(id: string) {
   const templates = loadTemplates();
   if (templates.sets.some(set => templateMediaIds(set).includes(id))
-    || templates.bin.some(item => templateMediaIds(item.kind === "set" ? item.set : item.setSnapshot).includes(id))) throw new Error("This image is used by a template or an item in the Bin. Replace those references or permanently delete the binned item first.");
+    || templates.bin.some(item => binnedTemplateMediaIds(item).includes(id))) throw new Error("This image is used by a template or an item in the Bin. Replace those references or permanently delete the binned item first.");
   const raw = window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY);
   if (raw === null) return;
   const publications = validateTemplatePublicationSnapshot(JSON.parse(raw));

@@ -8,3 +8,4 @@ export { generateImageRenditions } from "../../../app/studio/image-rendition-gen
 export { BackupManager } from "../../../app/studio/backup-manager";
 export { createElement } from "react";
 export { createRoot } from "react-dom/client";
+export { LOCAL_WORKSPACE_KEY } from "../../../app/content/local-storage-keys";

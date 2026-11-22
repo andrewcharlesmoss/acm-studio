@@ -75,13 +75,13 @@ test('live media edits preserve recovery metadata and export wraps an unowned st
   expect(result).toEqual({ edited: { version: 1, sourceRevision: { foreign: true } }, first: { version: 1, sourceRevision: { foreign: true } }, wrapped: { version: 1, previousValue: { unrelated: ['preserve', false] } }, bytes: 'z', name: 'Renamed' });
 });
 
-test('complete backup downloads and restores large Files libraries, metadata, and image sizes through the recovery screen', async ({ page }) => {
+for (const sizes of [[80, 24], [36, 36, 36]]) test(`complete backup restores ${sizes.join(" + ")} MiB of Files, document references, and image sizes through the recovery screen`, async ({ page }) => {
   test.setTimeout(120_000);
   const source = await buildMediaAdapter();
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><main id="app"></main>' }));
   await page.goto('http://localhost:3011/');
   await page.addScriptTag({ content: source });
-  const expected = await page.evaluate(async () => {
+  const expected = await page.evaluate(async sizes => {
     const { studioWriteOwnership: owner, mediaStore: store, createDocument, generateImageRenditions, imageContentDigest, createElement, createRoot, BackupManager } = window.StudioMediaAdapter;
     owner.acquire(token => owner.loaded(token, true));
     for (let pass = 0; !owner.canWrite() && pass < 100; pass++) await new Promise(resolve => setTimeout(resolve, 0));
@@ -96,9 +96,9 @@ test('complete backup downloads and restores large Files libraries, metadata, an
     const bundle = await generateImageRenditions(photo);
     if (!bundle || !bundle.variants.length) throw new Error('Expected image sizes.');
     const chunk = new Blob([new Uint8Array(1024 * 1024).fill(73)]);
-    const assets = [80, 24].map(size => {
+    const assets = sizes.map((size, index) => {
       const blob = new Blob(Array(size).fill(chunk), { type: 'application/octet-stream' });
-      return { ...metadata, id: 'file-' + size, size: blob.size, type: blob.type, blob };
+      return { ...metadata, id: 'file-' + index, size: blob.size, type: blob.type, blob };
     });
     const all = [...assets, { ...metadata, id: 'photo', size: photo.size, type: photo.type, blob: photo, imageRenditions: { version: 1 as const, bundles: [bundle] } }];
     await store.replaceMediaLibrary(all, [folder]);
@@ -107,7 +107,7 @@ test('complete backup downloads and restores large Files libraries, metadata, an
     const workspace = { version: 66 as const, documents: [doc], categories: [], bin: [], activeDocumentId: doc.id };
     createRoot(document.getElementById('app')!).render(createElement(BackupManager, { workspace }));
     return { bytes: await Promise.all(all.map(file => imageContentDigest(file.blob))), rendition: bundle.variants[0].digest };
-  });
+  }, sizes);
   const file = page.locator('input[type=file]');
   const incomplete = await page.evaluate(async () => {
     const { createDocument } = window.StudioMediaAdapter;
@@ -136,18 +136,19 @@ test('complete backup downloads and restores large Files libraries, metadata, an
     page.getByRole('button', { name: 'Restore checked backup' }).click(),
   ]);
   await page.addScriptTag({ content: source });
-  const actual = await page.evaluate(async () => {
-    const { mediaStore: store, imageContentDigest } = window.StudioMediaAdapter;
+  const actual = await page.evaluate(async sizes => {
+    const { mediaStore: store, imageContentDigest, LOCAL_WORKSPACE_KEY } = window.StudioMediaAdapter;
     const library = await store.listMediaLibrary();
-    const ordered = ['file-80', 'file-24', 'photo'].map(id => library.assets.find(file => file.id === id)!);
-    const photo = ordered[2] as typeof ordered[number] & { imageRenditions: import("../../app/content/image-resolution").ImageRenditions };
+    const ordered = [...sizes.map((_, index) => 'file-' + index), 'photo'].map(id => library.assets.find(file => file.id === id)!);
+    const photo = ordered.at(-1) as typeof ordered[number] & { imageRenditions: import("../../app/content/image-resolution").ImageRenditions };
     const variant = photo.imageRenditions.bundles[0].variants[0];
     return {
       bytes: await Promise.all(ordered.map(file => imageContentDigest(file.blob))),
       rendition: await imageContentDigest(variant.blob),
       metadata: ordered.map(file => [file.sourceRevision, file.caption, file.altText, file.folderId]),
       folders: library.folders.map(folder => folder.name),
+      restoredDocumentImage: JSON.parse(localStorage.getItem(LOCAL_WORKSPACE_KEY)!).documents[0].blocks[0].mediaId,
     };
-  });
-  expect(actual).toEqual({ ...expected, metadata: Array(3).fill(['original-revision', 'Caption', 'Alternative text', 'originals']), folders: ['Originals'] });
+  }, sizes);
+  expect(actual).toEqual({ ...expected, restoredDocumentImage: 'photo', metadata: Array(sizes.length + 1).fill(['original-revision', 'Caption', 'Alternative text', 'originals']), folders: ['Originals'] });
 });

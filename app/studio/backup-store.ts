@@ -1,3 +1,4 @@
+import { containsPublicationPresentation } from "./publication-presentation-contract";
 import { contentMediaIds } from "../content/media-references";
 import { containsGeneralTemplatePart } from "./reference-template-parts-contract";
 import { containsUnsetWebsiteGradient } from "./site-editor/website-design";
@@ -27,10 +28,10 @@ import { containsTemplateElementsInCover, containsSiteTitle, containsAutomaticNa
 import { containsColumnWidthUnit } from "../content/columns";
 import { DESIGN_STORAGE_KEY, validateDesignProject, type DesignProject } from "./design-model";
 import { loadDesigns } from "./design-store";
-import type { StudioWorkspace } from "./editor-model";
+import type { StudioDocument, StudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary, type MediaAsset, type MediaFolder } from "./media-store";
 import { containsQueryLoop, isRecord, migrateStudioWorkspace, validateStudioWorkspace } from "./workspace-validation";
-import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
+import { TEMPLATE_STORAGE_KEY, validateTemplateStore, templateMediaIds, binnedTemplateMediaIds, validateWorkspacePublicationTemplates, validateTemplatePublicationSnapshot as validatePublicationSnapshot, type TemplateStore } from "./template-model";
 import { loadTemplates } from "./template-store";
 import { blobToBase64, base64ToBlob } from "./media-serialization";
 import { encodeBackupArchive, decodeBackupArchive, isBackupArchive } from "./backup-archive";
@@ -135,8 +136,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (typeof value.exportedAt !== "string" || !Number.isFinite(Date.parse(value.exportedAt))) {
     throw new Error("The backup does not contain a valid Studio workspace.");
   }
-  if ((version as number) < 47 && isRecord(value.workspace) && Array.isArray(value.workspace.bin) &&
-    value.workspace.bin.some(item => isRecord(item) && isRecord(item.publication) && item.publication.fallbackHeader !== undefined)) throw new Error("Frozen shared headers require backup v47.");
+  if ((version as number) < 47 && containsPublicationPresentation(value.workspace)) throw new Error("Frozen shared headers and page parents require backup v47.");
   const workspace = validateWorkspacePublicationTemplates(migrateStudioWorkspace(value.workspace));
   if (value.globalTemplates !== undefined && (version as number) < 5) throw new Error("Shared template snapshots require backup v5.");
   const globalTemplates = value.globalTemplates === undefined ? undefined : validateGlobalTemplateLibrary(value.globalTemplates);
@@ -207,44 +207,53 @@ export function validateStudioBackup(value: unknown): StudioBackup {
   if (value.publications !== null && typeof value.publications !== "string") {
     throw new Error("The published-post snapshot is invalid.");
   }
-  const missingPublicationMedia = (post: LocallyPublishedArticle) =>
-    post.mediaIds.some(id => !assetIds.has(id)) || Boolean(post.coverImage?.mediaId && !assetIds.has(post.coverImage.mediaId));
+  function requireFiles(ids: string[], owner: string) {
+    const missing = ids.find(id => !assetIds.has(id));
+    if (missing) throw new Error(`The backup is missing file "${missing}" used by ${owner}. Keep the original backup and recover the missing file before restoring.`);
+  }
+  function requirePublicationFiles(post: LocallyPublishedArticle, owner: string) {
+    const ids = post.coverImage?.mediaId ? [...post.mediaIds, post.coverImage.mediaId] : post.mediaIds;
+    requireFiles(ids, `${owner} "${post.title}" (${post.localDocumentId})`);
+  }
   let publications = value.publications;
   if (typeof value.publications === "string") {
+    let snapshot: ReturnType<typeof validatePublicationSnapshot>;
     try {
       const parsedPublications = JSON.parse(value.publications);
-      if ((version as number) < 47 && Array.isArray(parsedPublications?.posts) && parsedPublications.posts.some((post: unknown) => isRecord(post) && post.fallbackHeader !== undefined)) throw new Error("Frozen shared headers require backup v47.");
+      if ((version as number) < 47 && containsPublicationPresentation(parsedPublications)) throw new Error("Frozen shared headers and page parents require backup v47.");
       if ((version as number) < 40 && containsGeneralTemplatePart(parsedPublications)) throw new Error("General template parts require backup v40.");
       if ((version as number) < 39 && containsSiteTitle(parsedPublications)) throw new Error("Site Title requires backup v39.");
       if ((version as number) < 36 && containsWebsiteFont(parsedPublications)) throw new Error("Website fonts require backup v36.");
       if ((version as number) < 35 && containsBoxSideOverrides(parsedPublications)) throw new Error("Per-side spacing or border values require backup v35.");
       if ((version as number) < 34 && containsPullquote(parsedPublications)) throw new Error("Pullquote requires backup v34.");
-      const snapshot = validatePublicationSnapshot(parsedPublications);
-      for (const post of snapshot.posts) if (missingPublicationMedia(post)) throw new Error("A published template image is missing from the backup.");
-      publications = JSON.stringify(snapshot);
+      snapshot = validatePublicationSnapshot(parsedPublications);
     } catch {
       throw new Error("The published-post snapshot is invalid.");
     }
+    for (const post of snapshot.posts) requirePublicationFiles(post, "publication");
+    publications = JSON.stringify(snapshot);
   }
-  const documents = [...workspace.documents, ...workspace.bin.map(item => item.document), ...(workspace.documentRevisions ?? []).map(item => item.document)];
-  for (const document of documents) {
+  function requireDocumentFiles(document: StudioDocument, owner: string) {
     const ids = contentMediaIds(document.blocks);
     if (document.coverImage?.mediaId) ids.push(document.coverImage.mediaId);
-    const missing = ids.find(id => !assetIds.has(id));
-    if (missing) throw new Error(`The backup is missing file "${missing}" used by "${document.title || document.id}". Keep the original backup and recover the missing file before restoring.`);
+    requireFiles(ids, `${owner} "${document.title || document.id}" (${document.id})`);
   }
-  for (const item of workspace.bin) if (item.publication && missingPublicationMedia(item.publication)) throw new Error("A binned published post is missing one or more media files from the backup.");
-  if (templates !== undefined) for (const set of templates.sets) {
-    if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A template image is missing from the backup.");
+  for (const document of workspace.documents) requireDocumentFiles(document, "document");
+  for (const item of workspace.bin) {
+    requireDocumentFiles(item.document, `Bin item ${item.id} for`);
+    if (item.publication) requirePublicationFiles(item.publication, `publication in Bin item ${item.id} for`);
   }
-  if (templates !== undefined) for (const item of templates.bin) {
-    const set = item.kind === "set" ? item.set : item.setSnapshot;
-    if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A binned template image is missing from the backup.");
+  for (const revision of workspace.documentRevisions ?? []) requireDocumentFiles(revision.document, `saved revision ${revision.id} of`);
+  for (const set of templates?.sets ?? []) requireFiles(templateMediaIds(set), `template set "${set.name}" (${set.id})`);
+  for (const [scope, store] of [["local", templates], ["shared", globalTemplates?.templates]] as const) {
+    for (const item of store?.bin ?? []) {
+      const retained = item.kind === "set" ? item.set : item.entry;
+      requireFiles(binnedTemplateMediaIds(item), `${scope} template Bin item "${retained.name}" (${item.id})`);
+    }
   }
   if (globalTemplates) for (const set of [...globalTemplates.templates.sets, ...globalTemplates.migrations.test.bases, ...globalTemplates.migrations.test2.bases,
-    ...(globalTemplates.navigationRecovery ? [globalTemplates.navigationRecovery] : []),
-    ...globalTemplates.templates.bin.map(item => item.kind === "set" ? item.set : item.setSnapshot)]) {
-    if (templateMediaIds(set).some(id => !assetIds.has(id))) throw new Error("A shared template recovery image is missing from the backup.");
+    ...(globalTemplates.navigationRecovery ? [globalTemplates.navigationRecovery] : [])]) {
+    requireFiles(templateMediaIds(set), `shared template set "${set.name}" (${set.id})`);
   }
   return { ...(value as unknown as StudioBackup), version: version as StudioBackup["version"], workspace, media: { ...(value.media as StudioBackup["media"]), assets: validatedAssets },
     ...(templates ? { templates } : {}), ...(globalTemplates ? { globalTemplates } : {}), publications: publications as string | null };
