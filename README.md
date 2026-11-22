@@ -76,10 +76,11 @@ use UTC ISO format. Studio has no separate site time-zone setting.
 
 Studio files are stored as blobs in this browser using IndexedDB. They are
 device-local working files, not backups or securely published media. The Backup
-workspace creates a JSON recovery file containing private drafts and original
+workspace creates a checked binary recovery file containing private drafts and original
 media and should therefore be stored securely.
 
-Backups are limited to 100 MB and checked before restoration. If a saved
+Complete backups keep media as binary files and verify their checksums before restoration.
+Existing JSON backups remain readable within their original 100 MiB limit. If a saved
 workspace cannot be read or has an unsupported structure, Studio preserves
 the original value and disables autosave. Restore a valid backup to resume;
 do not clear browser data if the unreadable value still needs recovery.
@@ -89,9 +90,7 @@ posts are upgraded once to include Reading Time, Post Author and Post Date
 blocks; the underlying author and publication date remain document fields, so
 removing a display block does not lose metadata. Reading time uses 220 words
 per minute, excludes metadata and image alternative text, and counts nested
-ordinary content once. Workspace data uses version 25 with readers for versions 2–24; local publication
-snapshots use version 18 and backups use version 5, with readers for their earlier
-formats.
+ordinary content once. See [Storage formats](docs/storage-formats.md) for the current writers and supported readers.
 
 The architecture and next decision gate are recorded in
 [`docs/FOUNDATION.md`](docs/FOUNDATION.md).

@@ -955,6 +955,11 @@
 
 ### Fixed
 
+- Complete browser backups verify managed file references before restore. Checksummed binary backups preserve large originals and image renditions alongside their folders and document references.
+- Studio Drafts freezes the resolved publication design shown in Preview. Test and Test2 revision history accepts current document layouts.
+- Design pages keep independent media links when copied. Saving a render waits for the source link, and the page selection controls identify bulk deletion. Editable design recovery supports larger page collections.
+- Motion Assets search uses the shared field. Recovery documentation identifies current storage formats and the procedure for restoring a saved Sites version.
+
 - Preserve readable text on blue website fills and for blue website and interface actions after Reset All.
 
 - Let fitted Motion Assets sketches resize inward immediately in narrow previews.

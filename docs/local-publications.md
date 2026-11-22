@@ -21,11 +21,16 @@ withdrawing its local view. Restore recovers them through the existing rollback
 flow. Backups retain both kinds, including Bin captures. Active and binned
 captures protect referenced media. No hosted publication is performed.
 
-Publication envelope v20 reads v1–v19, treating absent kinds as Posts. The legacy
+The publication reader treats absent kinds as Posts. See [Storage formats](storage-formats.md) for the current version. The legacy
 `posts` collection holds typed captures to preserve existing storage and backup
-boundaries. Workspace v27 reads v2–v26 and permits Page captures in Bin; older
+boundaries. Workspace v27 introduced Page captures in Bin; older
 explicit workspace versions cannot claim this capability. Unreadable persisted
 publications block mutations and remain recoverable.
+
+Browser Publish and Update capture the resolved Studio Drafts presentation,
+including its effective document field visibility and any inherited shared
+Header. Later edits to a shared original appear in draft Preview. An existing
+publication keeps the captured design until its next Update.
 
 ## Manual acceptance
 

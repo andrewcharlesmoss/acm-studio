@@ -25,14 +25,10 @@ Requests expire after five minutes; receipts are retained for 24 hours, with a
 10,000-action bound that rejects new actions rather than evicting live receipts.
 Uploads are limited to 64 files, 100 MiB per file and 512 MiB per batch.
 
-The existing v1 channel recognises a reserved image-size generation command,
-but the current saving owner does not advertise or execute it. A connected tab
-must see the `image-renditions-v1` capability before sending that command. If an
-owner without that capability takes over while a request is pending, its result
-is uncertain and the tab asks the user to check the current image. Ordinary v1
-commands retain their existing reconnect behaviour. Image-size generation and
-the versioned media migration remain unavailable until their storage and backup
-paths are integrated.
+The saving owner advertises `image-renditions-v1` once its live media store
+supports generation. A peer checks this capability before requesting sizes.
+If an owner without it takes over mid-request, check the saved image before
+retrying. Ordinary v1 commands retain their existing reconnect behaviour.
 
 Restore and library replacement remain exclusive operations using the existing
 restore permit. They atomically replace the library generation and clear its
@@ -65,13 +61,17 @@ normal owner still reports and recovers any later asynchronous saving failure.
 
 ## Recovery compatibility
 
-The v2 upgrade adds operational stores without changing asset or folder records.
-Do not delete the database to recover from a saving error. Export a full backup
-through v2-compatible Studio before reverting application code. Retain the
-version-independent reader and v2 schema support when rolling back the command
-UI or broker: a historic reader that explicitly opens schema v1 cannot reopen
-an upgraded database. Restore content through the owned replacement flow;
-IndexedDB schema versions are not downgraded.
+See [Storage formats](storage-formats.md) for the live IndexedDB version.
+Only the owner opens the database for upgrade. The v3 migration renames the
+asset store in one native transaction, preserving the original bytes and keys.
+Unrecognised legacy rendition data aborts the upgrade. Read-only tabs open
+the existing version without requesting an upgrade.
+
+Before rolling back the UI or broker, export and verify a complete backup
+using a compatible writer. Check the recovery build against a disposable copy
+of the current schema. Older builds that explicitly request v1 or v2 cannot
+open a database already at v3. Keep the database intact and use a compatible
+forward fix if a candidate cannot read it.
 
 ## Manual verification
 
@@ -89,14 +89,8 @@ deletion and full restore checks require a defined recovery position. Also check
 an image picker when another tab removes its image: insertion must not use the
 stale picker record, and typed alternative text must remain available.
 
-### Gated image-size storage adapter
+### Media database verification
 
-The live Files adapter remains on media database v2 and does not advertise image
-size generation. `createIsolatedV3MediaStore` exercises the same CRUD and write
-queue with a separate database name, the canonical v3 migration and scoped
-restore authority; it rejects the live database name. This is an incomplete,
-explicitly constructed test route, not production activation. Activation requires
-a page reload or an explicit compatibility solution for HMR-retained ownership
-coordinators that predate the scoped restore-authority methods. Run
-`STUDIO_BROWSER_CHANNEL=chrome npx playwright test tests/browser/media-store-adapter.spec.ts`
-for native IndexedDB, broker, original-byte preservation and restore-loss checks.
+Run `STUDIO_BROWSER_CHANNEL=chrome npx playwright test tests/browser/media-store-adapter.spec.ts`
+against a disposable Studio origin to exercise native IndexedDB, broker handling,
+original-byte preservation, and restore ownership loss.

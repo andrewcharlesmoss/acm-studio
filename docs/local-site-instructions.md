@@ -28,7 +28,7 @@ relative `/studio` link on every host.
 
 Andrew has authorised the local Test integration inside `/studio?site=test` and
 changes to the sibling `test` project for this fixture. The canonical source is
-Test's `content/site.json` v10 (backwards-readable v1–v9), containing documents,
+Test's `content/site.json` ([current storage formats](storage-formats.md)), containing documents,
 categories, Bin and templates; visual edits use one revision-checked gateway.
 Test drives the selected site's Posts, Pages and Templates lists and commands.
 Andrew authorised copying the existing browser test documents, templates and
@@ -184,7 +184,7 @@ the same focus containment, Escape dismissal and focus-return runtime.
 ### Global local-fixture template originals
 
 Studio Drafts, Test and Test2 use the Studio-owned canonical `work/global-template-library.json`
-(global library contract v45, reading v1–v44), saved through the fixed-target, exact-origin,
+([current global library contract](storage-formats.md)), saved through the fixed-target, exact-origin,
 Web-Lock-owner gateway with CAS revisions and recoverable source history.
 Templates opens originals independently of the selected site. Navigation belongs
 inside the shared Header; no separate Navigation original is offered. The v3
@@ -225,8 +225,7 @@ ancestry by stable IDs and retained fixture aliases, never by names. Unmatched
 active assignments preserve their recovery presentation and offer explicit
 reassignment in the document inspector. Save as template in Studio Drafts writes
 a retained shared original. Creation does not offer an Undo that removes
-protected originals; ordinary shared design edits retain Undo/Redo. Full browser backups use v6, read
-v1–v5 and carry a validated shared snapshot when available; browser restore does
+protected originals; ordinary shared design edits retain Undo/Redo. Full browser backups carry a validated shared snapshot when available; browser restore does
 not implicitly replace the global library. See `docs/templates.md`.
 
 ### Local fixture publication
