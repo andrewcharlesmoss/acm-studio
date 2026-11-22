@@ -6,20 +6,25 @@ permitted at that version. Keep an unreadable original intact.
 
 | Format | Current writer | Oldest supported input |
 |---|---:|---:|
-| Browser workspace | 67 | 2 |
-| Local publications | 58 | 1 |
-| Template packages and stores | 0.78.0 | 0.1.0 |
-| Block clipboard | 42 | 1 |
-| Full backup content | 47 | 1 |
+| Browser workspace | 68 | 2 |
+| Local publications | 59 | 1 |
+| Template packages and stores | 0.79.0 | 0.1.0 |
+| Block clipboard | 43 | 1 |
+| Full backup content | 48 | 1 |
 | Binary backup container | 1 | 1 |
-| Test and Test2 fixture source | 57 | 1 |
-| Global template library | 49 | 1 |
+| Test and Test2 fixture source | 58 | 1 |
+| Global template library | 50 | 1 |
 | Local fixture backup | 2 | 1 |
 | Files IndexedDB | 3 | 1 |
 
 A new publication can retain its shared header and page hierarchy from Preview.
 These fields require publication v58, workspace v67 when a publication is in
 the Bin, and full backup content v47. Earlier captures remain readable.
+
+A Video block with a timed WebVTT caption track requires workspace v68,
+publication v59, templates v0.79.0, clipboard v43, backup content v48,
+fixture source v58, and global library v50. Videos saved in earlier formats
+remain readable.
 
 The browser workspace, local fixture sources, and shared template library have
 distinct owners. Restore a browser backup through **Backup and restore**.

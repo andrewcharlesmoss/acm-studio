@@ -5,6 +5,7 @@ import { validImageDuotone } from "../content/image-duotone";
 import { validImageResolution } from "../content/image-resolution";
 import { validImageCropEdit } from "../content/image-edit";
 import { safeVideoSource } from "../content/video-block";
+import { readVideoCaptionTrackSource, videoCaptionTrackSource } from "../content/video-caption-track";
 import { validFeaturedImageOverlay } from "../content/featured-image-overlay";
 import { isImageAspectRatio } from "../content/image-aspect-ratios";
 import { coverContentPositionClass, isCoverContentPosition, validCoverVideoBackground, validNativeCoverVideoSource } from "../content/cover-block";
@@ -187,7 +188,9 @@ function serialiseBlock(block: ContentBlock, attributes = "", footnoteAnchors = 
       const source = safeVideoSource(block.src) ?? "";
       const poster = block.poster ? safeImageSource(block.poster) ?? "" : "";
       const settings = { poster: block.poster, autoplay: block.autoplay, controls: block.controls, loop: block.loop, muted: block.muted, playsInline: block.playsInline, preload: block.preload };
-      return `<figure${attributes} data-block-align-explicit="true" data-video-src="${escapeAttribute(source)}" data-video-settings="${escapeAttribute(JSON.stringify(settings))}"${classAttribute(blockAlignmentClass(block))}>${source ? `<video src="${escapeAttribute(source)}"${block.controls !== false ? " controls" : ""}${block.autoplay ? " autoplay" : ""}${block.loop ? " loop" : ""}${block.muted ? " muted" : ""}${block.playsInline ? " playsinline" : ""}${block.preload ? ` preload="${block.preload}"` : ""}${poster ? ` poster="${escapeAttribute(poster)}"` : ""}></video>` : ""}${block.caption ? `<figcaption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</figcaption>` : ""}</figure>`;
+      const track = block.captionTrack;
+      const captions = track ? `<track kind="captions" src="${escapeAttribute(videoCaptionTrackSource(track))}" srclang="${escapeAttribute(track.language)}" label="${escapeAttribute(track.label)}" default>` : "";
+      return `<figure${attributes} data-block-align-explicit="true" data-video-src="${escapeAttribute(source)}" data-video-settings="${escapeAttribute(JSON.stringify(settings))}"${classAttribute(blockAlignmentClass(block))}>${source || track ? `<video${source ? ` src="${escapeAttribute(source)}"` : ""}${block.controls !== false ? " controls" : ""}${block.autoplay ? " autoplay" : ""}${block.loop ? " loop" : ""}${block.muted ? " muted" : ""}${block.playsInline ? " playsinline" : ""}${block.preload ? ` preload="${block.preload}"` : ""}${poster ? ` poster="${escapeAttribute(poster)}"` : ""}>${captions}</video>` : ""}${block.caption ? `<figcaption>${runsToHtml(block.captionRuns, block.caption, { blockId: block.id, kind: "caption" })}</figcaption>` : ""}</figure>`;
     }
     case "cover": {
       const source = safeImageSource(block.src) ?? "";
@@ -515,10 +518,19 @@ function parseElementContent(element: HTMLElement, original: ContentBlock, origi
       try { const parsed = JSON.parse(element.getAttribute("data-video-settings")!); if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { error: "The Video settings are invalid." }; settings = parsed; }
       catch { return { error: "The Video settings are invalid." }; }
     }
-    const caption = element.querySelector("figcaption")?.textContent ?? undefined;
-    const src = element.dataset.videoSrc ?? element.querySelector("video")?.getAttribute("src") ?? "";
+    const figcaption = element.querySelector<HTMLElement>("figcaption");
+    const captionRuns = figcaption ? parseRuns(figcaption) : undefined;
+    const caption = captionRuns ? plainTextFromRuns(captionRuns) : figcaption?.textContent ?? undefined;
+    const video = Array.from(element.children).find(child => child.tagName === "VIDEO");
+    const src = element.dataset.videoSrc ?? video?.getAttribute("src") ?? "";
+    const tracks = Array.from(video?.children ?? []).filter(child => child.tagName === "TRACK");
+    const track = tracks[0];
+    const captionTrack = track?.getAttribute("kind") === "captions"
+      ? readVideoCaptionTrackSource(track.getAttribute("src") ?? "", track.getAttribute("srclang") ?? "", track.getAttribute("label") ?? "")
+      : null;
+    if (tracks.length && (tracks.length !== 1 || !captionTrack)) return { error: "Use one valid embedded WebVTT caption track." };
     if (src && !safeVideoSource(src)) return { error: "Use a safe HTTPS or local video URL." };
-    return { block: { id, type: "video", src, ...(caption ? { caption } : {}), ...(settings.autoplay === undefined ? {} : { autoplay: settings.autoplay === true }), ...(settings.controls === undefined ? {} : { controls: settings.controls === true }), ...(settings.loop === undefined ? {} : { loop: settings.loop === true }), ...(settings.muted === undefined ? {} : { muted: settings.muted === true }), ...(settings.playsInline === undefined ? {} : { playsInline: settings.playsInline === true }), ...(settings.preload === undefined ? {} : { preload: settings.preload as "none" | "metadata" | "auto" }), ...(typeof settings.poster === "string" ? { poster: settings.poster } : {}), blockAlign: parsedBlockAlignment(element, original) } };
+    return { block: { id, type: "video", src, ...(captionTrack ? { captionTrack } : {}), ...(caption ? { caption } : {}), ...(captionRuns?.some(run => run.inline || run.marks?.length) ? { captionRuns } : {}), ...(settings.autoplay === undefined ? {} : { autoplay: settings.autoplay === true }), ...(settings.controls === undefined ? {} : { controls: settings.controls === true }), ...(settings.loop === undefined ? {} : { loop: settings.loop === true }), ...(settings.muted === undefined ? {} : { muted: settings.muted === true }), ...(settings.playsInline === undefined ? {} : { playsInline: settings.playsInline === true }), ...(settings.preload === undefined ? {} : { preload: settings.preload as "none" | "metadata" | "auto" }), ...(typeof settings.poster === "string" ? { poster: settings.poster } : {}), blockAlign: parsedBlockAlignment(element, original) } };
   }
   if (declaredType === "footnotes" || element.classList.contains("article-footnotes")) {
     const notes = [...element.querySelectorAll<HTMLElement>("ol > li")].map(item => {

@@ -4,7 +4,7 @@ export { containsWebsiteFont } from "../../../app/content/website-fonts";
 export { containsBoxSideOverrides } from "../../../app/content/box-lengths";
 export { containsPullquote } from "../../../app/content/pullquote-block";
 export { containsCodeRuns, containsCodeMonospaceFont } from "../../../app/content/code-runs";
-export { containsVideoBlock } from "../../../app/content/video-block";
+export { containsVideoBlock, containsVideoCaptionTrack } from "../../../app/content/video-block";
 export { containsCoreSocialLink } from "../../../app/content/social-services";
 export { containsGroupGridFillAvailableSpace, containsFlexItemSizing, containsScopedFlexItemSizing, containsGroupLayoutExtensions } from "../../../app/content/layout";
 export { containsGridItemSizing } from "../../../app/content/grid-child-sizing";

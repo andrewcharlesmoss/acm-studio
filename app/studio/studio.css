@@ -1706,6 +1706,7 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 .paragraph-custom-colour input[type="color"]::-moz-color-swatch { border: 0; border-radius: 50%; }
 .preview-rich-text a { color: var(--studio-paragraph-link-color, #2f6eb4); }
 .setting-note { color: var(--muted); font-size: var(--studio-ui-size); line-height: 1.45; }
+.video-caption-status { overflow-wrap: anywhere; }
 .template-part-reference-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .template-part-reference-row[aria-pressed="true"] { background: #1e1e1e; color: #fff; font-weight: 600; }
 .template-part-reference-row:not([aria-pressed="true"]):hover { background: var(--studio-neutral-hover, #f0f0f0); }

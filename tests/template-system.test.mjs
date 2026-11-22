@@ -61,10 +61,10 @@ test("rich Button labels survive versioned workspace, publication, template and 
   const workspace = plain(editor.initialStudioWorkspace);
   const post = workspace.documents.find(document => document.kind === "post");
   post.blocks = [button];
-  assert.equal(workspace.version, 67);
+  assert.equal(workspace.version, 68);
   assert.deepEqual(plain(validation.validateStudioWorkspace(workspace).documents.find(document => document.id === post.id).blocks), [button]);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 67);
-  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 67, 'supported older content is upgraded even when a newer workspace version exists');
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 22 }).version, 68);
+  assert.equal(validation.validateStudioWorkspace({ ...workspace, version: 34 }).version, 68, 'supported older content is upgraded even when a newer workspace version exists');
   const article = publications.toLocallyPublishedArticle(post);
   const publicationStore = { version: 16, posts: [article] };
   assert.deepEqual(plain(publications.parseLocallyPublishedArticles(JSON.stringify(publicationStore))[0].blocks), [button]);
@@ -74,7 +74,7 @@ test("rich Button labels survive versioned workspace, publication, template and 
   set.parts[0].nodes = [button];
   assert.deepEqual(plain(templates.templateNodesFromBlocks(templates.templateEditorBlocks([button]))), [button]);
   const templateStore = { ...templates.emptyTemplateStore(), sets: [set] };
-  assert.equal(templateStore.version, "0.78.0");
+  assert.equal(templateStore.version, "0.79.0");
   assert.deepEqual(plain(templates.validateTemplateStore({ ...templateStore, version: "0.22.0" }).sets[0].parts[0].nodes), [button]);
   const pageTemplate = set.templates.find(template => template.kind === "page");
   pageTemplate.nodes = [{ id: "authored-title", type: "heading", level: 2, text: "Title" }, { id: "authored-subtitle", type: "paragraph", text: "Subtitle" }, { id: "content-slot", type: "element", element: "content" }];
@@ -105,7 +105,7 @@ test("Footnote objects survive owned repository saves, publications, templates a
     repository.save(workspace);
     assert.deepEqual(plain(repository.load().documents.find(item => item.id === document.id).blocks), blocks);
     templateRepository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.78.0");
+    assert.equal(JSON.parse(env.storage.getItem(templates.TEMPLATE_STORAGE_KEY)).version, "0.79.0");
     assert.deepEqual(plain(templateRepository.loadTemplates(env.storage).sets[0].parts[0].nodes), blocks);
     const publications = env.load("content/local-publishing.ts");
     const publication = { version: 16, posts: [publications.toLocallyPublishedArticle(document)] };
@@ -200,7 +200,7 @@ test("Template layout controls retain semantics, alignment and Section styles th
   const { release } = await env.own();
   try {
     repository.saveTemplates(store, env.storage);
-    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.78.0");
+    assert.equal(JSON.parse(env.storage.getItem(model.TEMPLATE_STORAGE_KEY)).version, "0.79.0");
     assert.deepEqual(plain(repository.loadTemplates(env.storage).sets[0].parts[0].nodes), nodes);
   } finally { release(); }
   const document = env.load("studio/editor-model.ts").initialStudioWorkspace.documents[0];
@@ -254,9 +254,9 @@ test("Template v0.25 readers retain existing inline capabilities while writers e
   set.parts[0].nodes = [{ id: "legacy-inline", type: "paragraph", text: "\uFFFC\uFFFCFrench", runs }];
   const legacy = { ...model.emptyTemplateStore(), version: "0.25.0", sets: [set] };
   assert.deepEqual(plain(model.validateTemplateStore(legacy).sets[0].parts[0].nodes[0].runs), plain(runs));
-  assert.equal(model.validateTemplateStore(legacy).version, "0.78.0");
-  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.78.0");
-  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.78.0");
+  assert.equal(model.validateTemplateStore(legacy).version, "0.79.0");
+  assert.equal(model.validateTemplateSnapshot({ version: "0.25.0", set, templateId: set.templates[0].id }).version, "0.79.0");
+  assert.equal(packages.validateTemplatePackage({ format: "acm-studio-template-set", version: "0.25.0", set, media: [] }).version, "0.79.0");
   assert.throws(() => model.validateTemplateStore({ ...legacy, version: "0.24.0" }), /Inline objects/);
 });
 
@@ -1039,7 +1039,7 @@ test("template and publication image references prevent deletion until removed",
   const document = plain(env.load("studio/editor-model.ts").initialStudioWorkspace.documents[2]);
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document, { version: m.TEMPLATE_VERSION, set, templateId: set.templates[1].id });
-  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 58);
+  assert.equal(JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY)).version, 59);
   env.storage.removeItem(m.TEMPLATE_STORAGE_KEY);
   assert.throws(() => store.assertTemplateMediaCanBeDeleted("image-source"), /published template snapshot/);
   publications.unpublishDocumentLocally(document.id);
@@ -1455,7 +1455,7 @@ test("custom background gradients survive template packages and publication snap
   const publications = env.load("content/local-publishing.ts"); const { release } = await env.own();
   publications.publishDocumentLocally(document);
   const snapshot = JSON.parse(env.storage.getItem(publications.LOCAL_PUBLICATIONS_KEY));
-  assert.equal(snapshot.version, 58);
+  assert.equal(snapshot.version, 59);
   assert.doesNotThrow(() => validation.validatePublicationSnapshot(snapshot));
   assert.deepEqual(snapshot.posts[0].blocks.at(-1).style.backgroundGradient, gradient);
   release();

@@ -15,9 +15,10 @@ test("the recovery table identifies the current writer for each storage format",
   const { BLOCK_CLIPBOARD_VERSION } = await load("../app/studio/block-clipboard.ts");
   const { BACKUP_VERSION } = await load("../app/studio/backup-store.ts");
   const { BACKUP_ARCHIVE_VERSION } = await load("../app/studio/backup-archive.ts");
+  const { CURRENT_TEST_SITE_VERSION } = await load("../app/studio/test-site/contract.ts");
   const { MEDIA_DATABASE_VERSION } = await load("../app/studio/media-database-migration.ts");
 
-  // These three writers currently put the envelope version directly in their output.
+  // These two writers currently put the envelope version directly in their output.
   const literal = (file, pattern) => {
     const match = source(file).match(pattern);
     assert.ok(match, file);
@@ -30,7 +31,7 @@ test("the recovery table identifies the current writer for each storage format",
     "Block clipboard": BLOCK_CLIPBOARD_VERSION,
     "Full backup content": BACKUP_VERSION,
     "Binary backup container": BACKUP_ARCHIVE_VERSION,
-    "Test and Test2 fixture source": literal("../app/studio/test-site/local-publication.ts", /\.\.\.source, version: (\d+)/),
+    "Test and Test2 fixture source": CURRENT_TEST_SITE_VERSION,
     "Global template library": literal("../app/studio/global-template-contract.ts", /format: "acm-global-templates", version: (\d+), templates, migrations/),
     "Local fixture backup": literal("../app/studio/test-site/test-site-backup.tsx", /exportStudioJson\(\{ format: "acm-local-site-backup", version: (\d+)/),
     "Files IndexedDB": MEDIA_DATABASE_VERSION,

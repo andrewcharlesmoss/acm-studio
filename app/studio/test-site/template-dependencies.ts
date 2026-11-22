@@ -1,7 +1,7 @@
 import type { GlobalTemplateLibrary } from "../global-template-contract";
 import { changeTemplateDependencies, dependencyBindings, type TemplateDependency, type TemplateDependencySnapshot, type TemplateDependencyTarget } from "../template-dependencies";
 import { localSitePublicationSnapshots } from "./local-publication";
-import { testSiteCollection, testSiteWorkspace, validTestSiteDocument, type TestSiteDocument } from "./contract";
+import { CURRENT_TEST_SITE_VERSION, testSiteCollection, testSiteWorkspace, validTestSiteDocument, type TestSiteDocument } from "./contract";
 
 export function fixtureTemplateDependencySnapshot(document: TestSiteDocument, library: GlobalTemplateLibrary): TemplateDependencySnapshot {
   const source = testSiteCollection(document);
@@ -13,7 +13,7 @@ export function changeFixtureTemplateDependencies(document: TestSiteDocument, li
   const source = testSiteCollection(document);
   const snapshot = fixtureTemplateDependencySnapshot(document, library);
   const next = changeTemplateDependencies(snapshot, library, target, selected, replacement);
-  const saved = { ...source, version: 57 as const, documents: next.workspace.documents, bin: next.workspace.bin,
+  const saved = { ...source, version: CURRENT_TEST_SITE_VERSION, documents: next.workspace.documents, bin: next.workspace.bin,
     templates: next.templates, globalTemplates: snapshot.bindings, publications: next.publications ?? [] };
   if (!validTestSiteDocument(saved)) throw new Error("The assignment change is invalid. The site source was kept.");
   return saved;

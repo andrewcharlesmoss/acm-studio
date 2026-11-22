@@ -35,7 +35,7 @@ test('Header Cover transform retains dynamic nodes through validation and reload
   assert.deepEqual(templateEditorBlocks(nodes, set)[0].children[0], group);
   assert.throws(() => validateTemplateStore({ ...store, version: '0.77.0' }), /inside Cover require template v0.78.0/);
   const legacy = { ...emptyTemplateStore(), version: '0.77.0' };
-  assert.equal(validateTemplateStore(legacy).version, '0.78.0');
+  assert.equal(validateTemplateStore(legacy).version, '0.79.0');
 });
 
 test('Cover template payload is version-gated in packages, backups, and site sources', () => {
@@ -44,7 +44,7 @@ test('Cover template payload is version-gated in packages, backups, and site sou
   header.nodes = [{ id: 'cover-gate-test', type: 'cover', src: '', alt: '', dimRatio: 50, children: header.nodes }];
   const store = { ...emptyTemplateStore(), sets: [set] };
   const pkg = { format: 'acm-studio-template-set', version: '0.78.0', set, media: [] };
-  assert.equal(validateTemplatePackage(pkg).version, '0.78.0');
+  assert.equal(validateTemplatePackage(pkg).version, '0.79.0');
   assert.throws(() => validateTemplatePackage({ ...pkg, version: '0.77.0' }), /package v0.78.0/);
   const backup = { format: 'acm-studio-backup', version: 46, exportedAt: '2026-11-09T00:00:00.000Z', workspace: initialStudioWorkspace, templates: store, publications: null, media: { folders: [], assets: [] } };
   assert.equal(validateStudioBackup(backup).version, 46);
@@ -55,7 +55,7 @@ test('Cover template payload is version-gated in packages, backups, and site sou
   assert.equal(validTestSiteDocument(site), true);
   assert.equal(validTestSiteDocument({ ...site, version: 56 }), false);
   assert.throws(() => testSiteCollection({ ...site, version: 56 }), /site source v57/);
-  assert.equal(testSiteCollection({ ...base, version: 56 }).version, 57);
+  assert.equal(testSiteCollection({ ...base, version: 56 }).version, 58);
 });
 
 test('publication envelope v57 protects nested template Covers', () => {
@@ -64,8 +64,8 @@ test('publication envelope v57 protects nested template Covers', () => {
  header.nodes = [{ id: 'cover-published', type: 'cover', src: '', alt: '', dimRatio: 50, children: header.nodes }];
  const post = { localDocumentId: 'published-page', slug: 'published-page', title: 'Page', summary: '', displayDate: '', readingTime: '', publishedAt: '2026-11-09T00:00:00.000Z', section: '', blocks: [], mediaIds: [], templateSnapshot: { version: '0.78.0', set, templateId: 'template-test' } };
  assert.throws(() => validatePublicationSnapshot({ version: 56, posts: [post] }), /published-post snapshot v57/);
- assert.equal(validatePublicationSnapshot({ version: 57, posts: [post] }).version, 58);
- assert.equal(validatePublicationSnapshot({ version: 56, posts: [] }).version, 58);
+ assert.equal(validatePublicationSnapshot({ version: 57, posts: [post] }).version, 59);
+ assert.equal(validatePublicationSnapshot({ version: 56, posts: [] }).version, 59);
 });
 
 test('workspace v66 gates retained Cover template revisions', () => {
@@ -90,7 +90,7 @@ test('workspace repository retains binned publication with nested Cover template
  const oldWindow = globalThis.window; globalThis.window = { localStorage: { getItem: () => null } };
  try {
    const saved = withSavedDocumentRevisions(workspace);
-   assert.equal(saved.version, 67);
+   assert.equal(saved.version, 68);
    assert.equal(validateWorkspacePublicationTemplates(saved).bin[0].publication.templateSnapshot.set.parts.find(item => item.kind === 'header').nodes[0].type, 'cover');
    assert.throws(() => validateStudioWorkspace({ ...workspace, version: 65 }));
  } finally { globalThis.window = oldWindow; }

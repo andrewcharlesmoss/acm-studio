@@ -8,6 +8,7 @@ const identities=await loadProductionModule(new URL('../app/studio/site-editor/i
 const styles=await loadProductionModule(new URL('../app/studio/site-editor/styles-preview-state.ts',import.meta.url));
 const design=await loadProductionModule(new URL('../app/studio/site-editor/website-design.ts',import.meta.url));
 const styleValidation=await loadProductionModule(new URL('../app/studio/site-editor/website-style-validation.ts',import.meta.url));
+const {CURRENT_TEST_SITE_VERSION}=await loadProductionModule(new URL('../app/studio/test-site/contract.ts',import.meta.url));
 const source=readFileSync(new URL('../app/studio/site-editor/use-website-design.ts',import.meta.url),'utf8');
 function controller(startup = null, reviewMode = false, portableImage = null){
  const slots=[],effects=[],timers=new Map(),writes=[];let cursor=0,dirty=true,result,nextTimer=0;
@@ -31,7 +32,7 @@ function controller(startup = null, reviewMode = false, portableImage = null){
   if(name.endsWith('use-studio-workspace'))return {useStudioWorkspace(){}};
   if(name.endsWith('website-design-startup-cache'))return {readWebsiteDesignStartup:()=>startup};
   if(name.endsWith('use-test-site'))return {useTestSite:(_enabled,_owner,id)=>id==='test'?first:second};
-  if(name.endsWith('test-site/contract'))return {testSiteCollection:value=>({...value,version:57})};
+  if(name.endsWith('test-site/contract'))return {testSiteCollection:value=>({...value,version:CURRENT_TEST_SITE_VERSION})};
   if(name.endsWith('local-publication'))return {localSitePublicationSnapshots:value=>value.publications ?? []};
   if(name.endsWith('use-global-templates'))return {useGlobalTemplates:()=>global};
   if(name.endsWith('global-template-contract'))return {migrateGlobalTemplateBindings:()=>[]};
@@ -63,8 +64,8 @@ test('site settings preserve the current fixture version and newer content',asyn
   c.first.draft={...c.first.draft,version:45,documents,publications};
   c.first.snapshot={document:structuredClone(c.first.draft)};
   await c.settle();c.state.dispatch({type:'change',site:'test',patch:{title:'Changed'}});await c.settle();c.runTimers();await c.settle();
-  assert.equal(c.first.draft.version,57);assert.deepEqual(c.first.draft.documents,documents);assert.deepEqual(c.first.draft.publications,publications);
-  assert.equal(c.first.snapshot.document.version,57);assert.equal(c.first.draft.websiteDesign.identity.title,'Changed');assert.deepEqual(c.writes,['test']);
+  assert.equal(c.first.draft.version,CURRENT_TEST_SITE_VERSION);assert.deepEqual(c.first.draft.documents,documents);assert.deepEqual(c.first.draft.publications,publications);
+  assert.equal(c.first.snapshot.document.version,CURRENT_TEST_SITE_VERSION);assert.equal(c.first.draft.websiteDesign.identity.title,'Changed');assert.deepEqual(c.writes,['test']);
  }finally{c.close();}
 });
 

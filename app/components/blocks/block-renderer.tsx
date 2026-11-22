@@ -26,6 +26,7 @@ import { imageDisplayStyle } from "../../content/image-style";
 import { coverContentPositionClass, coverVideoPlayerUrl } from "../../content/cover-block";
 import { resolveBlockImageSource, resolveImageSource } from "../../content/image-source";
 import { resolveVideoSource } from "../../content/video-block";
+import { videoCaptionTrackSource, type VideoCaptionTrack as CaptionTrack } from "../../content/video-caption-track";
 import type { ImageRenditionUrls } from "../../content/image-resolution";
 import { useImageRenditionUrls } from "./image-rendition-context";
 import { FeaturedImage } from "./featured-image";
@@ -55,6 +56,10 @@ function CoverVideoPlayer({ background }: { background: NonNullable<Extract<Cont
   const playerUrl = coverVideoPlayerUrl(background, !prefersReducedMotion);
   if (!playerUrl) return null;
   return <div className="content-cover-video" aria-hidden="true"><iframe src={playerUrl} title="Cover background video" sandbox="allow-scripts allow-same-origin allow-presentation" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerPolicy="strict-origin-when-cross-origin" tabIndex={-1} loading="lazy" /></div>;
+}
+
+function VideoCaptionTrack({ kind, track }: { kind: "captions"; track?: CaptionTrack }) {
+  return track ? <track kind={kind} src={videoCaptionTrackSource(track)} srcLang={track.language} label={track.label} default /> : null;
 }
 
 export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRenditionUrls, variant = "article", hideDividers = false, documentHref, document, readingTimeBlocks, showMissingMetadata = variant === "studio", spacerOrientation = "vertical", buttonPreview = null, externalEmbedPlaceholder = false, resolveRemoteEmbeds = false, groupLeadingContent, coverContent, queryCandidates = [], staticQuerySchedule = false }: { blocks: ContentBlock[]; externalEmbedPlaceholder?: boolean; resolveRemoteEmbeds?: boolean; mediaUrls?: Record<string, string>; imageRenditionUrls?: ImageRenditionUrls; variant?: "article" | "studio"; hideDividers?: boolean; document?: DocumentRenderContext; documentHref?: string; readingTimeBlocks?: ContentBlock[]; showMissingMetadata?: boolean; spacerOrientation?: SpacerOrientation; buttonPreview?: { blockId: string; state: ButtonInteractionState } | null; groupLeadingContent?: { blockId: string; content: React.ReactNode }; coverContent?: { blockId: string; content: React.ReactNode }; queryCandidates?: readonly QueryPost[]; staticQuerySchedule?: boolean }) {
@@ -121,10 +126,9 @@ export function BlockRenderer({ blocks: sourceBlocks, mediaUrls = {}, imageRendi
           const source = resolveVideoSource(block);
           const poster = block.poster;
           return <figure key={block.id} className={`content-video${blockAlignmentClass(block) ? ` ${blockAlignmentClass(block)}` : ""}`}>
-            {
-              // eslint-disable-next-line jsx-a11y/media-has-caption -- The Video contract supports figure captions. Timed captions need an authored track source.
-              source ? <video src={source} controls={block.controls !== false} autoPlay={block.autoplay === true} loop={block.loop === true} muted={block.muted === true} playsInline={block.playsInline === true} preload={block.preload ?? "metadata"} poster={poster || undefined} /> : studio ? <div className="content-video-placeholder"><StudioIcon name="video" /><strong>Video block</strong><small>Add a direct video file URL.</small></div> : null
-            }
+            {source ? <video src={source} controls={block.controls !== false} autoPlay={block.autoplay === true} loop={block.loop === true} muted={block.muted === true} playsInline={block.playsInline === true} preload={block.preload ?? "metadata"} poster={poster || undefined}>
+              <VideoCaptionTrack kind="captions" track={block.captionTrack} />
+            </video> : studio ? <div className="content-video-placeholder"><StudioIcon name="video" /><strong>Video block</strong><small>Add a direct video file URL.</small></div> : null}
             {block.caption ? <figcaption>{renderText(block.caption, block.captionRuns, mediaUrls, footnoteNumbers, { blockId: block.id, kind: "caption" })}</figcaption> : null}
           </figure>;
         }

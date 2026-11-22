@@ -7,7 +7,7 @@ import { containsButtonsAlignment } from "../content/buttons-alignment";
 import { containsCoreSocialLink } from "../content/social-services";
 import { containsCodeRuns, containsCodeMonospaceFont } from "../content/code-runs";
 import { containsCoverBlock, containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../content/cover-block";
-import { containsVideoBlock } from "../content/video-block";
+import { containsVideoBlock, containsVideoCaptionTrack } from "../content/video-block";
 import { containsDetailsPresentation } from "../content/details-block";
 import { containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone } from "../content/image-duotone";
 import { containsAuthoredFeaturedImageOverlay } from "../content/featured-image-overlay";
@@ -34,7 +34,7 @@ import { cloneBlocksForInsertion, copiedBlocksForParent } from "./block-copy";
 const marker = "data-acm-studio-blocks";
 const maximumClipboardLength = 2 * 1024 * 1024;
 
-export const BLOCK_CLIPBOARD_VERSION = 42;
+export const BLOCK_CLIPBOARD_VERSION = 43;
 
 export type BlockClipboardPayload = { blocks: ContentBlock[]; footnotes: Footnote[] };
 
@@ -88,6 +88,7 @@ export function readBlockClipboardPayload(html: string): BlockClipboardPayload |
     if (value?.version < 35 && containsBoxSideOverrides(value)) return null;
     if (value?.version < 34 && containsPullquote(value)) return null;
     if (value?.version < 33 && containsNativeCoverVideoSource(value)) return null;
+    if (value?.version < 43 && containsVideoCaptionTrack(value)) return null;
     if (value?.version < 32 && containsVideoBlock(value)) return null;
     if (value?.version < 27 && containsCoreSocialLink(value)) return null;
     if (value?.version < 22 && containsCodeMonospaceFont(value)) return null;

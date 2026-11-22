@@ -8,7 +8,7 @@ import { copyTemplateData, emptyTemplateStore, type TemplateStore } from "../tem
 import type { useStudioWorkspace } from "../use-studio-workspace";
 import type { useTemplates } from "../use-templates";
 import { changeLocalSiteStatus, localSitePublicationSnapshots, type LocalSiteStatus } from "./local-publication";
-import { testSiteCollection, testSiteWorkspace, type SiteNavigationAssignment, type SiteNavigationMenu } from "./contract";
+import { CURRENT_TEST_SITE_VERSION, testSiteCollection, testSiteWorkspace, type SiteNavigationAssignment, type SiteNavigationMenu } from "./contract";
 import type { useTestSite } from "./use-test-site";
 
 /** One site aggregate owns content, taxonomy, templates and their shared undo history. */
@@ -47,7 +47,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const publications = localSitePublicationSnapshots(source);
       const retainedIds = new Set([...next.workspace.documents, ...next.workspace.bin.map(item => item.document)].map(document => document.id));
       return { ...source, publications: publications.filter(item => retainedIds.has(item.document.id)), documents: next.workspace.documents, categories: next.workspace.categories,
-        bin: next.workspace.bin, version: 57, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
+        bin: next.workspace.bin, version: CURRENT_TEST_SITE_VERSION, globalTemplates: refs, templates: { ...source.templates, sets: sets.map(set => set.id === source.siteNavigation.setId && defaultLinks ? { ...set, navigation: defaultLinks } : set), assignments: next.templates.assignments, bin: next.templates.bin }, navigationMenus, activeDocumentId: source.homeDocumentId };
     });
   }
   function commit(update: (current: StudioWorkspace) => StudioWorkspace) {
@@ -98,7 +98,7 @@ export function useTestSiteContext(site: ReturnType<typeof useTestSite>, browser
       const refs = source.globalTemplates ?? migrateGlobalTemplateBindings(source.templates, globals, site.siteId);
       const effective = effectiveGlobalTemplates(source.templates, globals, refs);
       const publications = localSitePublicationSnapshots(source);
-      return changeLocalSiteStatus({ ...source, version: 57, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
+      return changeLocalSiteStatus({ ...source, version: CURRENT_TEST_SITE_VERSION, globalTemplates: refs, publications }, documentId, status, effective, new Date().toISOString(), captureScheduled);
     }, false)) throw new Error("The publication change could not be saved. Your draft was kept.");
     await site.flush();
   }

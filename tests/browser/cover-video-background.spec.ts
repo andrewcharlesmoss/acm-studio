@@ -8,10 +8,9 @@ test('Library empty Cover can transform to an empty Video with undo and redo', a
   await page.goto('/studio/ui/blocks/cover');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   const editor = page.locator('.ui-library-canvas');
-  await editor.getByRole('textbox', { name: 'Type / to choose a block' }).fill('/cover');
-  const chooser = page.getByRole('dialog', { name: 'Choose a block' });
-  await expect(chooser).toBeVisible();
-  await chooser.getByRole('button', { name: 'Cover', exact: true }).click();
+  const empty = editor.getByRole('group', { name: 'Cover block', exact: true })
+    .filter({ hasText: 'Drag and drop an image or video' });
+  await empty.focus();
 
   const selected = editor.locator('.canvas-block.is-selected');
   await selected.getByRole('button', { name: 'Transform Cover block', exact: true }).click();

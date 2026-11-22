@@ -6,7 +6,7 @@ import { containsPullquote } from "../../content/pullquote-block";
 import { containsCodeRuns, containsCodeMonospaceFont } from "../../content/code-runs";
 import { containsCoreSocialLink } from "../../content/social-services";
 import { containsCoverBlock, containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../../content/cover-block";
-import { containsVideoBlock } from "../../content/video-block";
+import { containsVideoBlock, containsVideoCaptionTrack } from "../../content/video-block";
 import { containsButtonsAlignment } from "../../content/buttons-alignment";
 import { containsAuthoredAuthorDuotone, containsAuthoredFeaturedImageDuotone, containsAuthoredImageDuotone } from "../../content/image-duotone";
 import { containsAuthoredFeaturedImageOverlay } from "../../content/featured-image-overlay";
@@ -49,9 +49,9 @@ type LegacyTestSiteCollection = {
 };
 export type LocalSitePublication = { document: StudioDocument; assignment?: TemplateAssignment };
 type LegacyVersionedTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference } & ({ version: 4; globalTemplates?: never } | { version: 5; globalTemplates: GlobalTemplateBinding[] } | { version: 6; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 7; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[] } | { version: 8; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 9; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 10; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign } | { version: 11; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign });
-const CURRENT_TEST_SITE_VERSION = 57;
+export const CURRENT_TEST_SITE_VERSION = 58;
 export type CurrentTestSiteCollection = Omit<LegacyTestSiteCollection, "version"> & { siteNavigation: SiteNavigationReference; globalTemplates: GlobalTemplateBinding[]; publications: LocalSitePublication[]; websiteDesign?: WebsiteDesign; version: typeof CURRENT_TEST_SITE_VERSION; navigationMenus: SiteNavigationMenu[]; defaultNavigationMenuId: string; navigationAssignments: SiteNavigationAssignment[] };
-type LegacyNavigationSiteCollection = Omit<CurrentTestSiteCollection, "version"> & ({ version: 12 } | { version: 13 } | { version: 14 } | { version: 15 } | { version: 16 } | { version: 17 } | { version: 18 } | { version: 19 } | { version: 20 } | { version: 21 } | { version: 22 } | { version: 23 } | { version: 24 } | { version: 25 } | { version: 26 } | { version: 27 } | { version: 28 } | { version: 29 } | { version: 30 } | { version: 31 } | { version: 32 } | { version: 33 } | { version: 34 } | { version: 35 } | { version: 36 } | { version: 37 } | { version: 38 } | { version: 39 } | { version: 40 } | { version: 41 } | { version: 42 } | { version: 43 } | { version: 44 } | { version: 45 } | { version: 46 } | { version: 47 } | { version: 48 } | { version: 49 } | { version: 50 } | { version: 51 } | { version: 52 } | { version: 53 } | { version: 54 } | { version: 55 } | { version: 56 });
+type LegacyNavigationSiteCollection = Omit<CurrentTestSiteCollection, "version"> & ({ version: 12 } | { version: 13 } | { version: 14 } | { version: 15 } | { version: 16 } | { version: 17 } | { version: 18 } | { version: 19 } | { version: 20 } | { version: 21 } | { version: 22 } | { version: 23 } | { version: 24 } | { version: 25 } | { version: 26 } | { version: 27 } | { version: 28 } | { version: 29 } | { version: 30 } | { version: 31 } | { version: 32 } | { version: 33 } | { version: 34 } | { version: 35 } | { version: 36 } | { version: 37 } | { version: 38 } | { version: 39 } | { version: 40 } | { version: 41 } | { version: 42 } | { version: 43 } | { version: 44 } | { version: 45 } | { version: 46 } | { version: 47 } | { version: 48 } | { version: 49 } | { version: 50 } | { version: 51 } | { version: 52 } | { version: 53 } | { version: 54 } | { version: 55 } | { version: 56 } | { version: 57 });
 export type TestSiteCollection = LegacyVersionedTestSiteCollection | LegacyNavigationSiteCollection | CurrentTestSiteCollection;
 export type TestSiteDocument = TestSiteCollection | LegacyTestSiteCollection | LegacyTestSiteDocument | { format: "acm-test-site"; version: 2; siteId: "test"; document: StudioDocument };
 export type TestSnapshot = { revision: string; document: TestSiteDocument; previewRevision: string };
@@ -75,6 +75,7 @@ function templateNavigationNodeIds(value: unknown, ids = new Set<string>()): Set
 }
 export function validTestSiteDocument(value: unknown): value is TestSiteDocument {
   if (record(value) && (value.version as number) < 53 && containsNavigationPageListBlock(value)) return false;
+  if (record(value) && (value.version as number) < 58 && containsVideoCaptionTrack(value)) return false;
   if (record(value) && (value.version as number) < 57 && containsTemplateElementsInCover(value)) return false;
   if (record(value) && (value.version as number) < 56 && containsGroupLayoutExtensions(value)) return false;
   if (record(value) && (value.version as number) < 55 && containsScopedFlexItemSizing(value)) return false;
@@ -126,13 +127,13 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
   if (record(value) && (value.version as number) < 11 && hasPageOrder(value)) return false;
   if (record(value) && (value.version as number) < 33 && containsCodeRuns(value)) return false;
   if (record(value) && (value.version as number) < 28 && containsDetailsPresentation(value)) return false;
-  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
+  if (!record(value) || value.format !== "acm-test-site" || !isLocalFixtureSiteId(value.siteId) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, CURRENT_TEST_SITE_VERSION].includes(value.version as number) || ((value.version as number) < 3 && value.siteId !== "test")) return false;
   if (value.version === 1) {
     if (!record(value.regions) || Object.keys(value).sort().join() !== "format,regions,siteId,version" || Object.keys(value.regions).sort().join() !== "footer,header,main") return false;
     const blocks = TEST_REGIONS.map(region => (value.regions as Record<string, unknown>)[region]);
     return validContentBlocks(blocks) && blocks.every((block, index) => block.type === "group" && block.id === `test-${TEST_REGIONS[index]}` && block.tagName === TEST_REGIONS[index]);
   }
-  if ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57].includes(value.version as number)) {
+  if ([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, CURRENT_TEST_SITE_VERSION].includes(value.version as number)) {
     const version = value.version as number;
     const hasPublications = version >= 6;
     const hasNavigation = version >= 4;
@@ -148,7 +149,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
       || typeof value.browserImportComplete !== "boolean" || typeof value.homeDocumentId !== "string") return false;
     try {
       if (hasDesign && value.websiteDesign !== undefined) validateWebsiteDesign(value.websiteDesign);
-      const workspaceVersion = version >= 57 ? 66 : version >= 56 ? 65 : version >= 55 ? 64 : version >= 53 ? 63 : version >= 52 ? 62 : version >= 51 ? 61 : version >= 50 ? 60 : version >= 48 ? 59 : version >= 47 ? 58 : version >= 46 ? 57 : version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 41 ? 52 : version >= 40 ? 51 : version >= 39 ? 50 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 35 ? 46 : version >= 34 ? 44 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 18 ? 36 : version >= 17 ? 35 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28;
+      const workspaceVersion = version >= 58 ? 68 : version >= 57 ? 66 : version >= 56 ? 65 : version >= 55 ? 64 : version >= 53 ? 63 : version >= 52 ? 62 : version >= 51 ? 61 : version >= 50 ? 60 : version >= 48 ? 59 : version >= 47 ? 58 : version >= 46 ? 57 : version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 41 ? 52 : version >= 40 ? 51 : version >= 39 ? 50 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 35 ? 46 : version >= 34 ? 44 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 18 ? 36 : version >= 17 ? 35 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28;
       const workspace = validateStudioWorkspace({ ...value, version: workspaceVersion });
       if (!workspace.documents.some(document => document.id === value.homeDocumentId && document.kind === "page")) return false;
       const templates = validateTemplateStore(value.templates, workspace.documents);
@@ -190,7 +191,7 @@ export function validTestSiteDocument(value: unknown): value is TestSiteDocument
           ids.add(page.id);
           const categories = (page.categoryIds ?? []).map(id => ({ id, name: id }));
           if (page.parentPageId !== undefined && typeof page.parentPageId !== "string") return false;
-          validateStudioWorkspace({ version: version >= 57 ? 66 : version >= 56 ? 65 : version >= 55 ? 64 : version >= 53 ? 63 : version >= 52 ? 62 : version >= 51 ? 61 : version >= 50 ? 60 : version >= 48 ? 59 : version >= 47 ? 58 : version >= 46 ? 57 : version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 17 ? 34 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
+          validateStudioWorkspace({ version: version >= 58 ? 68 : version >= 57 ? 66 : version >= 56 ? 65 : version >= 55 ? 64 : version >= 53 ? 63 : version >= 52 ? 62 : version >= 51 ? 61 : version >= 50 ? 60 : version >= 48 ? 59 : version >= 47 ? 58 : version >= 46 ? 57 : version >= 45 ? 56 : version >= 44 ? 55 : version >= 43 ? 54 : version >= 42 ? 53 : version >= 38 ? 49 : version >= 37 ? 48 : version >= 36 ? 47 : version >= 33 ? 43 : version >= 29 ? 42 : version >= 28 ? 41 : version >= 27 ? 40 : version >= 23 ? 39 : version >= 22 ? 38 : version >= 21 ? 37 : version >= 17 ? 34 : version >= 16 ? 33 : version >= 15 ? 32 : version >= 14 ? 31 : version >= 13 ? 30 : version >= 11 ? 29 : 28, documents: [{ ...page, parentPageId: undefined }], categories, bin: [], activeDocumentId: page.id });
           if (entry.assignment) {
             const a = entry.assignment;
             if (!record(a) || Object.keys(a).sort().join() !== "documentId,kind,setId,templateId" || a.documentId !== page.id || a.kind !== page.kind || typeof a.setId !== "string" || typeof a.templateId !== "string") return false;
@@ -244,10 +245,11 @@ function withNavigationMenus(collection: LegacyVersionedTestSiteCollection): Cur
     const resolved = resolveTemplate(collection.templates, published);
     return { document: published, ...(resolved ? { assignment: { documentId: published.id, kind: published.kind, setId: resolved.set.id, templateId: resolved.templateId } } : {}) };
   });
-  return { ...collection, version: 57, navigationMenus: [{ id, name: "Navigation", links: menu.navigation }], defaultNavigationMenuId: id, navigationAssignments: [], globalTemplates: "globalTemplates" in collection ? collection.globalTemplates ?? [] : [], publications };
+  return { ...collection, version: CURRENT_TEST_SITE_VERSION, navigationMenus: [{ id, name: "Navigation", links: menu.navigation }], defaultNavigationMenuId: id, navigationAssignments: [], globalTemplates: "globalTemplates" in collection ? collection.globalTemplates ?? [] : [], publications };
 }
 /** Legacy envelopes remain readable. Navigation is seeded once, then explicitly authored. */
 export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteCollection {
+  if (document.version < 58 && containsVideoCaptionTrack(document)) throw new Error("Timed Video captions require local site source v58. Original data has been retained.");
   if (document.version < 57 && containsTemplateElementsInCover(document)) throw new Error("Template elements inside Cover require local site source v57. Original data has been retained.");
   if (document.version < 56 && containsGroupLayoutExtensions(document)) throw new Error("Extended Group layout values require local site source v56. Original data has been retained.");
   if (document.version < 55 && containsScopedFlexItemSizing(document)) throw new Error("Scoped flex child sizing requires local site source v55. Original data has been retained.");
@@ -259,24 +261,24 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
   if (document.version < 51 && containsGeneralTemplatePart(document)) throw new Error("General template parts require local site source v51.");
   if (document.version < 50 && containsSiteTitle(document)) throw new Error("Site Title requires local site source v50.");
   if (document.version < 49 && "websiteDesign" in document && containsUnsetWebsiteGradient(document.websiteDesign)) throw new Error("Unset custom gradients require local site source v49.");
-  if ("documents" in document && document.version === 57) {
+  if ("documents" in document && document.version === CURRENT_TEST_SITE_VERSION) {
     const migrated = migrateLegacyBlockTypeNames(document) as CurrentTestSiteCollection;
     if (!validTestSiteDocument(migrated)) throw new Error(`The saved ${localFixtureName(document.siteId)} site is invalid or uses an unsupported version.`);
     return JSON.stringify(migrated) === JSON.stringify(document) ? document : migrated;
   }
-  if ("documents" in document && (document.version === 54 || document.version === 55 || document.version === 56)) {
+  if ("documents" in document && (document.version === 54 || document.version === 55 || document.version === 56 || document.version === 57)) {
     if (!validTestSiteDocument(document)) throw new Error("The saved site is invalid or uses unsupported content. Its original data has been retained.");
-    const migrated = { ...migrateLegacyBlockTypeNames(document), version: 57, templates: validateTemplateStore(document.templates, document.documents) } as CurrentTestSiteCollection;
+    const migrated = { ...migrateLegacyBlockTypeNames(document), version: CURRENT_TEST_SITE_VERSION, templates: validateTemplateStore(document.templates, document.documents) } as CurrentTestSiteCollection;
     if (!validTestSiteDocument(migrated)) throw new Error(`The saved ${localFixtureName(document.siteId)} site could not be migrated safely. Its original data has been retained.`);
     return migrated;
   }
   if ("documents" in document && document.version === 53) {
-    const migrated = { ...migrateLegacyBlockTypeNames(document), version: 57, templates: validateTemplateStore(document.templates, document.documents) } as CurrentTestSiteCollection;
+    const migrated = { ...migrateLegacyBlockTypeNames(document), version: CURRENT_TEST_SITE_VERSION, templates: validateTemplateStore(document.templates, document.documents) } as CurrentTestSiteCollection;
     if (!validTestSiteDocument(migrated)) throw new Error(`The saved ${localFixtureName(document.siteId)} site is invalid or uses an unsupported version.`);
     return migrated;
   }
   if ("documents" in document && (document.version === 51 || document.version === 52)) {
-    const migrated = { ...migrateLegacyBlockTypeNames(document), version: 57, templates: validateTemplateStore(document.templates, document.documents) } as CurrentTestSiteCollection;
+    const migrated = { ...migrateLegacyBlockTypeNames(document), version: CURRENT_TEST_SITE_VERSION, templates: validateTemplateStore(document.templates, document.documents) } as CurrentTestSiteCollection;
     if (!validTestSiteDocument(migrated)) throw new Error(`The saved ${localFixtureName(document.siteId)} site could not be migrated safely. Its original data has been retained.`);
     return migrated;
   }
@@ -285,7 +287,7 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
     const workspace = validateStudioWorkspace({ ...document, version: document.version === 45 ? 56 : 55 });
     const migrated: CurrentTestSiteCollection = {
       ...document,
-      version: 57,
+      version: CURRENT_TEST_SITE_VERSION,
       documents: workspace.documents,
       categories: workspace.categories,
       bin: workspace.bin,
@@ -300,7 +302,7 @@ export function testSiteCollection(document: TestSiteDocument): CurrentTestSiteC
     const workspace = validateStudioWorkspace({ ...document, version: workspaceVersion });
     const collection = { ...document, documents: workspace.documents, categories: workspace.categories, bin: workspace.bin,
       templates: validateTemplateStore(document.templates, workspace.documents) };
-    if (collection.version >= 12) return { ...collection, version: 57 } as CurrentTestSiteCollection;
+    if (collection.version >= 12) return { ...collection, version: CURRENT_TEST_SITE_VERSION } as CurrentTestSiteCollection;
     const withNavigation = collection.version >= 4 ? collection as LegacyVersionedTestSiteCollection : withSiteNavigation(collection as LegacyTestSiteCollection);
     return withNavigationMenus(withNavigation);
   }

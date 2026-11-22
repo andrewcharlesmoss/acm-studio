@@ -58,7 +58,7 @@ const blockDocumentation: Record<CapabilityBlockType, BlockDocumentation> = {
   },
   video: {
     context: "Native HTML video playback from a direct safe HTTPS or local URL; provider pages belong in Embed.",
-    notes: ["Content and Settings expose the direct source, poster, caption and playback options. The renderer emits a native video element; it does not resolve provider iframe URLs.", "Upload and Media Library selection, caption tracks and Cover transforms are not supported in this URL-only implementation."],
+    notes: ["Video settings expose the direct source, poster, figure caption and playback options. Timed captions accepts one UTF-8 WebVTT file and stores its language and player label with the block. Apply Caption Track adds or replaces the track.", "Video playback uses the native player. Video upload and Media Library selection remain outside the current URL-based source flow."],
   },
   cover: {
     context: "A content-bearing background Image with a bounded dark-overlay ratio and nested blocks.",

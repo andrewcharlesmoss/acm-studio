@@ -1,4 +1,5 @@
 import { safeImageSource } from "./rich-text";
+import { validVideoCaptionTrack, type VideoCaptionTrack } from "./video-caption-track";
 
 export type VideoPreload = "none" | "metadata" | "auto";
 export type VideoBlock = {
@@ -7,6 +8,7 @@ export type VideoBlock = {
   src: string;
   caption?: string;
   captionRuns?: import("./model").RichTextRun[];
+  captionTrack?: VideoCaptionTrack;
   autoplay?: boolean;
   controls?: boolean;
   loop?: boolean;
@@ -44,6 +46,7 @@ export function validVideoBlock(value: unknown): value is VideoBlock {
     && typeof block.src === "string" && (block.src === "" || Boolean(safeVideoSource(block.src)))
     && (block.caption === undefined || typeof block.caption === "string")
     && (block.captionRuns === undefined || Array.isArray(block.captionRuns))
+    && (block.captionTrack === undefined || validVideoCaptionTrack(block.captionTrack))
     && [block.autoplay, block.controls, block.loop, block.muted, block.playsInline].every(item => item === undefined || typeof item === "boolean")
     && (block.preload === undefined || ["none", "metadata", "auto"].includes(block.preload as string))
     && (block.poster === undefined || typeof block.poster === "string" && (block.poster === "" || safeImageSource(block.poster)))
@@ -53,13 +56,21 @@ export function validVideoBlock(value: unknown): value is VideoBlock {
 }
 
 export function containsVideoBlock(value: unknown): boolean {
+  return containsVideo(value, () => true);
+}
+
+export function containsVideoCaptionTrack(value: unknown): boolean {
+  return containsVideo(value, block => block.captionTrack !== undefined);
+}
+
+function containsVideo(value: unknown, matches: (block: Record<string, unknown>) => boolean): boolean {
   const seen = new Set<object>();
   function visit(current: unknown): boolean {
     if (!current || typeof current !== "object" || seen.has(current as object)) return false;
     seen.add(current as object);
     if (Array.isArray(current)) return current.some(visit);
     const record = current as Record<string, unknown>;
-    return record.type === "video" || Object.values(record).some(visit);
+    return (record.type === "video" && matches(record)) || Object.values(record).some(visit);
   }
   return visit(value);
 }

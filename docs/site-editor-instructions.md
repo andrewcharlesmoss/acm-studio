@@ -168,9 +168,24 @@ Provider page URLs remain Embed sources and do not become native media. Video
 blocks require workspace v55, publication v46, template/package v0.66.0,
 clipboard v32, backup v32, Test/Test2 source v44 and global template library
 v36. Earlier envelopes remain readable without Video blocks and reject them
-when under-versioned. Upload/Media Library selection and caption tracks remain
-unsupported. Cover-to-Video is available only for native Cover sources when
+when under-versioned. Video upload and Media Library selection remain outside
+the URL-based source flow. Cover-to-Video is available only for native Cover sources when
 Gutenberg's conversion loses no authored data; provider permalinks do not qualify.
+
+The Video inspector’s **Timed captions** section accepts one local UTF-8 WebVTT
+file up to 64 KiB. Give the track a language and player label, then choose
+**Apply Caption Track**. The track plays by default and is carried with the
+block in saved data and generated HTML. The separate figure caption still
+appears below the player. Studio accepts timed cues and comments. Custom
+WebVTT style and region blocks are outside this format.
+
+In the temporary WordPress Playground Add Post visual editor on WordPress
+v7.1.5, selected videos exposed separate **Add caption** and **Text tracks**
+toolbar controls. **Text tracks** offered captions, subtitles, chapters, and
+descriptions with Upload and Media Library actions. The reference check opened
+and dismissed the media picker. Studio puts one local captions track in its
+existing Video inspector and verifies cue playback in Studio itself. See the
+[current storage formats](storage-formats.md) for the compatible readers.
 
 Authored body Image resolution pins require workspace v35, publication v27,
 template v0.39.0, clipboard v12, and global template library v10. Older envelopes

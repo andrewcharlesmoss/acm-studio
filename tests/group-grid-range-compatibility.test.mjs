@@ -47,7 +47,7 @@ test("workspace and publication formats gate expanded ranges before migrating ol
   assert.deepEqual(migrateStudioWorkspace(workspace).documents[0].blocks, [grid]);
   assert.throws(() => migrateStudioWorkspace({ ...workspace, version: 64 }), /invalid|unsupported/i);
   const legacy = migrateStudioWorkspace({ ...workspace, version: 64, documents: [{ ...document, blocks: [legacyGrid] }] });
-  assert.equal(legacy.version, 67);
+  assert.equal(legacy.version, 68);
   assert.deepEqual(legacy.documents[0].blocks, [legacyGrid]);
   assert.deepEqual(validatePublicationSnapshot({ version: 56, posts: [publication] }).posts[0].blocks, [grid]);
   assert.throws(() => validatePublicationSnapshot({ version: 55, posts: [publication] }), /snapshot v56/);
@@ -72,8 +72,8 @@ test("template stores, snapshots and packages accept new bounds only in v0.77.0"
     }
   }
   set.templates[0].nodes = [{ ...legacyGrid, children: [{ ...legacyGrid.children[0], style: { flexItemSizing: { mode: "grow" }, flexItemSizingActive: true } }] }];
-  assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: "0.76.0", sets: [set] }).version, "0.78.0");
-  assert.equal(validateTemplatePackage({ format: "acm-studio-template-set", version: "0.76.0", set, media: [] }).version, "0.78.0");
+  assert.equal(validateTemplateStore({ ...emptyTemplateStore(), version: "0.76.0", sets: [set] }).version, "0.79.0");
+  assert.equal(validateTemplatePackage({ format: "acm-studio-template-set", version: "0.76.0", set, media: [] }).version, "0.79.0");
 });
 
 test("clipboard and backup envelopes cannot relabel expanded content as an older format", () => {
@@ -104,12 +104,12 @@ test("fixture source and global templates gate expanded authored and published r
   assert.throws(() => testSiteCollection({ ...source, version: 55 }), /source v56/);
   const prior = { ...source, version: 55, documents: [{ ...document, blocks: [legacyGrid] }], publications: [] };
   assert.equal(validTestSiteDocument(prior), true);
-  assert.equal(testSiteCollection(prior).version, 57);
+  assert.equal(testSiteCollection(prior).version, 58);
   const set = createTemplateSet("Expanded Grid library");
   set.parts[0].nodes = [{ id: "expanded-navigation", type: "element", element: "navigation" }];
   set.templates[0].nodes = [grid];
   const library = { format: "acm-global-templates", version: 48, templates: { ...emptyTemplateStore(), sets: [set] }, header: { setId: set.id, partId: set.parts[0].id }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(validateGlobalTemplateLibrary(library).version, 49);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 50);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 47 }), /library v48/);
 });
 
@@ -136,7 +136,7 @@ test("unit-aware Group spacing is a coordinated addition, not a reinterpretation
   assert.throws(() => validatePublicationSnapshot({ version: 55, posts: [{ ...publication, blocks: [group] }] }), /v56/);
   const set = createTemplateSet("Spacing"); set.templates[0].nodes = [group];
   const store = { ...emptyTemplateStore(), sets: [set] };
-  assert.equal(validateTemplateStore(store).version, "0.78.0");
+  assert.equal(validateTemplateStore(store).version, "0.79.0");
   assert.throws(() => validateTemplateStore({ ...store, version: "0.76.0" }), /v0\.77\.0/);
   assert.throws(() => validateTemplateSnapshot({ version: "0.76.0", set, templateId: set.templates[0].id }), /v0\.77\.0/);
   assert.throws(() => validateTemplatePackage({ format: "acm-studio-template-set", version: "0.76.0", set, media: [] }), /v0\.77\.0/);
@@ -148,7 +148,7 @@ test("unit-aware Group spacing is a coordinated addition, not a reinterpretation
   const previousParser = globalThis.DOMParser;
   try {
     for (const version of [42, 41]) {
-      globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => json.replace('"version":42', `"version":${version}`) }) }; } };
+      globalThis.DOMParser = class { parseFromString() { return { querySelector: () => ({ getAttribute: () => json.replace('"version":43', `"version":${version}`) }) }; } };
       assert.equal(Boolean(readBlockClipboardPayload(html)), version === 42);
     }
   } finally { globalThis.DOMParser = previousParser; }
@@ -158,7 +158,7 @@ test("unit-aware Group spacing is a coordinated addition, not a reinterpretation
   assert.equal(validTestSiteDocument({ ...next, version: 55 }), false);
   set.parts[0].nodes = [{ id: "spacing-navigation", type: "element", element: "navigation" }];
   const library = { format: "acm-global-templates", version: 48, templates: store, header: { setId: set.id, partId: set.parts[0].id }, migrations: { test: { bindings: [], bases: [] }, test2: { bindings: [], bases: [] } } };
-  assert.equal(validateGlobalTemplateLibrary(library).version, 49);
+  assert.equal(validateGlobalTemplateLibrary(library).version, 50);
   assert.throws(() => validateGlobalTemplateLibrary({ ...library, version: 47 }), /v48/);
 });
 

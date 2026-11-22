@@ -6,7 +6,7 @@ import { blobToBase64, base64ToBlob, validateStudioBackup, type StudioBackupAsse
 import { initialStudioWorkspace } from "./editor-model";
 import { listMediaLibrary, replaceMediaLibrary } from "./media-store";
 import { containsCodeRuns, containsCodeMonospaceFont } from "../content/code-runs";
-import { containsVideoBlock } from "../content/video-block";
+import { containsVideoBlock, containsVideoCaptionTrack } from "../content/video-block";
 import { containsCoreSocialLink } from "../content/social-services";
 import { containsScopedFlexItemSizing, containsGroupLayoutExtensions } from "../content/layout";
 import { containsCoverBlock, containsCoverContentPosition, containsCoverInnerContentWidth, containsCoverVideoBackground, containsNativeCoverVideoSource } from "../content/cover-block";
@@ -54,6 +54,8 @@ function requirePinnedImageRenditions(set: TemplateSet, media: readonly StudioBa
 }
 
 export function validateTemplatePackage(value: unknown): TemplatePackage {
+  if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsVideoCaptionTrack(value)) throw new Error("Timed Video captions require template v0.79.0. Original data has been retained.");
+  if (isRecord(value) && value.version === "0.78.0") value = { ...value, version: TEMPLATE_VERSION };
   if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsTemplateElementsInCover(value)) throw new Error("Template elements inside Cover require template package v0.78.0.");
   if (isRecord(value) && value.version === "0.77.0") value = { ...value, version: TEMPLATE_VERSION };
   if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsGroupLayoutExtensions(value)) throw new Error("Extended Group layout values require template package v0.77.0.");

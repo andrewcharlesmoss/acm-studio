@@ -35,7 +35,7 @@ for (const version of [6, 37] as const) test(`backup v${version} recovery surviv
       activeRevision: restored.sourceRevision, repeatedRevision: preparedAgain.assets[0].sourceRevision, unchanged: JSON.stringify(input) === unchanged,
       storedCount: read.assets.length };
   }, version);
-  expect(result).toMatchObject({ paused: true, version: 47, bytes: 'x', unchanged: true, storedCount: 1 });
+  expect(result).toMatchObject({ paused: true, version: 48, bytes: 'x', unchanged: true, storedCount: 1 });
   const expected = { version: 1, ...(version === 6 ? { sourceRevision: { foreign: [null, false, 42] } } : {}), previousValue: { version: 1, previousValue: ['foreign existing field'] } };
   expect(result.recovery).toEqual(expected);
   expect(result.exportedRecovery).toEqual(expected);

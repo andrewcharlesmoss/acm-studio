@@ -31,14 +31,14 @@ import { containsGridItemSizing } from "../content/grid-child-sizing";
 import type { StudioDocument, StudioDocumentKind, StudioWorkspace } from "./editor-model";
 import { FEATURED_IMAGE_LABEL } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
-import { containsVideoBlock } from "../content/video-block";
+import { containsVideoBlock, containsVideoCaptionTrack } from "../content/video-block";
 import { isRecord, PUBLICATION_VERSION, validContentBlocks, validParagraphStyle, validatePublicationSnapshot } from "./workspace-validation";
 import { validateUniversalStylePreset } from "@acm/styles";
 import { createUniversalStylePreset, UNIVERSAL_STYLE_PRESET } from "./ui/styles/canonical-style-guide";
 import type { UniversalStylePreset } from "@acm/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
-export const TEMPLATE_VERSION = "0.78.0" as const;
+export const TEMPLATE_VERSION = "0.79.0" as const;
 export const LEGACY_TEMPLATE_VERSION_75 = "0.75.0" as const;
 export const LEGACY_TEMPLATE_VERSION_74 = "0.74.0" as const;
 export const LEGACY_TEMPLATE_VERSION_73 = "0.73.0" as const;
@@ -690,6 +690,8 @@ export function containsTemplateV73Features(value: unknown): boolean {
 export { containsTemplateElementsInCover } from "./template-cover-contract";
 
 export function validateTemplateStore(value: unknown, documents?: Pick<StudioDocument, "id" | "kind">[]): TemplateStore {
+  if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsVideoCaptionTrack(value)) throw new Error("Timed Video captions require template v0.79.0. Original data has been retained.");
+  if (isRecord(value) && value.version === "0.78.0") value = { ...value, version: TEMPLATE_VERSION };
   if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsTemplateElementsInCover(value)) invalid("Template elements inside Cover require template v0.78.0. Original data has been retained.");
   if (isRecord(value) && value.version === "0.77.0") value = { ...value, version: TEMPLATE_VERSION };
   if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsGroupLayoutExtensions(value)) invalid("Extended Group layout values require template v0.77.0. Original data has been retained.");
@@ -816,6 +818,8 @@ export function validateTemplateStore(value: unknown, documents?: Pick<StudioDoc
 }
 
 export function validateTemplateSnapshot(value: unknown): TemplateSnapshot {
+  if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsVideoCaptionTrack(value)) throw new Error("Timed Video captions require template v0.79.0. Original data has been retained.");
+  if (isRecord(value) && value.version === "0.78.0") value = { ...value, version: TEMPLATE_VERSION };
   if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsTemplateElementsInCover(value)) invalid("Template elements inside Cover require template v0.78.0. Original data has been retained.");
   if (isRecord(value) && value.version === "0.77.0") value = { ...value, version: TEMPLATE_VERSION };
   if (isRecord(value) && value.version !== TEMPLATE_VERSION && containsGroupLayoutExtensions(value)) invalid("Extended Group layout values require template v0.77.0. Original data has been retained.");

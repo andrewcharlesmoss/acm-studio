@@ -62,7 +62,7 @@ export function withHtmlDom(callback) {
           const parent = stack.at(-1);
           const child = makeElement(tagName, attributes, parent);
           parent.children.push(child); parent.childNodes.push(child);
-          if (!/^(?:br|hr|img|input|meta)$/i.test(tagName) && !/\/\s*>$/.test(token)) stack.push(child);
+          if (!/^(?:br|hr|img|input|meta|track)$/i.test(tagName) && !/\/\s*>$/.test(token)) stack.push(child);
         } else stack.at(-1).childNodes.push({ nodeType: 3, textContent: decode(token) });
       }
       const matchesAttribute = selector => {

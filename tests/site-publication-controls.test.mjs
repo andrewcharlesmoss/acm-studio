@@ -40,7 +40,7 @@ for (const siteId of ["test", "test2"]) for (const kind of ["post", "page"]) tes
     assert.equal(JSON.parse(await readFile(path.join(root, "content/site.json"), "utf8")).documents[1].publishAt, backdate);
     assert.equal(draft.publications[1].document.publishedAt, undefined);
     let published = changeLocalSiteStatus(draft, "selected", "published", draft.templates, now);
-    assert.equal(published.version, 57);
+    assert.equal(published.version, 58);
     assert.equal(validTestSiteDocument(published), true);
     published = await save(published);
     assert.equal(published.documents[1].publishedAt, backdate);
@@ -87,7 +87,7 @@ test("Undo preserves publication decisions across supported site formats", () =>
   source.documents[1].publishAt = backdate;
   const published = changeLocalSiteStatus(source, "selected", "published", source.templates, now);
   const pending = changeLocalSiteStatus(published, "selected", "pending", published.templates, now);
-  for (const version of [53, 54, 55, 56, 57]) {
+  for (const version of [53, 54, 55, 56, 57, 58]) {
     const next = { ...structuredClone(published), version };
     const current = { ...structuredClone(pending), version };
     assert.equal(validTestSiteDocument(current), true, `fixture v${version}`);
@@ -100,7 +100,7 @@ test("Undo preserves publication decisions across supported site formats", () =>
     assert.equal(retainedPublished.documents[1].publishAt, edited.documents[1].publishAt, `draft date v${version}`);
     assert.equal(retainedPublished.publications.find(item => item.document.id === "selected").document.publishedAt, backdate, `published date v${version}`);
   }
-  const unknown = { ...pending, version: 58 };
+  const unknown = { ...pending, version: 59 };
   assert.equal(retainLocalPublications(published, unknown), published);
 });
 
@@ -188,7 +188,7 @@ test("all home statuses retain the authored home and v7 permits an unavailable p
   const source = fixture("test", "page");
   for (const status of ["draft", "pending", "private"]) {
     const saved = changeLocalSiteStatus(source, "home", status, source.templates, now);
-    assert.equal(saved.version, 57);
+    assert.equal(saved.version, 58);
     assert.equal(validTestSiteDocument(saved), true);
     assert.equal(saved.documents.find(document => document.id === "home").status, status);
     assert.equal(saved.publications.some(item => item.document.id === "home"), false);
