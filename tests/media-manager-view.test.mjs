@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { designMediaSources } from '../app/studio/design-model.ts';
 import { readFile } from 'node:fs/promises';
 import { createHostModuleEvaluator } from './production-module.mjs';
 
@@ -25,7 +26,7 @@ function harness({ onInsertImage = () => true, list = async () => ({assets:[asse
     './overlays/dialog':{StudioDialog:'dialog',StudioDialogActions:'actions'},'./controls/use-blob-urls':{useBlobUrls:()=>({one:'blob:one'})},
     './overlays/anchored-menu':{StudioAnchoredMenu:'menu'},'./controls/button':{StudioButton:'button'},'./studio-icons':{StudioIcon:'icon'},
     './media-store':{listMediaLibrary:forbidden,getMediaAsset:forbidden,prepareMediaFolderMove:forbidden},
-    './media-command':{assetBefore:forbidden,folderBefore:forbidden},'./media-sync':{useMediaSession:forbidden,submitMediaCommand:forbidden},'./design-store':{loadDesigns:forbidden},
+    './media-command':{assetBefore:forbidden,folderBefore:forbidden},'./media-sync':{useMediaSession:forbidden,submitMediaCommand:forbidden},'./design-model':{designMediaSources},'./design-store':{loadDesigns:forbidden},
     '../content/image-source':{isSafeManagedImageType:type=>['image/png','image/jpeg'].includes(type)},
   };
   if(production) { dependencies['./media-store'].listMediaLibrary=async()=>{productionCalls.push('list');return {assets:[asset],folders:[]};}; dependencies['./media-store'].getMediaAsset=async()=>{productionCalls.push('get');return asset;}; dependencies['./media-sync']={useMediaSession:()=>{productionCalls.push('session');return {ready:true,revision:7};},submitMediaCommand:async()=>{productionCalls.push('command');}}; dependencies['./design-store']={loadDesigns:()=>{productionCalls.push('designs');return [];}}; }

@@ -17,6 +17,7 @@ import {
 } from "./media-store";
 import { assetBefore, folderBefore, type MediaCommand, type MediaAssetPatch } from "./media-command";
 import { submitMediaCommand, useMediaSession } from "./media-sync";
+import { DESIGN_STORAGE_KEY, designMediaSources } from "./design-model";
 import { loadDesigns } from "./design-store";
 import { isSafeManagedImageType } from "../content/image-source";
 
@@ -56,14 +57,23 @@ export type MediaManagerResources = {
   listMediaLibrary: typeof listMediaLibrary;
   getMediaAsset: typeof getMediaAsset;
   designLinks: () => Record<string, { designId: string; pageId: string }>;
+  subscribeDesignLinks?: (refresh: () => void) => void | (() => void);
 };
 export type MediaManagerSession = { ready: boolean; revision: number; error?: string };
 const browserResources: MediaManagerResources = {
   listMediaLibrary, getMediaAsset,
-  designLinks: () => {
-    const links: Record<string, { designId: string; pageId: string }> = {};
-    for (const design of loadDesigns()) for (const page of design.pages) if (page.renderedMediaId) links[page.renderedMediaId] = { designId: design.id, pageId: page.id };
-    return links;
+  designLinks: () => designMediaSources(loadDesigns()),
+  subscribeDesignLinks(refresh) {
+    if (typeof window === "undefined") return;
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === DESIGN_STORAGE_KEY || event.key === null) refresh();
+    };
+    window.addEventListener("studio-designs-saved", refresh);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("studio-designs-saved", refresh);
+      window.removeEventListener("storage", onStorage);
+    };
   },
 };
 
@@ -167,6 +177,11 @@ export function MediaManagerView({ writable, targetLabel, targetOwnerId, targetK
   useEffect(() => {
     queueMicrotask(() => { if (mountedRef.current) void refreshLibrary(); });
   }, [mediaSession.revision, refreshLibrary]);
+
+  useEffect(() => resources.subscribeDesignLinks?.(() => {
+    try { setDesignLinks(resources.designLinks()); }
+    catch { setDesignLinks({}); }
+  }), [resources]);
 
   function draftAsset(asset: MediaAsset, update: MediaAssetPatch) {
     const draft = assetDrafts.current.get(asset.id) ?? { before: {}, update: {} };

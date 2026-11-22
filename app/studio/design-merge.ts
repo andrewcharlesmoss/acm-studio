@@ -259,6 +259,13 @@ function applyMove(snapshot: DesignProject, change: Extract<DesignChange, { kind
   replaceCollection(snapshot, collection, nextOrder.map((id) => byId.get(id)!).filter(Boolean), change.parentId);
 }
 
+function retainExistingActivePage(snapshot: DesignProject) {
+  // Selection is local to each tab. Keep the persisted fallback valid on page deletion.
+  if (snapshot.pages.length && !snapshot.pages.some(page => page.id === snapshot.activePageId)) {
+    snapshot.activePageId = snapshot.pages[0].id;
+  }
+}
+
 export function applyDesignTransaction(current: DesignProject, transaction: DesignTransaction): DesignMergeResult {
   const snapshot = copy(current);
   const conflicts: DesignMergeConflict[] = [];
@@ -271,6 +278,7 @@ export function applyDesignTransaction(current: DesignProject, transaction: Desi
     else applyCollectionChange(snapshot, change, conflicts);
   }
   if (!conflicts.length) {
+    retainExistingActivePage(snapshot);
     snapshot.updatedAt = transaction.updatedAt;
     try { validateDesignProject(snapshot); } catch (error) { conflicts.push({ change: transaction.changes[0] ?? { kind: "set", target: "project", property: "", beforePresent: true, before: null, afterPresent: true, after: null }, reason: "invalid", current: error instanceof Error ? error.message : "The merged design is invalid." }); }
   }
@@ -300,6 +308,7 @@ export function resolveDesignConflicts(current: DesignProject, transaction: Desi
       replaceCollection(snapshot, change.collection, change.afterOrder.map((id) => byId.get(id)).filter(Boolean) as Array<DesignPage | DesignObject | DesignAsset>, change.parentId);
     }
   }
+  retainExistingActivePage(snapshot);
   snapshot.updatedAt = transaction.updatedAt;
   validateDesignProject(snapshot);
   return snapshot;

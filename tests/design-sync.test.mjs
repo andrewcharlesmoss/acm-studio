@@ -344,3 +344,38 @@ test("unsolicited welcome replies cannot replace a connected design", async () =
     assert.equal(peer.getStatus(), "synced");
   } finally { sender.close(); peer.close(); primary.close(); }
 });
+
+test("linking a render waits for its acknowledgement and preserves edits made during rendering", async () => {
+  const load = modules();
+  const design = load("app/studio/design-model.ts").createDesign();
+  const sync = load("app/studio/design-sync.ts");
+  const channelFactory = channelBus();
+  let saved = design;
+  const primary = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "primary", channelFactory, onSnapshot() {}, persistPrimary: async next => { saved = next; } });
+  const peer = sync.createDesignSync({ designId: design.id, initialSnapshot: design, role: "peer", channelFactory, onSnapshot() {}, persistPrimary: async () => assert.fail("Peer attempted a direct write") });
+  try {
+    await settle();
+    const rename = peer.submit({ ...design, pages: [{ ...design.pages[0], name: "Edited during render" }] });
+    await peer.linkRenderedMedia(design.activePageId, undefined, "new-file");
+    await rename;
+    assert.equal(saved.pages[0].name, "Edited during render");
+    assert.equal(saved.pages[0].renderedMediaId, "new-file");
+    await peer.linkRenderedMedia(design.activePageId, undefined, "new-file");
+    await assert.rejects(peer.linkRenderedMedia("removed-page", undefined, "another-file"), /removed/);
+    await assert.rejects(peer.linkRenderedMedia(design.activePageId, undefined, "another-file"), /different file/);
+    peer.close();
+    await assert.rejects(peer.linkRenderedMedia(design.activePageId, "new-file", "another-file"), /Reconnect/);
+  } finally { peer.close(); primary.close(); }
+});
+
+test("deleting the saved active page keeps a valid remaining selection across tabs", () => {
+  const load = modules();
+  const design = load("app/studio/design-model.ts").createDesign();
+  const merge = load("app/studio/design-merge.ts");
+  const keep = { ...design.pages[0], id: "surviving-page" };
+  design.pages.push(keep);
+  const transaction = merge.createDesignTransaction(design, { ...design, activePageId: keep.id, pages: [keep] }, { transactionId: "delete-page", clientId: "peer", brokerEpoch: "test", baseRevision: 0 });
+  const result = merge.applyDesignTransaction(design, transaction);
+  assert.equal(result.conflicts.length, 0);
+  assert.equal(result.snapshot.activePageId, keep.id);
+});
