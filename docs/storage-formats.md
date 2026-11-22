@@ -17,6 +17,10 @@ permitted at that version. Keep an unreadable original intact.
 | Local fixture backup | 2 | 1 |
 | Files IndexedDB | 3 | 1 |
 
+A new publication can retain its shared header and page hierarchy from Preview.
+These fields require publication v58, workspace v67 when a publication is in
+the Bin, and full backup content v47. Earlier captures remain readable.
+
 The browser workspace, local fixture sources, and shared template library have
 distinct owners. Restore a browser backup through **Backup and restore**.
 Recover shared originals through Templates and fixture data through the
