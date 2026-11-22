@@ -372,7 +372,8 @@ test("keyboard inspector exposes each selected key's artwork provenance and avai
   assert.match(keyboard, /const artwork = iconMetadata\[asset\.key\.icon\]/);
   assert.match(keyboard, /<summary>Artwork provenance and licensing<\/summary>/);
   assert.match(keyboard, /\{artwork\.provenance\}/);
-  assert.match(keyboard, /acm-studio\/packages\/acm-icons\/masters\/\{asset\.key\.icon\}\.svg/);
+  assert.ok(keyboard.includes('acm-studio/packages/acm-icons/masters/${asset.key.icon}.svg'));
+  assert.ok(keyboard.includes('acm-studio/packages/acm-icons/src/keyboard-layout.js'));
   assert.match(keyboard, /artwork\.licenceNotice &&/);
   assert.match(keyboard, /<summary>Full licence notice<\/summary>/);
   assert.match(keyboard, /<pre>\{artwork\.licenceNotice\}<\/pre>/);
