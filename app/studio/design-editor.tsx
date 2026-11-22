@@ -22,7 +22,8 @@ import { RangeControl } from "./controls/range-control";
 import { ToggleSetting } from "./controls/toggle-setting";
 import { ImageChoiceGrid } from "./controls/image-choice-grid";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
-import { inspectDesignImageBlob, validateDesignImportFileSize, validateDesignImportResources } from "./design-import-limits.mjs";
+import { prepareEditableDesignBackup, readEditableDesign } from "./design-editable-backup";
+import { inspectDesignImageBlob, validateDesignImportFileSize } from "./design-import-limits.mjs";
 
 import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type Ref } from "react";
 import { removeImageBackground, type BackgroundRemovalProgress } from "./background-removal";
@@ -39,8 +40,8 @@ import { moveDesignLayer, reorderDesignLayers } from "./design-layer-operations.
 import { addMediaFiles, getMediaAsset, listMediaLibrary, replaceMediaAssetContent, type MediaAsset } from "./media-store";
 import { studioWriteOwnership, ownershipMessage, type OwnershipState } from "./write-ownership";
 import {
-  cloneDesign, createDesign, DESIGN_ARROWHEAD_SCALE_MAX, DESIGN_ARROWHEAD_SCALE_MIN, DESIGN_MAX_DIMENSION, makeId, nextPageName,
-  DESIGN_IMAGE_TYPES, migrateDesignProject, sanitiseFilename,
+  cloneDesign, createDesign, designMediaSources, detachRenderedMedia, DESIGN_ARROWHEAD_SCALE_MAX, DESIGN_ARROWHEAD_SCALE_MIN, DESIGN_MAX_DIMENSION, makeId, nextPageName,
+  DESIGN_IMAGE_TYPES, sanitiseFilename,
   type DesignArrowObject, type DesignAsset, type DesignObject, type DesignPage, type DesignProject, type DesignShapeKind, type DesignShapeObject, type DesignTextObject,
 } from "./design-model";
 import { loadDesigns, saveDesign } from "./design-store";
@@ -608,6 +609,9 @@ export function DesignEditor() {
   const mediaUrls = useBlobUrls(mediaAssets, showMedia);
   const [error, setError] = useState("");
   const [exportFormat, setExportFormat] = useState<"png" | "jpeg" | "webp">("png");
+  const [pendingRenderLink, setPendingRenderLink] = useState<{ designId: string; pageId: string; previousId?: string; mediaId: string } | null>(null);
+  const mediaRequestActive = useRef(false);
+  const [savingRender, setSavingRender] = useState(false);
   const [mediaHandoff, setMediaHandoff] = useState<string | null>(null);
   const [exportScale, setExportScale] = useState(1);
   const [exportQuality, setExportQuality] = useState(.92);
@@ -679,6 +683,14 @@ export function DesignEditor() {
   const activePage = design?.pages.find((page) => page.id === design.activePageId) ?? design?.pages[0] ?? null;
   if (activePage && !design?.pages.some((page) => page.id === activePageIdRef.current)) activePageIdRef.current = activePage.id;
   const activePageIndex = activePage && design ? design.pages.findIndex((page) => page.id === activePage.id) : 0;
+  const activeMediaSource = activePage?.renderedMediaId ? designMediaSources(designs)[activePage.renderedMediaId] : undefined;
+  const uniqueMediaSource = activeMediaSource?.designId === design?.id && activeMediaSource?.pageId === activePage?.id;
+  const retryRenderLink = pendingRenderLink?.designId === design?.id && pendingRenderLink?.pageId === activePage?.id && !!pendingRenderLink;
+  useLayoutEffect(() => {
+    setSelectedPageIds([]);
+    pageSelectionAnchorRef.current = null;
+  }, [design?.id]);
+
   const designEditable = writable && !activePage?.locked;
   const pageReorder = useGapReordering({ ids: design?.pages.map(page => page.id) ?? [], version: JSON.stringify(design?.pages ?? []), writable,
     accepts: move => Boolean(design && reorderedPages(design.pages, move.id, move.targetId, move.edge)),
@@ -780,44 +792,6 @@ export function DesignEditor() {
     setEditingTextId(null);
   }
 
-  const selectPageSetFromListener = useEffectEvent((pageId: string, event: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; checked: boolean }) => selectPageSet(pageId, event));
-  useEffect(() => {
-    const panel = document.getElementById("design-pages-tabpanel");
-    if (!panel) return;
-    const handlePageSelectionClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const checkbox = target.closest<HTMLInputElement>(".design-page-select input");
-      const thumbnail = target.closest<HTMLElement>(".design-thumbnail-button");
-      if (!checkbox && !thumbnail) return;
-      if (checkbox) {
-        pageSelectionModifiersRef.current = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey };
-        return;
-      }
-      const item = target.closest<HTMLElement>(".design-page-item");
-      if (!item) return;
-      const index = Array.from(panel.querySelectorAll(".design-page-item")).indexOf(item);
-      const page = design?.pages[index];
-      if (!page) return;
-      const modifiers = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, checked: true };
-      if (event.metaKey || event.ctrlKey || event.shiftKey) selectPageSetFromListener(page.id, modifiers);
-    };
-    const handlePageSelectionChange = (event: Event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLInputElement) || !target.matches(".design-page-select input")) return;
-      const item = target.closest<HTMLElement>(".design-page-item");
-      if (!item) return;
-      const index = Array.from(panel.querySelectorAll(".design-page-item")).indexOf(item);
-      const page = design?.pages[index];
-      if (!page) return;
-      event.stopPropagation();
-      const modifiers = pageSelectionModifiersRef.current;
-      pageSelectionModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false };
-      selectPageSetFromListener(page.id, { ...modifiers, checked: target.checked });
-    };
-    panel.addEventListener("click", handlePageSelectionClick, true);
-    panel.addEventListener("change", handlePageSelectionChange, true);
-    return () => { panel.removeEventListener("click", handlePageSelectionClick, true); panel.removeEventListener("change", handlePageSelectionChange, true); };
-  }, [design?.pages, selectedPageIds]);
 
   useEffect(() => {
     let mounted = true;
@@ -1006,6 +980,7 @@ export function DesignEditor() {
   function updateDesign(next: DesignProject, record = true) {
     const normalised = { ...next, updatedAt: new Date().toISOString() };
     if (record && design) { setHistory((items) => [...items.slice(-49), { design: cloneDesign(design), placements: pagePlacements }]); setFuture([]); }
+    activePageIdRef.current = normalised.activePageId;
     setDesign(normalised);
     void persist(normalised);
   }
@@ -1018,6 +993,7 @@ export function DesignEditor() {
   function undo() {
     if (!design || !history.length || !designEditable) return;
     const { design: previous, placements } = history.at(-1)!;
+    activePageIdRef.current = previous.activePageId;
     setHistory((items) => items.slice(0, -1)); setFuture((items) => [{ design: cloneDesign(design), placements: pagePlacements }, ...items]); setDesign(previous); setPagePlacements(placements); void persist(previous);
     restoreSelection(previous);
   }
@@ -1025,6 +1001,7 @@ export function DesignEditor() {
   function redo() {
     if (!design || !future.length || !designEditable) return;
     const { design: next, placements } = future[0];
+    activePageIdRef.current = next.activePageId;
     setFuture((items) => items.slice(1)); setHistory((items) => [...items.slice(-49), { design: cloneDesign(design), placements: pagePlacements }]); setDesign(next); setPagePlacements(placements); void persist(next);
     restoreSelection(next);
   }
@@ -1560,7 +1537,7 @@ export function DesignEditor() {
   function addPage(duplicate = false, afterPageId?: string) {
     if (!design || !activePage) return;
     const sourcePage = design.pages.find((item) => item.id === afterPageId) ?? activePage;
-    const page: DesignPage = { ...cloneDesign(sourcePage), id: makeId("page"), name: duplicate ? `${sourcePage.name} copy` : nextPageName(design.pages), hidden: duplicate ? sourcePage.hidden : false, locked: duplicate ? sourcePage.locked : false, objects: duplicate ? sourcePage.objects.map((object) => ({ ...cloneDesign(object), id: makeId("object") })) : [] };
+    const page: DesignPage = { ...detachRenderedMedia(cloneDesign(sourcePage)), id: makeId("page"), name: duplicate ? `${sourcePage.name} copy` : nextPageName(design.pages), hidden: duplicate ? sourcePage.hidden : false, locked: duplicate ? sourcePage.locked : false, objects: duplicate ? sourcePage.objects.map((object) => ({ ...cloneDesign(object), id: makeId("object") })) : [] };
     const pages = [...design.pages];
     const insertAt = afterPageId ? pages.findIndex((item) => item.id === afterPageId) + 1 : pages.length;
     pages.splice(insertAt > 0 ? insertAt : pages.length, 0, page);
@@ -1642,22 +1619,22 @@ export function DesignEditor() {
     return () => document.removeEventListener("dblclick", handlePageTitleDoubleClick, true);
   }, [design, writable]);
 
-  function deletePageById(pageId: string) { if (!design || design.pages.length === 1) return; const index = design.pages.findIndex((page) => page.id === pageId); if (index < 0) return; const nextPage = design.pages[index - 1] ?? design.pages[index + 1]; updateDesign({ ...design, pages: design.pages.filter((page) => page.id !== pageId), activePageId: design.activePageId === pageId ? nextPage.id : design.activePageId }); if (design.activePageId === pageId) { setPageName(nextPage.name); selectObjects([]); } }
+  const selectedPages = design?.pages.filter(page => selectedPageIds.includes(page.id)) ?? [];
+  const retainActivePage = selectedPages.length > 0 && selectedPages.length === design?.pages.length;
+  const selectedForDeletion = selectedPages.filter(page => !retainActivePage || page.id !== activePage?.id);
+  const deleteSelectionLabel = `Delete ${selectedForDeletion.length} selected ${selectedForDeletion.length === 1 ? "page" : "pages"}${retainActivePage ? " (keep active page)" : ""}`;
 
-  function deletePage() {
-    if (!design || !activePage || design.pages.length === 1) return;
-    const requestedIds = selectedPageIds.length ? selectedPageIds : [activePage.id];
-    const idsToDelete = new Set(requestedIds.filter((id) => design.pages.some((page) => page.id === id)));
-    if (idsToDelete.size === design.pages.length) idsToDelete.delete(activePage.id);
-    if (!idsToDelete.size) return;
-    const firstDeletedIndex = design.pages.findIndex((page) => idsToDelete.has(page.id));
-    const remainingPages = design.pages.filter((page) => !idsToDelete.has(page.id));
-    const nextPage = remainingPages.find((page) => page.id === activePage.id) ?? remainingPages[Math.max(0, firstDeletedIndex - 1)] ?? remainingPages[0];
-    if (!nextPage) return;
-    updateDesign({ ...design, pages: remainingPages, activePageId: nextPage.id });
-    setSelectedPageIds([]);
-    pageSelectionAnchorRef.current = null;
-    if (nextPage.id !== activePage.id) { setPageName(nextPage.name); selectObjects([]); }
+  function deletePages(pageIds: string[]) {
+    if (!design || !writable || !pageIds.length) return;
+    const remove = new Set(pageIds);
+    const firstIndex = design.pages.findIndex(page => remove.has(page.id));
+    const remaining = design.pages.filter(page => !remove.has(page.id));
+    if (firstIndex < 0 || !remaining.length) return;
+    const next = remaining.find(page => page.id === design.activePageId) ?? remaining[Math.max(0, firstIndex - 1)] ?? remaining[0];
+    updateDesign({ ...design, pages: remaining, activePageId: next.id });
+    setSelectedPageIds(ids => ids.filter(id => !remove.has(id)));
+    if (pageSelectionAnchorRef.current && remove.has(pageSelectionAnchorRef.current)) pageSelectionAnchorRef.current = null;
+    if (design.activePageId !== next.id) { setPageName(next.name); selectObjects([]); }
   }
 
   function togglePageHidden(pageId: string) {
@@ -1727,7 +1704,7 @@ export function DesignEditor() {
     if (!design) return;
     const source = design.pages.find((page) => page.id === sourceId);
     if (!source) return;
-    const page: DesignPage = { ...cloneDesign(source), id: makeId("page"), name: `${source.name} copy`, objects: source.objects.map((object) => ({ ...cloneDesign(object), id: makeId("object") })) };
+    const page: DesignPage = { ...detachRenderedMedia(cloneDesign(source)), id: makeId("page"), name: `${source.name} copy`, objects: source.objects.map((object) => ({ ...cloneDesign(object), id: makeId("object") })) };
     const pages = [...design.pages];
     const insertAt = pages.findIndex((item) => item.id === sourceId) + 1;
     pages.splice(insertAt > 0 ? insertAt : pages.length, 0, page);
@@ -1908,42 +1885,81 @@ export function DesignEditor() {
   }
 
   async function savePageToStudioMedia(page: DesignPage) {
-    if (!primaryWritable) { setError("Only the primary Studio tab can write to Studio media."); return; }
+    if (!design || !primaryWritable || !writable || mediaRequestActive.current) return;
+    const session = syncRef.current;
+    if (!session || !session.isConnectedPeer()) return;
+    const retry = pendingRenderLink;
+    if (retry && (retry.designId !== design.id || retry.pageId !== page.id)) return;
+    mediaRequestActive.current = true;
+    setSavingRender(true);
+    let link = retry;
     try {
-      setStatus("Saving rendered page to Studio media…");
-      const blob = await renderPage(page, design?.assets ?? [], exportFormat, exportScale, exportQuality);
-      const type = `image/${exportFormat}`;
-      const [asset] = await addMediaFiles([new File([blob], `${sanitiseFilename(page.name)}.${exportFormat}`, { type })], null);
-      const linked = { ...design!, pages: design!.pages.map((item) => item.id === page.id ? { ...item, renderedMediaId: asset.id } : item), updatedAt: new Date().toISOString() };
-      await persist(linked); setDesign(linked); setMediaHandoff(asset.id); setStatus("Saved to Studio media");
-    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "The rendered page could not be saved to Studio media."); }
+      setError("");
+      if (!link) {
+        setStatus("Saving rendered page to Studio media…");
+        const blob = await renderPage(page, design.assets, exportFormat, exportScale, exportQuality);
+        const type = `image/${exportFormat}`;
+        const [asset] = await addMediaFiles([new File([blob], `${sanitiseFilename(page.name)}.${exportFormat}`, { type })], null);
+        link = { designId: design.id, pageId: page.id, previousId: page.renderedMediaId, mediaId: asset.id };
+        setPendingRenderLink(link);
+      }
+      await session.linkRenderedMedia(link.pageId, link.previousId, link.mediaId);
+      setMediaHandoff(link.mediaId);
+      setPendingRenderLink(null);
+      setStatus("Saved to Studio media");
+    } catch (saveError) {
+      const reason = saveError instanceof Error ? saveError.message : "The operation failed.";
+      setError(link ? `The image is in Files. Its source link could not be saved. ${reason}` : reason);
+      setStatus(link ? "Image saved without a source link" : "Image save failed");
+    } finally {
+      mediaRequestActive.current = false;
+      setSavingRender(false);
+    }
   }
 
   async function replaceLinkedStudioMedia(page: DesignPage) {
-    if (!page.renderedMediaId) return;
+    if (!page.renderedMediaId || !design) return;
     if (!primaryWritable) { setError("Only the primary Studio tab can write to Studio media."); return; }
     try {
       setStatus("Updating the selected Studio media…");
       const blob = await renderPage(page, design?.assets ?? [], exportFormat, exportScale, exportQuality);
-      await replaceMediaAssetContent(page.renderedMediaId, blob, `image/${exportFormat}`);
+      const mediaId = page.renderedMediaId;
+      await replaceMediaAssetContent(mediaId, blob, `image/${exportFormat}`, () => {
+        const source = designMediaSources(loadDesigns())[mediaId];
+        if (source?.designId !== design.id || source.pageId !== page.id) throw new Error("This file has no unique source page. Save a new image to Studio media.");
+      });
       setStatus("Selected Studio media updated");
     } catch (replaceError) { setError(replaceError instanceof Error ? replaceError.message : "The selected Studio media could not be updated."); }
   }
 
-  function exportDesignJson() { if (!design) return; downloadBlob(new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }), `${sanitiseFilename(design.name)}.acm-design.json`); }
+  function exportDesignJson() {
+    if (!design) return;
+    try {
+      const backup = prepareEditableDesignBackup(design);
+      const stem = sanitiseFilename(design.name);
+      if (backup.kind === "editable") {
+        downloadBlob(new Blob([new Uint8Array(backup.data).buffer], { type: "application/json" }), `${stem}.acm-design.json`);
+        setStatus("Editable backup download started");
+      } else {
+        downloadBlob(zipFiles(backup.files), `${stem}-recovery.zip`);
+        setStatus("Recovery archive download started");
+        setError("This design exceeds the limits for a single editable import. The archive keeps the complete source. Unzip it and import each .acm-design.json section separately." + (backup.unavailable ? " Some layers exceed the individual import limits. Their original data is in complete-source.json, with associated images stored separately." : ""));
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The editable backup could not be prepared.");
+    }
+  }
 
   async function importDesign(file: File | undefined) {
     if (!file || !primaryWritable) return;
     try {
       validateDesignImportFileSize(file.size);
-      const raw = JSON.parse(await file.text());
-      validateDesignImportResources(raw);
-      const imported = migrateDesignProject(raw);
+      const imported = readEditableDesign(await file.text());
       for (const asset of imported.assets) {
         const dimensions = await loadImage(asset.dataUrl);
         if (dimensions.width !== asset.width || dimensions.height !== asset.height) throw new Error(`The image “${asset.name}” has invalid dimensions.`);
       }
-      const copy = { ...imported, id: makeId("design"), name: `${imported.name} copy`, updatedAt: new Date().toISOString() };
+      const copy = { ...imported, pages: imported.pages.map(detachRenderedMedia), id: makeId("design"), name: `${imported.name} copy`, updatedAt: new Date().toISOString() };
       const updated = [...designsRef.current, copy];
       setStatus("Saving…");
       await saveDesign(copy);
@@ -1983,7 +1999,7 @@ export function DesignEditor() {
             <StudioRibbonButton size="large" onClick={() => setPagesCollapsed((value) => !value)} aria-expanded={!pagesCollapsed} aria-controls="design-pages-panel"><StudioIcon name="archive" size={24} /><span>{pagesCollapsed ? "Show pages" : "Hide pages"}</span></StudioRibbonButton>
           </StudioRibbonGroup>
           <StudioRibbonGroup label="Studio">
-            <StudioRibbonButton onClick={() => void savePageToStudioMedia(activePage)} disabled={!writable}><StudioIcon name="folder" size={22} /><span>Save to Studio media</span></StudioRibbonButton>
+            <StudioRibbonButton onClick={() => void savePageToStudioMedia(activePage)} disabled={!primaryWritable || !writable || savingRender || (!!pendingRenderLink && !retryRenderLink)}><StudioIcon name="folder" size={22} /><span>{retryRenderLink ? "Retry source link" : "Save to Studio media"}</span></StudioRibbonButton>
             {mediaHandoff ? <><a className="design-ribbon-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=block`}>Insert into document</a><a className="design-ribbon-link" href={`/studio?designMedia=${encodeURIComponent(mediaHandoff)}&designTarget=cover`}>Use as cover</a></> : null}
           </StudioRibbonGroup>
         </StudioRibbonPanel>
@@ -2028,13 +2044,14 @@ export function DesignEditor() {
             <StudioRibbonButton onClick={() => void exportSelectedPages()} disabled={!selectedPageIds.length}><StudioIcon name="download" size={22} /><span>Export selected</span></StudioRibbonButton>
             <StudioRibbonButton onClick={() => void exportAllPages()}><StudioIcon name="download" size={22} /><span>Export all pages</span></StudioRibbonButton>
             <StudioRibbonButton onClick={exportDesignJson}><StudioIcon name="file" size={22} /><span>Editable backup</span></StudioRibbonButton>
-            {activePage.renderedMediaId ? <StudioRibbonButton onClick={() => void replaceLinkedStudioMedia(activePage)} disabled={!writable}>Update linked media</StudioRibbonButton> : null}
+            {activePage.renderedMediaId && uniqueMediaSource ? <StudioRibbonButton onClick={() => void replaceLinkedStudioMedia(activePage)} disabled={!primaryWritable || !writable}>Update linked media</StudioRibbonButton> : null}
           </StudioRibbonGroup>
         </StudioRibbonPanel>
       </StudioRibbon>
     {!peerWritable && syncStatus !== "connecting" && syncStatus !== "disconnected" && ownershipMessage(ownershipState) ? <div className="design-notice" role="status">{ownershipMessage(ownershipState)}{ownershipState === "waiting" ? " Close the other editing tab before making changes." : ""}</div> : null}
     {syncStatus === "unsupported" ? <div className="design-notice" role="status">Read-only: this browser cannot connect to safe local design saving. Export an editable backup before closing this tab.</div> : null}
     {syncStatus === "disconnected" || syncStatus === "connecting" ? <div className="design-notice" role="status">{syncStatus === "connecting" ? "Connecting to safe local saving…" : "Local saving is unavailable — your design is preserved and editing is paused."}<button type="button" onClick={() => { syncRef.current?.retryConnection(); if (studioWriteOwnership.getState() === "waiting") setOwnershipAttempt(value => value + 1); else if (studioWriteOwnership.canWrite()) setBootstrapAttempt(value => value + 1); }}>Try Editing Here</button><button type="button" onClick={exportDesignJson}>Export Editable Backup</button></div> : null}
+    {pendingRenderLink && !savingRender ? <div className="design-notice" role="status">The rendered image is in Files. Return to its source page to retry the link, or keep the file without a link. <button type="button" onClick={() => setPendingRenderLink(null)}>Keep file without link</button></div> : null}
     {syncConflict && !conflictPanelOpen ? <div className="design-notice" role="status">Conflicting changes need review. <button ref={conflictReviewButtonRef} type="button" onClick={() => setConflictPanelOpen(true)}>Review conflicts</button></div> : null}
     {error ? <div className="design-error" role="alert">{error}</div> : null}
     {syncConflict && conflictPanelOpen ? <StudioDialog title="Resolve conflicting changes" closeLabel="Close conflict review" returnFocus={conflictReviewButtonRef} className="design-conflict-panel" onClose={() => setConflictPanelOpen(false)}>
@@ -2048,24 +2065,24 @@ export function DesignEditor() {
       style={{ "--design-pages-width": `${pagesCollapsed ? 0 : pagesPaneWidth}px`, "--design-inspector-width": `${inspectorCollapsed ? 0 : inspectorPaneWidth}px` } as CSSProperties}>
     <Pane trackClassName="design-pages-track" className="design-pages" flushRegions={["body"]} bodyClassName="design-pages-body" label="Design pages and layers" side="left" width={pagesPaneWidth} onWidthChange={setPagesPaneWidth} minWidth={224} maxWidth={480} collapsed={pagesCollapsed} onCollapsedChange={setPagesCollapsed} collapseIcon={<StudioIcon name="chevron-right" size={18} />}
       header={<div className="design-pages-heading"><PaneTabs id={designNavigationTabsId} label="Design navigation" className="design-pane-tabs" tabs={[{ id: "pages", label: "Pages" }, { id: "layers", label: "Layers" }]} active={leftPaneTab} onChange={(tab) => setLeftPaneTab(tab as "pages" | "layers")} /><div><button type="button" onClick={() => addPage()} disabled={!writable} aria-label="Add page">＋</button></div></div>}
-      footer={<><div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={deletePage} disabled={!writable || design.pages.length === 1}>Delete page</button><button type="button" onClick={() => void createNewDesign()} disabled={!primaryWritable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" disabled={!primaryWritable} onChange={(event) => void importDesign(event.target.files?.[0])} /></label><SelectControl className="design-switcher" value={design.id} disabled={!primaryWritable} onChange={(event) => { if (!primaryWritable) return; const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? ""); setHistory([]); setFuture([]); setPagePlacements(new Map()); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectControl></>}>
+      footer={<><div className="design-page-actions"><button type="button" onClick={() => addPage()} disabled={!writable}>Add page</button><button type="button" onClick={() => deletePages([activePage.id])} disabled={!writable || design.pages.length === 1}>Delete page</button>{selectedForDeletion.length > 0 ? <button type="button" disabled={!writable} onClick={() => deletePages(selectedForDeletion.map(page => page.id))}>{deleteSelectionLabel}</button> : null}<button type="button" onClick={() => void createNewDesign()} disabled={!primaryWritable}>New design</button></div><label className="design-import-label">Import design<input ref={importInputRef} type="file" accept="application/json,.json" disabled={!primaryWritable} onChange={(event) => void importDesign(event.target.files?.[0])} /></label><SelectControl className="design-switcher" value={design.id} disabled={!primaryWritable} onChange={(event) => { if (!primaryWritable) return; const next = designs.find((item) => item.id === event.target.value); if (next) { setDesign(next); setPageName(next.pages.find((page) => page.id === next.activePageId)?.name ?? ""); setHistory([]); setFuture([]); setPagePlacements(new Map()); selectObjects([]); } }} aria-label="Open design">{designs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectControl></>}>
       <PaneTabPanel className="design-page-list" id={designNavigationTabsId} tab="pages" active={leftPaneTab}>
         <div className="design-page-gap-list" {...pageReorder.listProps}>
-        {design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} {...pageReorder.rowProps(page.id)} draggable={writable} onDragStart={event => pageReorder.start(event, page.id)} onDragEnd={pageReorder.cancel}><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button><button type="button" onClick={() => deletePageById(page.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete ${page.name}`}><StudioIcon name="trash" size={20} /></button></div><CheckboxControl className="design-page-select" checked={selectedPageIds.includes(page.id)} onChange={checked => setSelectedPageIds((items) => checked ? [...items, page.id] : items.filter((id) => id !== page.id))} label={null} inputProps={{ "aria-label": `Select ${page.name} for export` }} /><button {...pageReorder.handleProps(page.id)} type="button" className="design-thumbnail-button" onClick={() => selectPage(page.id)} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><DesignPageArtwork page={page} assets={design.assets} checkerboard className="design-page-svg" /></div><span>{index + 1}. {page.name}</span></button></div>)}
+        {design.pages.map((page, index) => <div className={`design-page-item${page.id === activePage.id ? " is-active" : ""}`} key={page.id} {...pageReorder.rowProps(page.id)} draggable={writable} onDragStart={event => pageReorder.start(event, page.id)} onDragEnd={pageReorder.cancel}><div className="design-page-item-actions"><button type="button" onClick={() => startPageRename(page.id)} disabled={!writable} aria-label={`Rename ${page.name}`}>✎</button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate ${page.name}`}>⧉</button><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move ${page.name} earlier`}>↑</button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move ${page.name} later`}>↓</button><button type="button" onClick={() => deletePages([page.id])} disabled={!writable || design.pages.length === 1} aria-label={`Delete ${page.name}`}><StudioIcon name="trash" size={20} /></button></div><CheckboxControl className="design-page-select" checked={selectedPageIds.includes(page.id)} onChange={checked => { selectPageSet(page.id, { ...pageSelectionModifiersRef.current, checked }); pageSelectionModifiersRef.current = { metaKey: false, ctrlKey: false, shiftKey: false }; }} label={null} inputProps={{ "aria-label": `Select ${page.name} for export or deletion`, onClickCapture: event => { pageSelectionModifiersRef.current = { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey }; } }} /><button {...pageReorder.handleProps(page.id)} type="button" className="design-thumbnail-button" onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey) selectPageSet(page.id, { metaKey: event.metaKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, checked: true }); else selectPage(page.id); }} aria-label={`Open ${page.name}`}><div className="design-thumbnail"><DesignPageArtwork page={page} assets={design.assets} checkerboard className="design-page-svg" /></div><span>{index + 1}. {page.name}</span></button></div>)}
       <DragPlacementIndicator line={pageReorder.line} /></div></PaneTabPanel>
       <PaneTabPanel className="design-pages-layers" id={designNavigationTabsId} tab="layers" active={leftPaneTab}>
         <LayerList page={activePage} selectedIds={selectedIds} writable={designEditable} onSelect={(id) => selectObjects([id])} onReorder={reorderLayer} />
       </PaneTabPanel>
     </Pane>
       <section className="design-main" aria-label="Design Canvas">
-        <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={event => onCanvasPointerUp(event.pointerId)} onPointerCancel={onCanvasPointerCancel} onLostPointerCapture={onCanvasPointerCaptureLost} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><TextInput ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-canvas-heading-actions" aria-label={`Page ${activePageIndex + 1} actions`}><button type="button" onClick={() => movePageById(activePage.id, -1)} disabled={!writable || activePageIndex === 0} aria-label={`Move page ${activePageIndex + 1} earlier`}><StudioIcon name="arrow-up" size={24} /></button><button type="button" onClick={() => movePageById(activePage.id, 1)} disabled={!writable || activePageIndex === design.pages.length - 1} aria-label={`Move page ${activePageIndex + 1} later`}><StudioIcon name="arrow-down" size={24} /></button><button type="button" className={activePage.hidden ? "is-active" : ""} onClick={() => togglePageHidden(activePage.id)} aria-pressed={Boolean(activePage.hidden)} aria-label={activePage.hidden ? `Show page ${activePageIndex + 1}` : `Hide page ${activePageIndex + 1}`}><StudioIcon name={activePage.hidden ? "visibility-off" : "visibility"} size={24} /></button><button type="button" className={activePage.locked ? "is-active" : ""} onClick={() => togglePageLocked(activePage.id)} aria-pressed={Boolean(activePage.locked)} aria-label={activePage.locked ? `Unlock page ${activePageIndex + 1}` : `Lock page ${activePageIndex + 1}`}><StudioIcon name={activePage.locked ? "lock" : "lock-open"} size={24} /></button><button type="button" onClick={() => duplicatePage(activePage.id)} disabled={!writable} aria-label={`Duplicate page ${activePageIndex + 1}`}><StudioIcon name="copy" size={24} /></button><button type="button" onClick={() => deletePageById(activePage.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete page ${activePageIndex + 1}`}><StudioIcon name="trash" size={24} /></button><button type="button" onClick={() => addPage(false, activePage.id)} disabled={!writable} aria-label={`Add page after page ${activePageIndex + 1}`}><StudioIcon name="add" size={24} /></button></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><SelectControl aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</SelectControl><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={allPagesVisible ? "is-active" : ""} aria-pressed={allPagesVisible} aria-label={allPagesVisible ? "View single page" : "View all pages"} onClick={() => setAllPagesVisible((value) => !value)}>{allPagesVisible ? "View single page" : "View all pages"}</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className={`design-canvas-scroll${allPagesVisible ? " is-all-pages" : ""}`} ref={canvasScrollRef}>
+        <div className="design-canvas-area" onPointerMove={onCanvasPointerMove} onPointerUp={event => onCanvasPointerUp(event.pointerId)} onPointerCancel={onCanvasPointerCancel} onLostPointerCapture={onCanvasPointerCaptureLost} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="design-canvas-heading"><div><span>Page {design.pages.findIndex((page) => page.id === activePage.id) + 1}</span><TextInput ref={pageNameInputRef} aria-label="Page name" value={pageName} disabled={!writable} onChange={(event) => setPageName(event.target.value)} onBlur={renamePage} onKeyDown={(event) => { if (event.key === "Enter") { event.currentTarget.blur(); } if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} /></div><div className="design-canvas-heading-actions" aria-label={`Page ${activePageIndex + 1} actions`}><button type="button" onClick={() => movePageById(activePage.id, -1)} disabled={!writable || activePageIndex === 0} aria-label={`Move page ${activePageIndex + 1} earlier`}><StudioIcon name="arrow-up" size={24} /></button><button type="button" onClick={() => movePageById(activePage.id, 1)} disabled={!writable || activePageIndex === design.pages.length - 1} aria-label={`Move page ${activePageIndex + 1} later`}><StudioIcon name="arrow-down" size={24} /></button><button type="button" className={activePage.hidden ? "is-active" : ""} onClick={() => togglePageHidden(activePage.id)} aria-pressed={Boolean(activePage.hidden)} aria-label={activePage.hidden ? `Show page ${activePageIndex + 1}` : `Hide page ${activePageIndex + 1}`}><StudioIcon name={activePage.hidden ? "visibility-off" : "visibility"} size={24} /></button><button type="button" className={activePage.locked ? "is-active" : ""} onClick={() => togglePageLocked(activePage.id)} aria-pressed={Boolean(activePage.locked)} aria-label={activePage.locked ? `Unlock page ${activePageIndex + 1}` : `Lock page ${activePageIndex + 1}`}><StudioIcon name={activePage.locked ? "lock" : "lock-open"} size={24} /></button><button type="button" onClick={() => duplicatePage(activePage.id)} disabled={!writable} aria-label={`Duplicate page ${activePageIndex + 1}`}><StudioIcon name="copy" size={24} /></button><button type="button" onClick={() => deletePages([activePage.id])} disabled={!writable || design.pages.length === 1} aria-label={`Delete page ${activePageIndex + 1}`}><StudioIcon name="trash" size={24} /></button><button type="button" onClick={() => addPage(false, activePage.id)} disabled={!writable} aria-label={`Add page after page ${activePageIndex + 1}`}><StudioIcon name="add" size={24} /></button></div><div className="design-zoom"><button type="button" aria-label="Zoom out" onClick={() => changeZoom(-1)}>−</button><SelectControl aria-label="Zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{ZOOM_OPTIONS.map((option) => <option key={option} value={option}>{option}%</option>)}</SelectControl><button type="button" aria-label="Zoom in" onClick={() => changeZoom(1)}>+</button><button type="button" onClick={fitCanvasToView}>Fit</button><button type="button" onClick={() => setZoom(100)}>100%</button><button type="button" className={allPagesVisible ? "is-active" : ""} aria-pressed={allPagesVisible} aria-label={allPagesVisible ? "View single page" : "View all pages"} onClick={() => setAllPagesVisible((value) => !value)}>{allPagesVisible ? "View single page" : "View all pages"}</button><button type="button" className={snapEnabled ? "is-active" : ""} aria-pressed={snapEnabled} onClick={() => { setSnapEnabled((value) => !value); setGuides([]); }}>Snap {snapEnabled ? "on" : "off"}</button></div></div><div className={`design-canvas-scroll${allPagesVisible ? " is-all-pages" : ""}`} ref={canvasScrollRef}>
           {allPagesVisible ? <div className="design-all-pages">{design.pages.map((page, index) => {
             const isActive = page.id === activePage.id;
             const title = page.name === `Page ${index + 1}` ? "" : page.name;
             const selectInactivePage = (event: PointerEvent<SVGElement>) => { event.stopPropagation(); selectPage(page.id); };
             const pageTitleInput = <TextInput ref={isActive ? pageNameInputRef : undefined} className={title ? "has-title" : "is-placeholder"} value={isActive ? (pageName === `Page ${index + 1}` ? "" : pageName) : title} placeholder="Add page title" readOnly={!isActive} disabled={!writable || page.locked} aria-label={title ? `Edit page title: ${title}` : "Add page title"} onFocus={() => { if (!isActive) startPageRename(page.id); }} onClick={() => { if (!isActive) startPageRename(page.id); }} onChange={(event) => { if (isActive) setPageName(event.target.value); }} onBlur={isActive ? renamePage : undefined} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") { setPageName(activePage.name); event.currentTarget.blur(); } }} />;
             return <article className={`design-all-page${isActive ? " is-active" : ""}${page.hidden ? " is-hidden" : ""}${page.locked ? " is-locked" : ""}`} key={page.id} aria-label={`Page ${index + 1}${title ? `: ${title}` : ""}${page.hidden ? " (hidden)" : ""}${page.locked ? " (locked)" : ""}`}>
-              <div className="design-all-page-heading" style={{ width: `${(pagePlacements.get(page.id)?.basis.width ?? (isActive ? pageResizeRef.current?.originalWidth : undefined) ?? page.width) * zoom / 100}px` }}><div className="design-all-page-title"><strong>Page {index + 1}</strong><span aria-hidden="true">-</span>{pageTitleInput}</div><div className="design-all-page-actions" aria-label={`Page ${index + 1} actions`}><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move page ${index + 1} earlier`}><StudioIcon name="arrow-up" size={24} /></button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move page ${index + 1} later`}><StudioIcon name="arrow-down" size={24} /></button><button type="button" className={page.hidden ? "is-active" : ""} onClick={() => togglePageHidden(page.id)} aria-pressed={Boolean(page.hidden)} aria-label={page.hidden ? `Show page ${index + 1}` : `Hide page ${index + 1}`}><StudioIcon name={page.hidden ? "visibility-off" : "visibility"} size={24} /></button><button type="button" className={page.locked ? "is-active" : ""} onClick={() => togglePageLocked(page.id)} aria-pressed={Boolean(page.locked)} aria-label={page.locked ? `Unlock page ${index + 1}` : `Lock page ${index + 1}`}><StudioIcon name={page.locked ? "lock" : "lock-open"} size={24} /></button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate page ${index + 1}`}><StudioIcon name="copy" size={24} /></button><button type="button" onClick={() => deletePageById(page.id)} disabled={!writable || design.pages.length === 1} aria-label={`Delete page ${index + 1}`}><StudioIcon name="trash" size={24} /></button><button type="button" onClick={() => addPage(false, page.id)} disabled={!writable} aria-label={`Add page after page ${index + 1}`}><StudioIcon name="add" size={24} /></button></div></div>
+              <div className="design-all-page-heading" style={{ width: `${(pagePlacements.get(page.id)?.basis.width ?? (isActive ? pageResizeRef.current?.originalWidth : undefined) ?? page.width) * zoom / 100}px` }}><div className="design-all-page-title"><strong>Page {index + 1}</strong><span aria-hidden="true">-</span>{pageTitleInput}</div><div className="design-all-page-actions" aria-label={`Page ${index + 1} actions`}><button type="button" onClick={() => movePageById(page.id, -1)} disabled={!writable || index === 0} aria-label={`Move page ${index + 1} earlier`}><StudioIcon name="arrow-up" size={24} /></button><button type="button" onClick={() => movePageById(page.id, 1)} disabled={!writable || index === design.pages.length - 1} aria-label={`Move page ${index + 1} later`}><StudioIcon name="arrow-down" size={24} /></button><button type="button" className={page.hidden ? "is-active" : ""} onClick={() => togglePageHidden(page.id)} aria-pressed={Boolean(page.hidden)} aria-label={page.hidden ? `Show page ${index + 1}` : `Hide page ${index + 1}`}><StudioIcon name={page.hidden ? "visibility-off" : "visibility"} size={24} /></button><button type="button" className={page.locked ? "is-active" : ""} onClick={() => togglePageLocked(page.id)} aria-pressed={Boolean(page.locked)} aria-label={page.locked ? `Unlock page ${index + 1}` : `Lock page ${index + 1}`}><StudioIcon name={page.locked ? "lock" : "lock-open"} size={24} /></button><button type="button" onClick={() => duplicatePage(page.id)} disabled={!writable} aria-label={`Duplicate page ${index + 1}`}><StudioIcon name="copy" size={24} /></button><button type="button" onClick={() => deletePages([page.id])} disabled={!writable || design.pages.length === 1} aria-label={`Delete page ${index + 1}`}><StudioIcon name="trash" size={24} /></button><button type="button" onClick={() => addPage(false, page.id)} disabled={!writable} aria-label={`Add page after page ${index + 1}`}><StudioIcon name="add" size={24} /></button></div></div>
               <DesignPageFrame page={page} zoom={zoom} stacked placement={pagePlacements.get(page.id)} resize={isActive && pageResizeRef.current ? { width: pageResizeRef.current.originalWidth, height: pageResizeRef.current.originalHeight, handle: pageResizeRef.current.handle } : null}><PageSvg activeHandle={isActive ? activeHandle : null} showHoverHandles={isActive && tool === "select"} purpleSelectionBorder={isActive && purpleSelectionBorder} editingTextId={isActive ? editingTextId : null} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} onTextDoubleClick={isActive ? beginTextEditing : undefined} rotatingObjectId={interactionRef.current?.mode === "rotate" ? interactionRef.current.id : undefined} isRotating={isActive && isRotating} rotationCursor={isActive ? rotationCursor : null} showPageResizeHandles={isActive && tool === "select" && selectedIds.length === 0} tool={isActive ? tool : "select"} zoom={zoom} page={page} assets={design.assets} selectedIds={isActive ? selectedIds : []} guides={isActive ? guides : []} onCanvasPointerDown={isActive ? onCanvasPointerDown : selectInactivePage} onObjectPointerDown={isActive ? onObjectPointerDown : (event) => selectInactivePage(event)} onResizePointerDown={isActive ? onResizePointerDown : () => undefined} onPageResizePointerDown={isActive ? onPageResizePointerDown : undefined} onRotatePointerDown={isActive ? onRotatePointerDown : () => undefined} onArrowEndpointPointerDown={isActive ? onArrowEndpointPointerDown : () => undefined} onArrowBendPointerDown={isActive ? onArrowBendPointerDown : () => undefined} onArrowBendKeyDown={isActive ? onArrowBendKeyDown : undefined} onResizeKeyDown={isActive ? onResizeKeyDown : () => undefined} onPageResizeKeyDown={isActive ? onPageResizeKeyDown : undefined} onRotateKeyDown={isActive ? onRotateKeyDown : () => undefined} onArrowEndpointKeyDown={isActive ? onArrowEndpointKeyDown : () => undefined} selectionBox={isActive ? selectionBox : null} svgRef={isActive ? svgRef : undefined} /></DesignPageFrame>
             </article>;
           })}</div> : <DesignPageFrame page={activePage} zoom={zoom} placement={pagePlacements.get(activePage.id)} resize={pageResizeRef.current ? { width: pageResizeRef.current.originalWidth, height: pageResizeRef.current.originalHeight, handle: pageResizeRef.current.handle } : null}><PageSvg activeHandle={activeHandle} showHoverHandles={tool === "select"} purpleSelectionBorder={purpleSelectionBorder} editingTextId={editingTextId} editingTextValue={editingTextValue} onEditingTextChange={setEditingTextValue} onEditingTextCommit={commitTextEditing} onEditingTextCancel={cancelTextEditing} onTextDoubleClick={beginTextEditing} rotatingObjectId={interactionRef.current?.mode === "rotate" || interactionRef.current?.mode === "move" ? interactionRef.current.id : undefined} isRotating={isRotating} rotationCursor={rotationCursor} showPageResizeHandles={tool === "select" && selectedIds.length === 0} tool={tool} zoom={zoom} page={activePage} assets={design.assets} selectedIds={selectedIds} guides={guides} onCanvasPointerDown={onCanvasPointerDown} onObjectPointerDown={onObjectPointerDown} onResizePointerDown={onResizePointerDown} onPageResizePointerDown={onPageResizePointerDown} onRotatePointerDown={onRotatePointerDown} onArrowEndpointPointerDown={onArrowEndpointPointerDown} onArrowBendPointerDown={onArrowBendPointerDown} onArrowBendKeyDown={onArrowBendKeyDown} onResizeKeyDown={onResizeKeyDown} onPageResizeKeyDown={onPageResizeKeyDown} onRotateKeyDown={onRotateKeyDown} onArrowEndpointKeyDown={onArrowEndpointKeyDown} selectionBox={selectionBox} svgRef={svgRef} /></DesignPageFrame>}

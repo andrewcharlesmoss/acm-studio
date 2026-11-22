@@ -197,6 +197,27 @@ export function nextPageName(pages: DesignPage[]) {
   return `Page ${index}`;
 }
 
+/** A rendered file has one source page. Historical duplicate claims stay inert. */
+export function designMediaSources(designs: readonly DesignProject[]) {
+  const sources: Record<string, { designId: string; pageId: string }> = Object.create(null);
+  const seen = new Set<string>();
+  for (const design of designs) {
+    for (const { id, renderedMediaId } of design.pages) {
+      if (!renderedMediaId) continue;
+      if (seen.has(renderedMediaId)) delete sources[renderedMediaId];
+      else sources[renderedMediaId] = { designId: design.id, pageId: id };
+      seen.add(renderedMediaId);
+    }
+  }
+  return sources;
+}
+
+export function detachRenderedMedia(page: DesignPage): DesignPage {
+  const copy = { ...page };
+  delete copy.renderedMediaId;
+  return copy;
+}
+
 export function compactDesignAssets(design: DesignProject): DesignProject {
   const referenced = new Set(design.pages.flatMap((page) => page.objects.filter((object) => object.type === "image").map((object) => object.assetId)));
   for (const asset of design.assets) if (referenced.has(asset.id) && asset.sourceAssetId) referenced.add(asset.sourceAssetId);

@@ -174,6 +174,19 @@ export class DesignSyncSession {
     this.sendHello();
   }
 
+  /** Apply a linkage to the latest optimistic draft while preserving unrelated pending edits. */
+  async linkRenderedMedia(pageId: string, previousId: string | undefined, mediaId: string) {
+    if (!this.isConnectedPeer()) throw new Error("Reconnect to the design before linking the file.");
+    const draft = this.optimisticSnapshot;
+    const page = draft.pages.find(item => item.id === pageId);
+    if (!page) throw new Error("The source page was removed.");
+    if (page.renderedMediaId !== mediaId && page.renderedMediaId !== previousId) throw new Error("The source page already links to a different file.");
+    await this.submit({ ...draft, pages: draft.pages.map(item => item.id === pageId ? { ...item, renderedMediaId: mediaId } : item) });
+    if (this.snapshot.pages.find(item => item.id === pageId)?.renderedMediaId !== mediaId) {
+      throw new Error("The design has not confirmed the source link.");
+    }
+  }
+
   submit(snapshot: DesignProject) {
     if (!this.isConnectedPeer()) return Promise.reject(new Error("The design is not connected to its primary Studio tab."));
     const validated = this.validateSnapshot(snapshot);

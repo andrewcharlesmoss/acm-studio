@@ -42,7 +42,7 @@ test("design imports bound pages, assets and aggregate drawing objects", () => {
   const design = createDesign();
   const safe = { ...design, assets: [asset(png(2, 2), 2, 2)] };
   assert.doesNotThrow(() => validateDesignImportResources(safe));
-  assert.throws(() => validateDesignImportResources({ ...design, pages: Array(101).fill(design.pages[0]) }), /import limits/);
+  assert.throws(() => validateDesignImportResources({ ...design, pages: Array(5101).fill(design.pages[0]) }), /import limits/);
   assert.throws(() => validateDesignImportResources({ ...design, assets: Array(101).fill(asset(png(2, 2), 2, 2)) }), /import limits/);
   assert.throws(() => validateDesignImportResources({ ...design, pages: [{ ...design.pages[0], objects: Array(DESIGN_IMPORT_MAX_OBJECTS + 1).fill({}) }] }), /import limits/);
 });

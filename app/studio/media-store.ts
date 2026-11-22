@@ -252,13 +252,16 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
     });
   }
 
-  async function replaceMediaAssetContent(id: string, file: Blob, type = file.type) {
+  async function replaceMediaAssetContent(id: string, file: Blob, type = file.type, verifySource?: () => void) {
     return writeMedia(async () => {
       const asset = await getMediaAsset(id);
       if (!asset) throw new Error("The selected file could not be found.");
       const { imageRenditions: _oldRenditions, ...current } = asset;
       const next = { ...current, type: type || asset.type, size: file.size, blob: file, sourceRevision: crypto.randomUUID(), updatedAt: new Date().toISOString() };
-      await withStore(ASSET_STORE, "readwrite", (store) => store.put(next));
+      await withStore(ASSET_STORE, "readwrite", store => {
+        verifySource?.();
+        return store.put(next);
+      });
       return next;
     });
   }

@@ -3,7 +3,8 @@ export const DESIGN_IMAGE_MAX_BYTES = 4_000_000;
 export const DESIGN_IMAGE_MAX_DIMENSION = 8_192;
 export const DESIGN_IMAGE_MAX_PIXELS = 16_777_216;
 export const DESIGN_IMPORT_MAX_PIXELS = 33_554_432;
-export const DESIGN_IMPORT_MAX_PAGES = 100;
+// Charge each page against the same scene budget as its drawing objects.
+const DESIGN_IMPORT_SCENE_BUDGET = 5_100;
 export const DESIGN_IMPORT_MAX_ASSETS = 100;
 export const DESIGN_IMPORT_MAX_OBJECTS = 5_000;
 
@@ -69,12 +70,12 @@ export async function inspectDesignImageBlob(blob, fallbackType = "image/png") {
 export function validateDesignImportResources(value) {
   if (!value || typeof value !== "object") return;
   const { pages, assets } = value;
-  if (!Array.isArray(pages) || pages.length > DESIGN_IMPORT_MAX_PAGES || !Array.isArray(assets) || assets.length > DESIGN_IMPORT_MAX_ASSETS) fail();
+  if (!Array.isArray(pages) || pages.length > DESIGN_IMPORT_SCENE_BUDGET || !Array.isArray(assets) || assets.length > DESIGN_IMPORT_MAX_ASSETS) fail();
   let objectCount = 0;
   for (const page of pages) {
     if (!page || typeof page !== "object" || !Array.isArray(page.objects)) fail();
     objectCount += page.objects.length;
-    if (objectCount > DESIGN_IMPORT_MAX_OBJECTS) fail();
+    if (objectCount > DESIGN_IMPORT_MAX_OBJECTS || objectCount + pages.length > DESIGN_IMPORT_SCENE_BUDGET) fail();
   }
   let totalImageBytes = 0;
   let totalPixels = 0;
