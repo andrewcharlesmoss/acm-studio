@@ -181,18 +181,30 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
     } finally { database.close(); }
   }
 
-  async function listMediaLibrary() {
+  async function readMediaLibrarySnapshot<T>(readRelatedRecords: () => T) {
     const database = await openDatabase();
     const library: { assets: StoredMediaAsset[]; folders: MediaFolder[] } = { assets: [], folders: [] };
+    let related!: T;
+    let failure: { error: unknown } | undefined;
     try {
       await runTransaction(database, [assetStoreFor(database), FOLDER_STORE], "readonly", transaction => {
         const assets = transaction.objectStore(assetStoreFor(database)).getAll();
         const folders = transaction.objectStore(FOLDER_STORE).getAll();
         assets.onsuccess = () => { library.assets = assets.result; };
-        folders.onsuccess = () => { library.folders = folders.result; };
+        folders.onsuccess = () => {
+          library.folders = folders.result;
+          // Both stores are locked against writes while this success handler runs.
+          try { related = readRelatedRecords(); } catch (error) { failure = { error }; }
+        };
       });
-      return library;
+      if (failure) throw failure.error;
+      return { ...library, related };
     } finally { database.close(); }
+  }
+
+  async function listMediaLibrary() {
+    const { assets, folders } = await readMediaLibrarySnapshot(() => undefined);
+    return { assets, folders };
   }
 
   async function getMediaAsset(id: string) {
@@ -481,7 +493,7 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
     });
   }
 
-  return { listMediaLibrary, getMediaAsset, addMediaFiles, createMediaFolder, updateMediaAsset, replaceMediaAssetContent, renameMediaFolder, colourMediaFolder, moveMediaFolder, deleteMediaAsset, deleteMediaFolder, replaceMediaLibrary, ensureMediaGeneration, applyMediaRequest, supportsImageRenditions: () => Boolean(options && v3Ready && ownership.canWrite()) };
+  return { listMediaLibrary, readMediaLibrarySnapshot, getMediaAsset, addMediaFiles, createMediaFolder, updateMediaAsset, replaceMediaAssetContent, renameMediaFolder, colourMediaFolder, moveMediaFolder, deleteMediaAsset, deleteMediaFolder, replaceMediaLibrary, ensureMediaGeneration, applyMediaRequest, supportsImageRenditions: () => Boolean(options && v3Ready && ownership.canWrite()) };
 }
 
 export function prepareMediaFolderMove(folders: MediaFolder[], id: string, parentId: string | null): MediaFolder {
@@ -503,6 +515,7 @@ export function prepareMediaFolderMove(folders: MediaFolder[], id: string, paren
 
 
 const liveMediaStore = createLiveMediaStore();
+export const readMediaLibrarySnapshot = liveMediaStore.readMediaLibrarySnapshot;
 export const listMediaLibrary: () => Promise<{ assets: MediaAsset[]; folders: MediaFolder[] }> = liveMediaStore.listMediaLibrary;
 export const getMediaAsset: (id: string) => Promise<MediaAsset | undefined> = liveMediaStore.getMediaAsset;
 export const { addMediaFiles, createMediaFolder, updateMediaAsset, replaceMediaAssetContent, renameMediaFolder, colourMediaFolder, moveMediaFolder, deleteMediaAsset, deleteMediaFolder, replaceMediaLibrary, ensureMediaGeneration, applyMediaRequest } = liveMediaStore;

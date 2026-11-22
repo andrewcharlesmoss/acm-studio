@@ -8,4 +8,8 @@ export { generateImageRenditions } from "../../../app/studio/image-rendition-gen
 export { BackupManager } from "../../../app/studio/backup-manager";
 export { createElement } from "react";
 export { createRoot } from "react-dom/client";
-export { LOCAL_WORKSPACE_KEY } from "../../../app/content/local-storage-keys";
+export { LOCAL_WORKSPACE_KEY, RESTORE_PENDING_KEY } from "../../../app/content/local-storage-keys";
+export { browserWorkspaceRepository } from "../../../app/studio/workspace-repository";
+export { decodeBackupArchive } from "../../../app/studio/backup-archive";
+export { useStudioWorkspace } from "../../../app/studio/use-studio-workspace";
+export { publishDocumentLocally } from "../../../app/content/local-publishing";
