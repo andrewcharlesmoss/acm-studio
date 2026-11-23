@@ -4,7 +4,7 @@ export type DropBounds = { left: number; right: number; top: number; bottom: num
 export type DropAxis = "x" | "y";
 export type ReorderLayout = DropAxis | "card-grid";
 export type DropEdgeAlignment = "gap" | "boundary";
-export type WrappedRowBoundaryCue = "full-row" | "next-item" | "next-item-vertical";
+export type WrappedRowBoundaryCue = "full-row" | "next-item" | "next-item-vertical" | "previous-item-vertical";
 export type DropLine = { left: number; top: number; width: number; height: number };
 
 function visualRows(rows: DropBounds[]) {
@@ -50,9 +50,17 @@ export function insertionGapLine(rows: DropBounds[], index: number, owner: DropB
   const groups = axis === "x" ? visualRows(rows) : [];
   const previousRow = groups.find(group => index - 1 >= group.start && index - 1 <= group.end);
   const followingRow = groups.find(group => index >= group.start && index <= group.end);
-  if ((wrappedRowBoundaryCue === "next-item" || wrappedRowBoundaryCue === "next-item-vertical") && before && after && previousRow && followingRow && previousRow !== followingRow) {
-    if (wrappedRowBoundaryCue === "next-item-vertical") {
-      return { left: (after.left - owner.left) / scale - thickness / 2, top: (followingRow.top - owner.top) / scale, width: thickness, height: (followingRow.bottom - followingRow.top) / scale };
+  if (wrappedRowBoundaryCue !== "full-row" && before && after && previousRow && followingRow && previousRow !== followingRow) {
+    if (wrappedRowBoundaryCue !== "next-item") {
+      const atRowEnd = wrappedRowBoundaryCue === "previous-item-vertical";
+      const row = atRowEnd ? previousRow : followingRow;
+      const edge = atRowEnd ? before.right : after.left;
+      return {
+        left: (edge - owner.left) / scale - thickness / 2,
+        top: (row.top - owner.top) / scale,
+        width: thickness,
+        height: (row.bottom - row.top) / scale,
+      };
     }
     const centre = (previousRow.bottom + followingRow.top) / 2;
     const markerWidth = Math.min(after.width, 48 * scale);

@@ -27,6 +27,14 @@ test("gap geometry honours borders, non-uniform sizes, horizontal wrapping and z
  const wrapped=[box(10,20,60,30),box(80,20,50,30),box(10,70,80,40),box(100,70,60,50)];const next=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x");assert.equal(next.top,59);assert.equal(next.height,2);assert.equal(geometry.insertionGapIndex(wrapped,179,49,"x"),2);
  const vertical=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x",2,{before:12,after:12},"boundary","next-item-vertical");assert.deepEqual(vertical,{left:9,top:70,width:2,height:50});
 });
+test("a trailing wrapped-row cue uses the preceding row's full height", () => {
+  const rows = [box(10, 20, 60, 30), box(80, 20, 50, 20), box(10, 70, 80, 40)];
+  const line = geometry.insertionGapLine(
+    rows, 2, box(0, 0, 180, 140), 2, "x", 2, { before: 12, after: 12 }, "boundary", "previous-item-vertical",
+  );
+  assert.deepEqual(line, { left: 64, top: 10, width: 2, height: 15 });
+});
+
 test("dashboard card bodies select slots while neighbouring card edges share one insertion gap", () => {
   const grid = [box(10, 10, 100, 90), box(122, 10, 100, 90), box(234, 10, 100, 90), box(10, 112, 100, 90)];
   assert.deepEqual(geometry.cardGridInsertion(grid, 0, 155, 55), { axis: "x", index: 2 });

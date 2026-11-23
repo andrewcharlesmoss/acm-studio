@@ -967,6 +967,8 @@
 
 ### Fixed
 
+- Show the drop line to the right of the last site card in a Control Centre row when inserting at that boundary.
+
 - Drop Control Centre cards into the intended slot on the first drag, including across rows and in single-column layouts.
 
 - After an interrupted full restore, Studio recovers the matching documents and Files before editing resumes. Complete backups taken during a concurrent edit capture matching data or ask the user to resolve the conflict and retry.

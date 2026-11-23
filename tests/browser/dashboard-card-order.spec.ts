@@ -125,3 +125,57 @@ for (const { label, width, from, to, across } of [
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('acm-studio-dashboard-sites-order-v1') || '[]'))).toEqual(expected);
   });
 }
+
+test('the wrapped site drop line appears to the right of Habit Tracker', async ({ page }) => {
+  const original = ['acm-account', 'acm-studio', 'test', 'test2', 'lid-angle', 'andrew-moss', 'loquafy', 'habit-tracker', 'loquage'];
+  const preference = 'acm-studio-dashboard-sites-order-v1';
+  await page.addInitScript(({ key, order }) => localStorage.setItem(key, JSON.stringify(order)), { key: preference, order: original });
+  await page.setViewportSize({ width: 1280, height: 1700 });
+  await page.goto('/');
+  const grid = page.locator('.dashboard-site-grid');
+  const cards = grid.locator('.dashboard-card-reorder');
+  const order = () => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
+  await expect.poll(order).toEqual(original);
+
+  const habitTracker = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
+  const loquage = (await grid.locator('[data-library-entry-id="loquage"]').boundingBox())!;
+  const grip = (await grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true }).boundingBox())!;
+  const frame = (await grid.boundingBox())!;
+  const right = habitTracker.x + habitTracker.width;
+  expect(loquage.y).toBeGreaterThan(habitTracker.y);
+  expect(frame.x + frame.width).toBeGreaterThan(right);
+  const drop = { x: (right + frame.x + frame.width) / 2, y: habitTracker.y + habitTracker.height / 2 };
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(drop.x, drop.y, { steps: 12 });
+
+  const line = grid.locator('.studio-gap-line');
+  await expect(line).toHaveCount(1);
+  const markerCentre = () => line.evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    return rect.left + rect.width / 2;
+  });
+  await expect.poll(async () => Math.abs(await markerCentre() - right)).toBeLessThan(1);
+  // The gap before Loquage is the same position in the saved order.
+  await page.mouse.move(loquage.x + 2, loquage.y + loquage.height / 2);
+  await expect.poll(async () => Math.abs(await markerCentre() - right)).toBeLessThan(1);
+  await page.mouse.move(drop.x, drop.y);
+  await page.mouse.up();
+
+  const expected = ['acm-account', 'acm-studio', 'test', 'test2', 'andrew-moss', 'loquafy', 'habit-tracker', 'lid-angle', 'loquage'];
+  await expect.poll(order).toEqual(expected);
+  await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), preference)).toEqual(expected);
+  await expect(line).toHaveCount(0);
+
+  const movedLid = (await grid.locator('[data-library-entry-id="lid-angle"]').boundingBox())!;
+  const movedHabit = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
+  const movedHandle = grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true });
+  await expect(movedHandle).toHaveAttribute('aria-disabled', 'false');
+  const movedGrip = (await movedHandle.boundingBox())!;
+  await page.mouse.move(movedGrip.x + movedGrip.width / 2, movedGrip.y + movedGrip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move((movedHabit.x + movedHabit.width + movedLid.x) / 2, movedHabit.y + movedHabit.height / 2, { steps: 6 });
+  await expect(line).toHaveCount(0);
+  await page.mouse.up();
+  await expect.poll(order).toEqual(expected);
+});
