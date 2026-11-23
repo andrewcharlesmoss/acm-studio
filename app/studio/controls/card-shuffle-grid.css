@@ -1,0 +1,12 @@
+.card-shuffle-grid { position: relative; isolation: isolate; padding-inline: 12px; }
+.card-shuffle-slot, .card-shuffle-face { position: relative; min-width: 0; }
+.card-shuffle-face { height: 100%; }
+.card-shuffle-grid:has([data-lifted]) .card-shuffle-face { transition: transform 150ms ease-out; pointer-events: none; }
+.card-shuffle-slot[data-lifted] { z-index: 2; }
+.card-shuffle-slot[data-lifted] .card-shuffle-face { transition: none; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 18%)); }
+.card-shuffle-slot[data-destination]::before { content: ""; position: absolute; inset: 0; border: 2px dashed var(--studio-selection-colour, Highlight); border-radius: 8px; }
+.card-shuffle-grip { position: absolute; z-index: 1; top: 4px; right: 4px; touch-action: none; cursor: grab; }
+.card-shuffle-grip:active { cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) {
+  .card-shuffle-grid:has([data-lifted]) .card-shuffle-face { transition: none; }
+}

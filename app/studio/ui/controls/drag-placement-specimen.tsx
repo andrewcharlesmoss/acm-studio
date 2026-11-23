@@ -1,5 +1,6 @@
 "use client";
 
+import { CardShuffleGrid } from "../../controls/card-shuffle-grid";
 import { StudioButton } from "../../controls/button";
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { SelectControl } from "../../controls/native-fields";
@@ -60,14 +61,22 @@ export function DragPlacementSpecimen() {
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- The group delegates shortcuts from its focusable controls.
   return <div className="ui-drag-specimen" role="group" aria-label="Drag-to-position controls" onKeyDown={shortcut}>
     <div className="ui-drag-tools">
-      <label>Layout <SelectControl value={layout} onChange={event => setLayout(event.target.value)}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="wrapped">Wrapped</option></SelectControl></label>
+      <label>Layout <SelectControl value={layout} onChange={event => setLayout(event.target.value)}><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option><option value="wrapped">Wrapped</option><option value="shuffle">Card shuffle</option></SelectControl></label>
       <CheckboxControl checked={readOnly} onChange={checked => setReadOnly(checked)} label={<>Read-only example</>} />
       <HistoryActions presentation="labelled" onUndo={() => restore(-1)} onRedo={() => restore(1)} canUndo={history.cursor > 0} canRedo={history.cursor < history.orders.length - 1} disabled={readOnly} />
     </div>
     <p>Web: try the interactive example below. SwiftUI: open the native macOS example in a separate window alongside it.</p>
     <StudioButton variant="secondary" type="button" onClick={openSwiftPreview}>Open SwiftUI Preview</StudioButton>
     <p role="status">{previewMessage}</p>
-    <p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. In Wrapped layout, the row-boundary cue aligns with the first item in the next row. Returning to the original position shows no line. Escape cancels.</p>
+    {layout === "shuffle" ? <>
+      <p>Drag a card over the slot you want. Release to keep the previewed order, or press Escape to cancel.</p>
+      <CardShuffleGrid className="ui-card-shuffle" label="Card shuffle example" ids={ids} writable={!readOnly} onMove={move}
+        name={id => items.find(item => item.id === id)!.label}
+        renderCard={id => <div className="ui-shuffle-example-card">{items.find(item => item.id === id)!.label}</div>} />
+      <StudioButton variant="secondary" type="button" disabled={readOnly} onClick={() => {
+        setHistory({ orders: [items.map(item => item.id)], cursor: 0 }); setMessage("Example reset.");
+      }}>Reset example</StudioButton>
+    </> : <><p>Drag a six-dot handle across both edges or the space between items. One centred line marks a genuine move. In Wrapped layout, the row-boundary cue aligns with the first item in the next row. Returning to the original position shows no line. Escape cancels.</p>
     <div className="ui-drag-scroll">
       <ol className={`ui-drag-list is-${layout}`} aria-label="Drag-to-position example items" {...drag.listProps}>
         {ids.map(id => { const item = items.find(value => value.id === id)!; return <li key={id} {...drag.rowProps(id)}>
@@ -82,7 +91,7 @@ export function DragPlacementSpecimen() {
         </li>; })}
         <DragPlacementIndicator as="li" line={drag.line} />
       </ol>
-    </div>
+    </div></>}
     <p role="status">{message} History position {history.cursor} of {history.orders.length - 1}.</p>
     <p>Keyboard: Alt + Up/Down in Vertical; Alt + Left/Right in Horizontal or Wrapped. Command/Ctrl + Z undoes; Command + Shift + Z or Ctrl + Y redoes while this example has focus.</p>
   </div>;

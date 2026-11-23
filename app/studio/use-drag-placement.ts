@@ -4,10 +4,12 @@ import { startDragAutoScroll } from "./drag-auto-scroll";
 import { maintainPlacementSpace, type PlacementSpace } from "./drag-placement-space";
 import type { DropAxis, DropLine } from "./drop-gap-geometry";
 const MIME = "application/x-acm-studio-placement";
-export type DragPlacement<T> = { target: T; line: DropLine };
+export type DragPlacement<T> = { target: T; line: DropLine | null };
 export type DragPlacementPolicy<S, T> = {
   version: string; writable: boolean;
   axis?: DropAxis;
+  captureTouch?: boolean;
+  scrollViewport?: boolean;
   reserveSpace?: boolean | "drag";
   rows?: (root: HTMLElement) => HTMLElement[];
   boundary?: (root: HTMLElement) => HTMLElement | undefined;
@@ -105,7 +107,7 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
     },
     handleProps: (source: S) => ({
       onPointerDown(event: PointerEvent<HTMLElement>) {
-        if (event.pointerType !== "mouse" || event.button !== 0 || !begin(source)) return;
+        if ((event.pointerType !== "mouse" && !latest.current.captureTouch) || pointer.current || event.button !== 0 || !begin(source)) return;
         event.preventDefault(); event.stopPropagation(); event.currentTarget.focus(); suppressClick.current = false;
         pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, active: false };
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -119,7 +121,7 @@ export function useDragPlacement<S, T>(policy: DragPlacementPolicy<S, T>) {
         const handle = event.currentTarget;
         if (!scroll.current) scroll.current = startDragAutoScroll(handle, () => pointer.current?.active ? { x: pointer.current.x, y: pointer.current.y } : null, () => {
           const element = container(handle); if (element) preview(element, gesture.x, gesture.y);
-        });
+        }, latest.current.scrollViewport);
         const element = container(handle); if (element) preview(element, gesture.x, gesture.y); else setIndicator(null);
       },
       onPointerUp(event: PointerEvent<HTMLElement>) {

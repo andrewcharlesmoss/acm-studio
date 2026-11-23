@@ -3,7 +3,7 @@ import { dashboardOrderKeys } from "./dashboard-order-contract.mjs";
 import { saveStudioPreferenceThroughOwner } from "./studio-preference-broker.mjs";
 import { useEffect, useRef, useState } from "react";
 import { createSiteOrderRepository, orderedSiteIds, siteOrderPreferenceKey } from "./site-order-repository.mjs";
-import { movedLibraryIds } from "./library-reordering";
+import { movedLibraryIds, type LibraryMove } from "./library-reordering";
 import type { ReorderLayout, DropEdgeAlignment, WrappedRowBoundaryCue } from "./drop-gap-geometry";
 import { useLibraryReordering } from "./use-library-reordering";
 
@@ -14,7 +14,7 @@ const navigationOrderCache = new Map<string, { order: string[]; locallyChanged: 
 const retainSiteOrder = (order: string[]) => order;
 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = retainSiteOrder, axis: ReorderLayout = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row", interactionIds?: string[], editing = true) {
+export function useSavedNavigationOrder(ids: string[], preferenceKey: string, label: string, normaliseOrder: (order: string[]) => string[] = retainSiteOrder, interactionIds?: string[]) {
   const [order, setOrder] = useState(() => navigationOrderCache.get(preferenceKey)?.order ?? ids);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("");
@@ -45,7 +45,7 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
     window.addEventListener("storage", refresh);
     return () => { active = false; generationCounter.current++; repository.current = null; window.removeEventListener("storage", refresh); };
   }, [idsKey, preferenceKey, label, normaliseOrder]);
-  const reordering = useLibraryReordering(reorderableOrder, editing && !saving, move => {
+  function moveCard(move: LibraryMove) {
     const movedVisibleIds = movedLibraryIds(reorderableOrder, move);
     if (!movedVisibleIds) return false;
     const visibleIds = new Set(reorderableOrder);
@@ -72,8 +72,14 @@ export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPr
       setStatus(result.reason === "blocked" ? `${label} applies to this page; another Studio tab prevents saving.` : `${label} was not saved. Refresh before trying again.`);
     }).finally(() => { if (attempt === generation.current) setSaving(false); });
     return true;
-  }, listKey, edgeAlignment, axis, wrappedRowBoundaryCue);
-  return { order: activeOrder, reordering, status, ready };
+  }
+  return { order: activeOrder, reorderableOrder, moveCard, status, ready, saving };
+}
+
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = retainSiteOrder, axis: ReorderLayout = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row", interactionIds?: string[], editing = true) {
+  const saved = useSavedNavigationOrder(ids, preferenceKey, label, normaliseOrder, interactionIds);
+  const reordering = useLibraryReordering(saved.reorderableOrder, editing && !saved.saving, saved.moveCard, listKey, edgeAlignment, axis, wrappedRowBoundaryCue);
+  return { order: saved.order, reordering, status: saved.status, ready: saved.ready };
 }
 
 export function useSiteOrdering(ids: string[], interactionIds?: string[], editing = true) {

@@ -951,7 +951,9 @@ yet been verified in a running app.
 
 Controls → Foundation → Drag to position (`/studio/ui/controls#drag-placement`)
 uses the production sibling adapter, placement controller, geometry, and line
-renderer. Switch between vertical, horizontal, and wrapped layouts with unequal
+renderer. Select **Card shuffle** to try the same `CardShuffleGrid` as the dashboard. Pass ordered IDs, card names and content, write availability, and a move callback. The component owns pointer, touch and keyboard input, preview motion and cancellation. The consumer owns the saved order.
+
+Switch between vertical, horizontal, and wrapped layouts with unequal
 item sizes. In Wrapped layout, cross-row placement uses the compact marker over
 the next row's first item; other layouts keep their existing marker geometry.
 Drag across both neighbouring edges and the empty gap; returning to the original

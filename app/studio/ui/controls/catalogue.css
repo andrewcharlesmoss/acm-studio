@@ -168,3 +168,6 @@
 .ui-pages-catalogue-specimen-preview article > p:first-child { margin:0 0 16px; color:var(--acm-ui-color-secondary-text,#636366); font-weight:600; letter-spacing:.04em; }
 .ui-pages-catalogue-specimen-preview h2 { margin:0 0 16px; font-size:1.75rem; }
 @container pages-specimen (max-width:600px) { .ui-pages-catalogue-specimen-preview { padding:16px; } .ui-pages-catalogue-specimen-preview article { min-height:240px; padding:20px; } }
+
+.ui-card-shuffle { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); max-width: 480px; margin-block: 12px; }
+.ui-shuffle-example-card { background: var(--surface, white); border: 1px solid var(--line); border-radius: 8px; padding: 28px 32px 28px 12px; }

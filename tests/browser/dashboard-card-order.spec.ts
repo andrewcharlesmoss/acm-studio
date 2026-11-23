@@ -4,8 +4,8 @@ test('dashboard cards reorder independently and retain order', async ({ page }) 
   await page.goto('/');
   const sites = page.locator('.dashboard-site-grid');
   const tools = page.locator('.dashboard-tool-grid');
-  const siteCards = sites.locator('.dashboard-card-reorder');
-  const toolCards = tools.locator('.dashboard-card-reorder');
+  const siteCards = sites.locator('.card-shuffle-slot');
+  const toolCards = tools.locator('.card-shuffle-slot');
   const firstSite = await siteCards.first().getAttribute('data-library-entry-id');
   const secondSite = await siteCards.nth(1).getAttribute('data-library-entry-id');
   const firstTool = await toolCards.first().getAttribute('data-library-entry-id');
@@ -44,37 +44,6 @@ test('dashboard cards reorder independently and retain order', async ({ page }) 
 });
 
 
-test('tool cards show a wrapped drop at the edge being targeted', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 1000 });
-  await page.goto('/');
-  const tools = page.locator('.dashboard-tool-grid');
-  await expect(page.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
-  const marker = await page.evaluate(async () => {
-    const grid = document.querySelector<HTMLElement>('.dashboard-tool-grid')!;
-    const cards = Array.from(grid.querySelectorAll<HTMLElement>('.dashboard-card-reorder'));
-    const firstRow = cards.filter(card => Math.abs(card.getBoundingClientRect().top - cards[0].getBoundingClientRect().top) < 1);
-    const nextRow = cards.find(card => card.getBoundingClientRect().top > cards[0].getBoundingClientRect().top + 1)!;
-    if (!nextRow || firstRow.length === cards.length) throw new Error('The dashboard tools did not wrap at the test viewport.');
-    const handle = cards[0].querySelector<HTMLButtonElement>('.dashboard-card-drag')!;
-    const lastInRow = firstRow.at(-1)!.getBoundingClientRect();
-    const gridBounds = grid.getBoundingClientRect();
-    const dataTransfer = new DataTransfer();
-    handle.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer }));
-    await new Promise(requestAnimationFrame);
-    grid.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer, clientX: gridBounds.right - 1, clientY: lastInRow.bottom - 1 }));
-    await new Promise(requestAnimationFrame);
-    const line = grid.querySelector<HTMLElement>('.studio-gap-line');
-    if (!line) throw new Error('The dashboard did not render a drop indicator.');
-    const measured = { width: line.getBoundingClientRect().width, height: line.getBoundingClientRect().height, left: line.getBoundingClientRect().left, rowEnd: lastInRow.right };
-    handle.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
-    return measured;
-  });
-  expect(marker.width).toBe(2);
-  expect(marker.height).toBeGreaterThan(2);
-  expect(marker.left + marker.width / 2).toBeCloseTo(marker.rowEnd, 0);
-  await expect(tools.locator('.studio-gap-line')).toHaveCount(0);
-});
-
 test('dashboard saves through the editor tab holding Studio write ownership', async ({ context, page }) => {
   await page.goto('/studio');
   await expect.poll(() => page.evaluate(() => navigator.locks.query().then(result => result.held?.some(lock => lock.name === 'acm-studio-writer-v1')))).toBe(true);
@@ -82,8 +51,8 @@ test('dashboard saves through the editor tab holding Studio write ownership', as
   try {
     await dashboard.goto('/');
     await expect(dashboard.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
-    const sites = dashboard.locator('.dashboard-site-grid .dashboard-card-reorder');
-    const tools = dashboard.locator('.dashboard-tool-grid .dashboard-card-reorder');
+    const sites = dashboard.locator('.dashboard-site-grid .card-shuffle-slot');
+    const tools = dashboard.locator('.dashboard-tool-grid .card-shuffle-slot');
     const siteId = await sites.nth(1).getAttribute('data-library-entry-id');
     const toolId = await tools.nth(1).getAttribute('data-library-entry-id');
     await sites.nth(1).getByRole('button', { name: /^Reorder / }).press('Alt+ArrowUp');
@@ -106,7 +75,7 @@ for (const { label, width, from, to, across } of [
     await page.goto('/');
     await expect(page.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
     const grid = page.locator('.dashboard-site-grid');
-    const cards = grid.locator('.dashboard-card-reorder');
+    const cards = grid.locator('.card-shuffle-slot');
     const handle = cards.nth(from).getByRole('button', { name: /^Reorder / });
     await handle.scrollIntoViewIfNeeded();
     const original = await cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
@@ -118,86 +87,67 @@ for (const { label, width, from, to, across } of [
     await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
     await page.mouse.down();
     await page.mouse.move(end.x, end.y, { steps: 12 });
-    await expect(grid.locator('.studio-gap-line')).toHaveCount(1);
+    await expect(cards.nth(to)).toHaveAttribute('data-destination', 'true');
     await page.mouse.up();
     await expect.poll(() => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')))).toEqual(expected);
-    await expect(grid.locator('.studio-gap-line')).toHaveCount(0);
+    await expect(grid.locator('[data-destination]')).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('acm-studio-dashboard-sites-order-v1') || '[]'))).toEqual(expected);
   });
 }
 
-for (const side of ['right of Habit Tracker', 'left of Loquage']) {
-  test(`Lid Angle drops ${side} with the line beside the pointer`, async ({ page }) => {
-    const original = ['acm-account', 'acm-studio', 'test', 'test2', 'lid-angle', 'andrew-moss', 'loquafy', 'habit-tracker', 'loquage'];
-    const preference = 'acm-studio-dashboard-sites-order-v1';
-    await page.addInitScript(({ key, order }) => localStorage.setItem(key, JSON.stringify(order)), { key: preference, order: original });
-    await page.setViewportSize({ width: 1280, height: 1700 });
-    await page.goto('/');
-    const grid = page.locator('.dashboard-site-grid');
-    const cards = grid.locator('.dashboard-card-reorder');
-    const order = () => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
-    await expect.poll(order).toEqual(original);
-
-    const habitTracker = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
-    const loquage = (await grid.locator('[data-library-entry-id="loquage"]').boundingBox())!;
-    const grip = (await grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true }).boundingBox())!;
-    const frame = (await grid.boundingBox())!;
-    const right = habitTracker.x + habitTracker.width;
-    expect(loquage.y).toBeGreaterThan(habitTracker.y);
-    expect(frame.x + frame.width).toBeGreaterThan(right);
-    const afterHabit = { x: (right + frame.x + frame.width) / 2, y: habitTracker.y + habitTracker.height / 2 };
-    const beforeLoquage = { x: (loquage.x + frame.x) / 2, y: loquage.y + loquage.height / 2 };
-    const drop = side === 'right of Habit Tracker' ? afterHabit : beforeLoquage;
+test('Loquage opens the bottom-left slot while held, then lands there on release', async ({ page }) => {
+  const start = ['acm-account', 'acm-studio', 'test', 'test2', 'lid-angle', 'andrew-moss', 'loquafy', 'loquage', 'habit-tracker'];
+  const savedKey = 'acm-studio-dashboard-sites-order-v1';
+  await page.addInitScript(({ start, savedKey }) => {
+    if (!localStorage.getItem(savedKey)) localStorage.setItem(savedKey, JSON.stringify(start));
+  }, { start, savedKey });
+  await page.setViewportSize({ width: 1280, height: 1700 });
+  await page.goto('/');
+  const grid = page.getByRole('group', { name: 'Site cards' });
+  const loquage = grid.locator('[data-library-entry-id="loquage"]');
+  const habit = grid.locator('[data-library-entry-id="habit-tracker"]');
+  const handle = loquage.getByRole('button', { name: 'Reorder Loquage' });
+  await expect(handle).toHaveAttribute('aria-disabled', 'false');
+  const source = (await loquage.boundingBox())!;
+  const target = (await habit.boundingBox())!;
+  expect(target.y).toBeGreaterThan(source.y);
+  const begin = async () => {
+    const grip = (await handle.boundingBox())!;
     await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
     await page.mouse.down();
-    await page.mouse.move(afterHabit.x, afterHabit.y, { steps: 12 });
-
-    const line = grid.locator('.studio-gap-line');
-    await expect(line).toHaveCount(1);
-    const markerCentre = () => line.evaluate(el => {
-      const rect = el.getBoundingClientRect();
-      return rect.left + rect.width / 2;
-    });
-    await expect.poll(async () => Math.abs(await markerCentre() - right)).toBeLessThan(1);
-    // Both physical edges select the same position in the saved order.
-    await page.mouse.move(beforeLoquage.x, beforeLoquage.y);
-    await expect.poll(async () => Math.abs(await markerCentre() - loquage.x)).toBeLessThan(1);
-    await page.mouse.move(drop.x, drop.y);
-    await page.mouse.up();
-
-    const expected = ['acm-account', 'acm-studio', 'test', 'test2', 'andrew-moss', 'loquafy', 'habit-tracker', 'lid-angle', 'loquage'];
-    await expect.poll(order).toEqual(expected);
-    await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), preference)).toEqual(expected);
-    await expect(line).toHaveCount(0);
-
-    const movedHandle = grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true });
-    await expect(movedHandle).toHaveAttribute('aria-disabled', 'false');
-    const movedGrip = (await movedHandle.boundingBox())!;
-    await page.mouse.move(movedGrip.x + movedGrip.width / 2, movedGrip.y + movedGrip.height / 2);
-    await page.mouse.down();
-    // Lid Angle now ends this row, immediately before Loquage on the next.
-    const repeatX = side === 'left of Loquage' ? beforeLoquage.x : loquage.x + 4;
-    await page.mouse.move(repeatX, beforeLoquage.y, { steps: 12 });
-    await expect(line).toBeVisible();
-    const repeatMarker = (await line.boundingBox())!;
-    expect(repeatMarker.width).toBe(2);
-    expect(Math.abs(repeatMarker.x + repeatMarker.width / 2 - loquage.x)).toBeLessThan(1);
-    expect(Math.abs(repeatMarker.y - loquage.y)).toBeLessThan(1);
-    await page.mouse.up();
-    await expect(line).toHaveCount(0);
-    await expect.poll(order).toEqual(expected);
-  });
-}
+    await page.mouse.move(target.x - 4, target.y + target.height / 2, { steps: 12 });
+    await expect(habit).toHaveAttribute('data-destination', 'true');
+    await expect.poll(async () => {
+      const box = (await habit.locator('.card-shuffle-face').boundingBox())!;
+      return Math.abs(box.x - source.x) + Math.abs(box.y - source.y);
+    }).toBeLessThan(2);
+    expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), savedKey)).toEqual(start);
+  };
+  await begin();
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(grid.locator('[data-destination]')).toHaveCount(0);
+  expect((await habit.boundingBox())!.x).toBe(target.x);
+  await begin();
+  await page.mouse.up();
+  const expected = [...start.slice(0, -2), 'habit-tracker', 'loquage'];
+  await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)!), savedKey)).toEqual(expected);
+  await page.reload();
+  await expect(grid.locator('.card-shuffle-slot').last()).toHaveAttribute('data-library-entry-id', 'loquage');
+  const landed = (await loquage.boundingBox())!;
+  expect(Math.abs(landed.x - target.x)).toBeLessThan(1);
+  expect(landed.y).toBeGreaterThan((await habit.boundingBox())!.y);
+});
 
 for (const { width, columns } of [{ width: 1280, columns: 4 }, { width: 900, columns: 2 }]) {
-  test(`each site row has a blue line at either drop edge with ${columns} columns`, async ({ page }) => {
+  test(`each site row previews its first and last slots with ${columns} columns`, async ({ page }) => {
     await page.setViewportSize({ width, height: 2600 });
     await page.goto('/');
     await expect(page.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
     const grid = page.locator('.dashboard-site-grid');
-    const cards = grid.locator('.dashboard-card-reorder');
+    const cards = grid.locator('.card-shuffle-slot');
     const handles = grid.getByRole('button', { name: /^Reorder / });
-    const line = grid.locator('.studio-gap-line');
+    const destinationSlot = grid.locator('[data-destination]');
     const order = () => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
     const original = await order();
     const bounds = await cards.evaluateAll(nodes => nodes.map(node => {
@@ -217,16 +167,74 @@ for (const { width, columns } of [{ width: 1280, columns: 4 }, { width: 900, col
         await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
         await page.mouse.down();
         await page.mouse.move(destination[side] + (side === 'left' ? -4 : 4), destination.middle, { steps: 8 });
-        await expect(line).toHaveCount(1);
-        const marker = (await line.boundingBox())!;
-        expect(marker.width).toBe(2);
-        expect(Math.abs(marker.x + marker.width / 2 - destination[side])).toBeLessThan(1);
-        expect(Math.abs(marker.y - destination.top)).toBeLessThan(1);
+        await expect(destinationSlot).toHaveAttribute('data-library-entry-id', original[index]!);
         await page.keyboard.press('Escape');
         await page.mouse.up();
-        await expect(line).toHaveCount(0);
+        await expect(destinationSlot).toHaveCount(0);
       }
     }
     await expect.poll(order).toEqual(original);
   });
 }
+
+test('the UI Library shuffle previews, cancels an outside drop, and supports keyboard, undo and reset', async ({ page }) => {
+  await page.goto('/studio/ui/controls/drag-placement');
+  const specimen = page.getByRole('group', { name: 'Drag-to-position controls' });
+  const grid = specimen.getByRole('group', { name: 'Card shuffle example' });
+  await expect(async () => {
+    await specimen.getByRole('combobox', { name: 'Layout' }).selectOption('shuffle');
+    await expect(grid).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 10000 });
+  const slots = grid.locator('.card-shuffle-slot');
+  const handle = grid.getByRole('button', { name: 'Reorder First item' });
+  await grid.scrollIntoViewIfNeeded();
+  const grip = (await handle.boundingBox())!;
+  const target = (await slots.nth(1).boundingBox())!;
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 10 });
+  await expect(slots.nth(1)).toHaveAttribute('data-destination', 'true');
+  const bounds = (await grid.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y - 18);
+  await page.mouse.up();
+  await expect(slots.first()).toHaveAttribute('data-library-entry-id', 'first');
+  await expect(grid.locator('[data-destination]')).toHaveCount(0);
+  await handle.press('Alt+ArrowRight');
+  await expect(slots.nth(1)).toHaveAttribute('data-library-entry-id', 'first');
+  await expect(handle).toBeFocused();
+  await specimen.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(slots.first()).toHaveAttribute('data-library-entry-id', 'first');
+  await specimen.getByRole('button', { name: 'Redo', exact: true }).click();
+  await specimen.getByRole('button', { name: 'Reset example' }).click();
+  await expect(slots.first()).toHaveAttribute('data-library-entry-id', 'first');
+  await specimen.getByRole('checkbox', { name: 'Read-only example' }).check();
+  await expect(handle).toBeDisabled();
+});
+
+test('a touch drag shuffles a single-column grid with reduced motion', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, reducedMotion: 'reduce' });
+  try {
+    const page = await context.newPage();
+    await page.goto('/');
+    const grid = page.getByRole('group', { name: 'Site cards' });
+    const slots = grid.locator('.card-shuffle-slot');
+    const grip = slots.first().getByRole('button', { name: /^Reorder / });
+    await expect(grip).toBeEnabled();
+    await slots.first().evaluate(el => el.scrollIntoView({ block: 'start' }));
+    const sourceId = await slots.first().getAttribute('data-library-entry-id');
+    const handle = (await grip.boundingBox())!;
+    const second = (await slots.nth(1).boundingBox())!;
+    const client = await context.newCDPSession(page);
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 }] });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: second.x + 30, y: second.y + 35 }] });
+    await expect(slots.nth(1)).toHaveAttribute('data-destination', 'true');
+    await expect(slots.nth(1).locator('.card-shuffle-face')).toHaveCSS('transition-property', 'none');
+    const viewportHeight = page.viewportSize()!.height;
+    const offscreenIndex = await slots.evaluateAll((nodes, height) => nodes.findIndex(node => node.getBoundingClientRect().top > height), viewportHeight);
+    expect(offscreenIndex).toBeGreaterThan(1);
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: second.x + 30, y: viewportHeight - 5 }] });
+    await expect(slots.nth(offscreenIndex)).toHaveAttribute('data-destination', 'true');
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(slots.nth(offscreenIndex)).toHaveAttribute('data-library-entry-id', sourceId!);
+  } finally { await context.close(); }
+});

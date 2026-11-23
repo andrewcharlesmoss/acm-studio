@@ -203,10 +203,10 @@ export const studioControlEntries: StudioControlEntry[] = [
   },
   {
     id: "drag-placement", title: "Drag to position", group: "Foundation",
-    purpose: "Try the shared placement behaviour with one centred line per valid insertion gap.",
-    owner: "ACM Studio shared drag placement", consumers: ["Sites and document lists", "Block canvas", "Navigation links", "Design pages and layers"],
-    dependencies: [{ kind: "inherits", label: "Shared placement controller, geometry, and indicator", detail: "Uses useGapReordering, useDragPlacement, drop-gap-geometry, and DragPlacementIndicator directly. No separate drag implementation." }],
-    states: "Vertical, horizontal, wrapped, unequal item sizes, genuine moves, adjacent no-ops, cancellation, read-only, keyboard moves, and Undo/Redo.",
+    purpose: "Try live card shuffling and insertion lines for ordered lists.",
+    owner: "ACM Studio shared drag placement", consumers: ["Dashboard site and tool cards", "Sites and document lists", "Block canvas", "Navigation links", "Design pages and layers"],
+    dependencies: [{ kind: "inherits", label: "Shared placement controller, geometry, and indicator", detail: "CardShuffleGrid and the insertion-gap examples share useDragPlacement. No separate drag implementation." }],
+    states: "Card shuffle, vertical, horizontal, wrapped, unequal item sizes, genuine moves, adjacent no-ops, cancellation, read-only, keyboard moves, and Undo/Redo.",
     compatibility: "Memory-only example. No documents, site order, or other persisted stores are read or changed. Domain consumers retain their own constraints and commits.",
   },
   {
