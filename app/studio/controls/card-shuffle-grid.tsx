@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { LibraryDragHandle } from "../library-drag-handle";
 import { useDragPlacement } from "../use-drag-placement";
 import { dropContainerScale } from "../drop-container-scale";
@@ -38,7 +38,38 @@ function nearestSlot(boxes: DOMRect[], x: number, y: number) {
 }
 
 export function CardShuffleGrid({ ids, className, label, name, renderCard, writable, onMove }: Props) {
+  const gridRef = useRef<HTMLElement | null>(null);
   const grip = useRef<Point | null>(null);
+  const releasedFaces = useRef<{ face: Element; box: DOMRect; lifted: boolean }[]>([]);
+  const settling = useRef<Animation[]>([]);
+  function stopSettling() {
+    for (const animation of settling.current) animation.cancel();
+    settling.current = [];
+  }
+  useLayoutEffect(() => stopSettling, []);
+  // The consumer can reorder the keyed cards on release. Continue from their
+  // last visible positions after React lays out the committed order.
+  useLayoutEffect(() => {
+    const released = releasedFaces.current;
+    releasedFaces.current = [];
+    const grid = gridRef.current;
+    if (!grid || !released.length) return;
+    const scale = dropContainerScale(grid);
+    for (const { face, box, lifted } of released) {
+      const slot = face.parentElement;
+      if (slot?.parentElement !== grid) continue;
+      const end = face.getBoundingClientRect();
+      const x = (box.left - end.left) / scale;
+      const y = (box.top - end.top) / scale;
+      if (Math.hypot(x, y) < 0.5) continue;
+      const timing = { duration: 170, easing: "ease-out" };
+      if (lifted) settling.current.push(slot.animate({ zIndex: ["2", "2"] }, timing));
+      settling.current.push(face.animate([
+        { transform: `translate(${x}px, ${y}px)` },
+        { transform: "none" },
+      ], timing));
+    }
+  });
   const [message, setMessage] = useState("");
   const enabled = writable && ids.length > 1;
   function move(id: string, destination: number) {
@@ -72,12 +103,22 @@ export function CardShuffleGrid({ ids, className, label, name, renderCard, writa
       });
       return { target: { source: id, destination, offsets }, line: null };
     },
-    commit: (id, preview) => move(id, preview.destination),
+    onActivate: stopSettling,
     onCancel: () => { grip.current = null; },
+    commit(id, preview) {
+      const grid = gridRef.current;
+      if (grid && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        releasedFaces.current = Array.from(grid.querySelectorAll(":scope > .card-shuffle-slot > .card-shuffle-face"), face => ({
+          face, box: face.getBoundingClientRect(), lifted: face.parentElement!.dataset.libraryEntryId === id,
+        }));
+      }
+      return move(id, preview.destination);
+    },
   });
   const preview = drag.placement;
   return <>
-    <div className={`card-shuffle-grid ${className}`} role="group" aria-label={label} {...drag.listProps}>
+    <div className={`card-shuffle-grid ${className}`} role="group" aria-label={label} {...drag.listProps}
+      ref={element => { gridRef.current = element; drag.listProps.ref(element); }}>
       {ids.map((id, index) => {
         const offset = preview?.offsets[index];
         const handle = drag.handleProps(id);
@@ -91,7 +132,7 @@ export function CardShuffleGrid({ ids, className, label, name, renderCard, writa
               onPointerDown={event => {
                 if (!event.isPrimary || event.button !== 0 || !enabled) return;
                 const slot = event.currentTarget.closest<HTMLElement>(".card-shuffle-slot")!;
-                const box = slot.getBoundingClientRect();
+                const box = event.currentTarget.parentElement!.getBoundingClientRect();
                 const scale = dropContainerScale(slot);
                 grip.current = { x: (event.clientX - box.left) / scale, y: (event.clientY - box.top) / scale };
                 handle.onPointerDown(event);

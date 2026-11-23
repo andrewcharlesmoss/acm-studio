@@ -238,3 +238,47 @@ test('a touch drag shuffles a single-column grid with reduced motion', async ({ 
     await expect(slots.nth(offscreenIndex)).toHaveAttribute('data-library-entry-id', sourceId!);
   } finally { await context.close(); }
 });
+
+test('a released card glides from the grip into its previewed slot across and between rows', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/studio/ui/controls/drag-placement');
+  const specimen = page.getByRole('group', { name: 'Drag-to-position controls' });
+  const grid = specimen.getByRole('group', { name: 'Card shuffle example' });
+  await expect(async () => {
+    await specimen.getByRole('combobox', { name: 'Layout' }).selectOption('shuffle');
+    await expect(grid).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await grid.scrollIntoViewIfNeeded();
+  const slots = grid.locator('.card-shuffle-slot');
+  const card = grid.locator('[data-library-entry-id="first"]');
+  const face = card.locator('.card-shuffle-face');
+  for (const index of [2, 3]) {
+    const grip = (await card.getByRole('button').boundingBox())!;
+    const target = (await slots.nth(index).boundingBox())!;
+    if (index === 3) expect(target.y).toBeGreaterThan(grip.y);
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 10 });
+    await expect(slots.nth(index)).toHaveAttribute('data-destination', 'true');
+    const held = (await face.boundingBox())!;
+    // Sample the first painted frame on release, including the DOM reorder.
+    const firstFrame = face.evaluate(el => new Promise<{ x: number; y: number }>(resolve => {
+      document.addEventListener('pointerup', () => requestAnimationFrame(() => {
+        const { x, y } = el.getBoundingClientRect();
+        resolve({ x, y });
+      }), { capture: true, once: true });
+      el.setAttribute('data-release-probe', '');
+    }));
+    await expect(face).toHaveAttribute('data-release-probe', '');
+    await page.mouse.up();
+    const released = await firstFrame;
+    expect(Math.hypot(released.x - held.x, released.y - held.y)).toBeLessThan(
+      Math.hypot(target.x - held.x, target.y - held.y) / 2);
+    await expect(slots.nth(index)).toHaveAttribute('data-library-entry-id', 'first');
+    await expect.poll(async () => {
+      const landed = (await face.boundingBox())!;
+      return Math.hypot(landed.x - target.x, landed.y - target.y);
+    }).toBeLessThan(1);
+    await face.evaluate(el => el.removeAttribute('data-release-probe'));
+  }
+});

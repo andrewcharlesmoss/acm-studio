@@ -55,7 +55,7 @@
 
 ### Changed
 
-- Dashboard cards now shuffle into their prospective slots while dragging. The same interaction is available in the UI Library under Drag to position.
+- Dashboard cards now shuffle into their prospective slots while dragging and settle smoothly on release. The same interaction is available in the UI Library under Drag to position.
 
 - Studio installs Styles v1.3.0 from GitHub Packages and reads style values from the workspace Style Guide.
 
