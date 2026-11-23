@@ -120,7 +120,7 @@ authorises that exception.
 
 The Studio UI Library defines the shared Ribbon and Pane tab indicator rule.
 `docs/studio-ui-library.md` is the canonical specification;
-`@acm/ribbon` supplies the reusable Ribbon implementation and Pane components
+`@andrewcharlesmoss/ribbon` supplies the reusable Ribbon implementation and Pane components
 follow the same geometry. Product consumers may theme indicator colours but
 should not replace this behaviour.
 

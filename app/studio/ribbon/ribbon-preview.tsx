@@ -10,7 +10,7 @@ import { isNativeEditingTarget, workspaceHistoryShortcut, workspaceZoomShortcut 
 
 import { useEffect, useId, useRef, type RefObject, type Dispatch, type SetStateAction, type KeyboardEvent, type MouseEvent } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import { Ribbon, RibbonPanel, RibbonGroup, RibbonControls, RibbonButton, RibbonToggleButton, RibbonField } from "@acm/ribbon";
+import { Ribbon, RibbonPanel, RibbonGroup, RibbonControls, RibbonButton, RibbonToggleButton, RibbonField } from "@andrewcharlesmoss/ribbon";
 import type { ControlDefinition, ExampleDefinition } from "./catalogue-model";
 import { controlPresentation, demoCanvasSize, disabledReason, fixtureColumns, hasAccountSelection, initialDemo, rangeValue, runDemoCommand, setAccountColumns, setDemoSelection, visibleRows, type DemoState } from "./demo-state";
 

@@ -5,7 +5,7 @@ import test from "node:test";
 test("multiple real Ribbon instances render unique accessible tab/panel relationships", async () => {
   const { createElement, Fragment } = await import("react");
   const { renderToStaticMarkup } = await import("react-dom/server");
-  const { Ribbon, RibbonPanel, RibbonButton } = await loadProductionModule(new URL(import.meta.resolve("@acm/ribbon")));
+  const { Ribbon, RibbonPanel, RibbonButton } = await loadProductionModule(new URL(import.meta.resolve("@andrewcharlesmoss/ribbon")));
   const make = (key) => createElement(Ribbon,{ key, tabs:[{id:"one",label:"One"},{id:"two",label:"Two"}],activeTab:"one",onTabChange:()=>{},accessibleName:key },
     createElement(RibbonPanel,{tab:"one"},createElement(RibbonButton,null,"Demo")),
     createElement(RibbonPanel,{tab:"two"},"Hidden"));

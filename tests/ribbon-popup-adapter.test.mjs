@@ -21,7 +21,7 @@ function fixture(menu, columns = demo.fixtureColumns, showBoundaries = false) {
     if (name === "./demo-state") return demo;
     if (name === "../overlays/anchored-menu") return { StudioAnchoredMenu: Menu };
     if (name === "../overlays/anchored-popover") return { StudioAnchoredPopover: Popover };
-    if (name === "@acm/ribbon") return Object.fromEntries(["Ribbon", "RibbonPanel", "RibbonGroup", "RibbonControls"].map(key => [key, key]));
+    if (name === "@andrewcharlesmoss/ribbon") return Object.fromEntries(["Ribbon", "RibbonPanel", "RibbonGroup", "RibbonControls"].map(key => [key, key]));
     if (name === "react/jsx-runtime" || name === "@acm/icons/react") return require(name);
     return {};
   } });

@@ -19,9 +19,9 @@
   },
   "dependencies": {
     "@acm/icons": "file:./packages/acm-icons",
-    "@andrewcharlesmoss/panel": "0.1.0",
-    "@acm/ribbon": "file:./packages/acm-ribbon",
     "@acm/styles": "file:./packages/acm-styles",
+    "@andrewcharlesmoss/panel": "0.1.0",
+    "@andrewcharlesmoss/ribbon": "0.2.0",
     "highlight.js": "^11.11.1",
     "katex": "^0.18.9",
     "onnxruntime-web": "1.30.0",

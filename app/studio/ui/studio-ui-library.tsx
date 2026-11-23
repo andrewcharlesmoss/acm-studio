@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import type { IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
 import { createContext, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import "@acm/ribbon/styles.css";
+import "@andrewcharlesmoss/ribbon/styles.css";
 import "../ribbon/ribbon-library.css";
 import "../panes/pane-library.css";
 import "@andrewcharlesmoss/panel/styles.css";

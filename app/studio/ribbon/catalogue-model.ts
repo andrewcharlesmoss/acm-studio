@@ -188,7 +188,7 @@ export const ribbonTokens = ["panel-height", "tab-height", "control-height", "la
 
 export function structureFor(example: ExampleDefinition): StructureNode {
   const node = (id: string, label: string, component: StructureNode["component"], children: StructureNode[] = [], extra: Partial<StructureNode> = {}): StructureNode =>
-    ({ id, label, component, purpose: component in componentDescriptions ? componentDescriptions[component as ComponentName] : "Product composition built around the shared Ribbon.", owner: component === "Composition" || component === "Header" ? example.label : "@acm/ribbon", selector: '[data-region="' + id + '"]', children, ...extra });
+    ({ id, label, component, purpose: component in componentDescriptions ? componentDescriptions[component as ComponentName] : "Product composition built around the shared Ribbon.", owner: component === "Composition" || component === "Header" ? example.label : "@andrewcharlesmoss/ribbon", selector: '[data-region="' + id + '"]', children, ...extra });
   const controlNode = (control: ControlDefinition, tab?: string): StructureNode => node(control.id, control.label,
     control.kind === "split" || control.kind === "compound-range" ? "Composition" : control.kind === "toggle" ? "RibbonToggleButton" : control.kind === "button" ? "RibbonButton" : "RibbonField",
     (control.children ?? []).map((child) => controlNode(child, tab)), { control, tab, purpose: control.description ?? control.textOnlyReason ?? "Demonstrate " + control.label.toLowerCase() + " using temporary state." });

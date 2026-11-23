@@ -86,8 +86,8 @@ bind(['TableField','EmbedUrlField','ImageCaptionField','BlockFieldContent'],comm
 // boundary here; the mounted browser regression checks the resulting image DOM.
 test('actual field owners pass managed resources and exact image runs to editable cells and captions',async()=>{
  const captured=[];
- const ribbon=await import(await (await import('./production-module.mjs')).compileProductionModule(new URL('../node_modules/@acm/ribbon/src/index.tsx',import.meta.url)));
- const loadOwner=createIsolatedModuleLoader({overrides:{'@acm/ribbon':ribbon},fileOverrides:{'app/content/code-highlighting.mjs':await load('../app/content/code-highlighting.mjs'),'app/studio/blocks/editors/rich-text.tsx':{
+ const ribbon=await import(await (await import('./production-module.mjs')).compileProductionModule(new URL(import.meta.resolve('@andrewcharlesmoss/ribbon'))));
+ const loadOwner=createIsolatedModuleLoader({overrides:{'@andrewcharlesmoss/ribbon':ribbon},fileOverrides:{'app/content/code-highlighting.mjs':await load('../app/content/code-highlighting.mjs'),'app/studio/blocks/editors/rich-text.tsx':{
   RichTextEditor(props){captured.push(props);return null;}, PlainTextEditor(){return null;},
   focusRichTextEditorAtOffset(){},
  }}});

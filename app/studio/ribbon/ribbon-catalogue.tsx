@@ -5,7 +5,7 @@ import { CheckboxControl } from "../controls/checkbox-control";
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AcmIcon } from "@acm/icons/react";
-import "@acm/ribbon/styles.css";
+import "@andrewcharlesmoss/ribbon/styles.css";
 import "./ribbon-library.css";
 import { componentDescriptions, examples, flattenStructure, ribbonTokens, structureFor, type StructureNode } from "./catalogue-model";
 import { controlPresentation, disabledReason, initialDemo, rangeValue } from "./demo-state";

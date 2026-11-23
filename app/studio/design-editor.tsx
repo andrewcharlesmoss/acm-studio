@@ -53,8 +53,8 @@ import { StudioMenuItem } from "./overlays/menu";
 import { StudioIcon } from "./studio-icons";
 import { Pane, PaneTabPanel, PaneTabs } from "./panes/pane-components";
 import type { StudioIconName } from "./studio-icons";
-import { Ribbon as StudioRibbon, RibbonButton as StudioRibbonButton, RibbonGroup as StudioRibbonGroup, RibbonPanel as StudioRibbonPanel, type RibbonTabDefinition } from "@acm/ribbon";
-import "@acm/ribbon/styles.css";
+import { Ribbon as StudioRibbon, RibbonButton as StudioRibbonButton, RibbonGroup as StudioRibbonGroup, RibbonPanel as StudioRibbonPanel, type RibbonTabDefinition } from "@andrewcharlesmoss/ribbon";
+import "@andrewcharlesmoss/ribbon/styles.css";
 
 type Tool = "select" | "image" | "arrow" | "rectangle" | "ellipse" | "text" | "step" | "highlight" | "redaction";
 type StudioRibbonTab = "file" | "home" | "insert" | "arrange" | "view" | "export";

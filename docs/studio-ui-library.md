@@ -614,7 +614,7 @@ line at label width; hovering the selected tab expands its active line while
 leaving a small inset at the tab edge, and leaving retracts it. Keyboard focus
 keeps the label-width underline and uses the visible focus outline. The underline
 remains line-only, with no full-width divider beneath the tab strip or hover
-background block. `@acm/ribbon` implements the Ribbon behaviour, and Studio Pane
+background block. `@andrewcharlesmoss/ribbon` implements the Ribbon behaviour, and Studio Pane
 tabs follow the same geometry and motion. Product consumers may
 theme indicator colours but should not replace the shared sizing or transition.
 
@@ -1068,7 +1068,7 @@ Navigation consumers continue through `LinkDestinationPopover`.
 
 `controls/history-actions.tsx` owns Undo/Redo names, catalogue icons, shortcut
 hints and compact, labelled or Ribbon presentation. Its Ribbon variant uses
-`@acm/ribbon`'s existing button. The shared canvas, Design, navigation editor,
+`@andrewcharlesmoss/ribbon`'s existing button. The shared canvas, Design, navigation editor,
 Styles, block/selection/drag specimens and Ribbon examples inherit it. Each
 owner supplies commands, availability and read-only or busy state; the component
 does not add history or keyboard listeners. Reset example and Bin Restore are

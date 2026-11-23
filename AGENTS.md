@@ -31,12 +31,14 @@ portable publishing data, but it does not own the Andrew Moss public site.
 
 ## Shared packages
 
-ACM Icons, Ribbon, and Styles live in `packages/acm-icons`,
-`packages/acm-ribbon`, and `packages/acm-styles`. Studio uses the released
-`@andrewcharlesmoss/panel` from GitHub Packages. The independent `packages`
-repository owns Panel. The original repositories remain historical checkouts in
-the local `_Recovery/acm-packages-2026-11-22` archive. Preserve their histories,
-branches, and uncommitted work.
+ACM Icons and Styles live in `packages/acm-icons` and `packages/acm-styles`.
+Studio uses the released `@andrewcharlesmoss/panel` and
+`@andrewcharlesmoss/ribbon` from GitHub Packages. The independent `packages`
+repository owns Panel and publishes Ribbon. Keep `packages/acm-ribbon` for
+recovery until both consumers verify the Ribbon migration. The original
+repositories remain historical checkouts in the local
+`_Recovery/acm-packages-2026-11-22` archive. Preserve their histories, branches,
+and uncommitted work.
 
 For each shared package, keep notable in-progress changes under `Unreleased`.
 When a coherent set of package changes is complete and verified, make a

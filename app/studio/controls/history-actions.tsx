@@ -1,5 +1,5 @@
 import type { ComponentPropsWithRef } from "react";
-import { RibbonButton, type RibbonSize } from "@acm/ribbon";
+import { RibbonButton, type RibbonSize } from "@andrewcharlesmoss/ribbon";
 import { StudioIcon } from "../studio-icons";
 import "./history-actions.css";
 
