@@ -1963,7 +1963,8 @@ test("shared editor toolbar owns history controls and docks a dismissible List V
   assert.match(canvas, /requestAnimationFrame\(\(\) => listViewToggleRef.current\?\.focus\(\)\)/);
   const css = read("studio.css");
   assert.match(css, /\.editor-work-area \{[^}]*display: flex[^}]*min-height: 0/);
-  assert.match(css, /\.studio-list-view \{[^}]*flex: 0 0 280px[^}]*position: static/);
+  assert.match(css, /\.studio-workspace \{[^}]*--studio-list-view-width: 280px/);
+  assert.match(css, /\.studio-list-view \{[^}]*flex: 0 0 var\(--studio-list-view-width, 280px\)[^}]*position: static/);
   assert.match(css, /\.studio-list-view nav \{ flex: 1; min-height: 0; overflow: auto/);
   assert.match(css, /@container \(max-width: 680px\) \{\s*\.studio-list-view \{[^}]*position: absolute; top: 0/);
 });
@@ -2246,15 +2247,16 @@ test("the block library slides in on each mount and respects reduced motion", ()
   assert.match(css, /@keyframes studio-inserter-enter \{\s*from \{ opacity: 0; transform: translateX\(-100%\); \}\s*to \{ opacity: 1; transform: translateX\(0\); \}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.block-inserter\.pane, \.block-inserter\.is-closing \{ animation: none; \}/);
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.match(canvas, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)\}/);
+  assert.match(canvas, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null, "", toolbarInserterParentId\)\}/);
   assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
 });
 
 
 test("Add block toggles the library so reopening remounts its slide-in", () => {
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
-  const button = canvas.slice(canvas.indexOf('className="editor-add-block"'), canvas.indexOf('name="add" size={20}'));
-  assert.match(button, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)\}/);
+  const start = canvas.indexOf('className="editor-add-block"');
+  const button = canvas.slice(start, canvas.indexOf("</button>", start));
+  assert.match(button, /onClick=\{\(\) => showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null, "", toolbarInserterParentId\)\}/);
   assert.match(button, /aria-pressed=\{showInserter && !inserterClosing && !previewing && !codeEditor\}/);
   assert.match(canvas, /showInserter && !previewing && !codeEditor \? <BlockInserter/);
 });
@@ -2274,7 +2276,7 @@ test("library dismissal waits for its own exit animation except with reduced mot
 
 test("Add block cancels an exit in progress and restores the entry animation", () => {
   const canvas = readStudioSource("app/studio/studio-canvas.tsx");
-  assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
+  assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null, "", toolbarInserterParentId\)/);
   assert.match(canvas, /function openInserter[^}]*setInserterClosing\(false\)/);
   assert.match(canvas, /className=\{`block-inserter\$\{closing \? " is-closing" : ""\}`\}/);
   assert.match(canvas, /if \(closing && event.target instanceof HTMLElement/);
@@ -2287,7 +2289,7 @@ test("canvas add controls open the anchored chooser while toolbar Add retains th
   assert.match(canvas, /className="between-blocks"[^>]*onClick=\{event => openCanvasInserter\(event.currentTarget, index - 1\)\}/);
   assert.match(canvas, /className="canvas-appender-button canvas-paragraph-inserter"[^>]*disabled=\{!writable\}/);
   assert.match(canvas, /onClick=\{event => projectedGroupAppender && block\.type === "group" \? openCanvasInserter\(event\.currentTarget, block\.children\.length - 1, block\.id\) : openCanvasInserter\(event\.currentTarget, replaceEmpty \? insertionIndex - 1 : insertionIndex, insertionParent\?\.id \?\? null, "", undefined, replaceEmpty \? block\.id : undefined\)\}/);
-  assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null\)/);
+  assert.match(canvas, /showInserter && !inserterClosing \? dismissInserter\(\) : openInserter\(null, "", toolbarInserterParentId\)/);
 });
 
 
