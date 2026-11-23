@@ -71,6 +71,6 @@ export function LibraryApplicationHeader({ actions }: { actions?: ReactNode }) {
 export function DashboardApplicationHeader() {
   return <StudioAppHeader section="Control Centre">
     <div className="studio-state"><span className="prototype-pill">Local</span><span>Browser storage only</span></div>
-    <div className="studio-actions"><a className="button-secondary" href="https://andrewmoss.me/">View Andrew Moss <StudioIcon name="external" size={16} /></a><a className="button-primary" href="/studio">Open Studio</a></div>
+    <div className="studio-actions"><a className="button-secondary dashboard-packages-link" href="/studio/packages">Packages</a><a className="button-secondary" href="https://andrewmoss.me/">View Andrew Moss <StudioIcon name="external" size={16} /></a><a className="button-primary" href="/studio">Open Studio</a></div>
   </StudioAppHeader>;
 }

@@ -4,6 +4,8 @@
 
 ### Added
 
+- View local package versions, verified latest releases, and unresolved dependencies in the read-only Packages dashboard.
+
 - Add timed WebVTT captions to the Video block, with portable caption tracks in preview, publication, and backups.
 
 - Create draw-on animations in the Studio UI Library’s Motion Assets tab, save editable project files, and export SVG, Lottie JSON, and transparent ProRes MOV from local Studio.

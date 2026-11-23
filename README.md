@@ -100,6 +100,28 @@ The architecture and next decision gate are recorded in
 The design canvas architecture and supported first-release behaviour are
 recorded in [`docs/design-canvas.md`](docs/design-canvas.md).
 
+## Package versions
+
+Open **Packages** from the Studio Control Centre, or visit
+`http://localhost:3010/studio/packages`. The dashboard reads the running
+Studio checkout, ACM Account’s `web` dependencies, and Project Ports’
+`scripts/icons` dependencies. Project Ports’ npm lock identifies its local
+build input. Hosted deployments are shown as **Unknown**.
+
+The local server reads dependency declarations, npm locks, and installed
+metadata. A lock without an installation is labelled **Locked · install missing**.
+A local link is shown as local source and is not compared to a registry release.
+The bridge does not accept paths from the browser.
+
+For a live check, supply `STUDIO_PACKAGES_READ_TOKEN` with read access to the
+private GitHub Packages namespace in the local Studio server environment.
+The token stays server-side. Without access, the table uses release versions
+checked in the GitHub Packages UI and shows their verification date. Update
+`app/studio/package-dashboard-catalogue.json` only after verifying package
+versions independently in the registry. A separately located workspace can be
+set through `STUDIO_PACKAGES_WORKSPACE`; the Studio column still reads the
+checkout that launched its server.
+
 ## Clean checkout setup
 
 Studio pins Icons, Panel, Ribbon, and Styles to private GitHub Packages

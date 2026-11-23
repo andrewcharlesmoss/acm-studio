@@ -3,6 +3,7 @@ import vinext from "vinext";
 import { defineConfig, type Plugin } from "vite";
 import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
+import { packageDashboardBridge } from "./scripts/package-dashboard-bridge.mjs";
 import { projectPortsBridge } from "./scripts/project-ports-bridge.mjs";
 import { testSiteBridge } from "./scripts/test-site-bridge.mjs";
 import { motionExportBridge } from "./scripts/motion-export-bridge.mjs";
@@ -73,6 +74,7 @@ export default defineConfig(async () => {
       swiftUIPreviewBridge(),
       motionExportBridge(),
       projectPortsBridge(),
+      packageDashboardBridge(),
       testSiteBridge(),
       vinext(),
       sites(),

@@ -85,7 +85,7 @@
   .media-content { min-height: 330px; }
   .media-details { border-left: 0; border-top: 1px solid #d2d0c8; max-height: none; }
   .media-status { align-items: flex-start; flex-direction: column; gap: 3px; }
-  .studio-actions a.button-secondary { display: none; }
+  .studio-actions a.button-secondary:not(.dashboard-packages-link) { display: none; }
   .studio-save-status { max-width: min(30vw, 180px); overflow: hidden; text-overflow: ellipsis; }
   .studio-save-group { gap: 7px; }
   .studio-save-button { min-width: 76px; padding-left: 10px; padding-right: 10px; }
