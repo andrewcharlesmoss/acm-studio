@@ -1,10 +1,10 @@
 "use client";
 import { useState, type DragEvent, type KeyboardEvent } from "react";
 import { movedLibraryIds, type LibraryMove } from "./library-reordering";
-import type { DropAxis, DropEdgeAlignment, WrappedRowBoundaryCue } from "./drop-gap-geometry";
+import type { ReorderLayout, DropEdgeAlignment, WrappedRowBoundaryCue } from "./drop-gap-geometry";
 import { useGapReordering } from "./use-gap-reordering";
 /** Library metadata, keyboard shortcuts, and announcements adapt the shared controller. */
-export function useLibraryReordering(ids: string[], writable: boolean, onMove: (move: LibraryMove) => boolean, listKey = "library", edgeAlignment: DropEdgeAlignment = "boundary", axis: DropAxis = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row") {
+export function useLibraryReordering(ids: string[], writable: boolean, onMove: (move: LibraryMove) => boolean, listKey = "library", edgeAlignment: DropEdgeAlignment = "boundary", axis: ReorderLayout = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row") {
   const canReorder = writable && ids.length > 1;
   const [announcement, setAnnouncement] = useState({ listKey, message: "" });
   if (announcement.listKey !== listKey) setAnnouncement({ listKey, message: "" });

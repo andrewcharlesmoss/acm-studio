@@ -967,6 +967,8 @@
 
 ### Fixed
 
+- Drop Control Centre cards into the intended slot on the first drag, including across rows and in single-column layouts.
+
 - After an interrupted full restore, Studio recovers the matching documents and Files before editing resumes. Complete backups taken during a concurrent edit capture matching data or ask the user to resolve the conflict and retry.
 - Complete browser backups verify managed file references before restore. Checksummed binary backups preserve large originals and image renditions alongside their folders and document references.
 - Studio Drafts freezes the resolved publication design shown in Preview. Test and Test2 revision history accepts current document layouts.

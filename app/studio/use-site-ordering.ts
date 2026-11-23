@@ -4,7 +4,7 @@ import { saveStudioPreferenceThroughOwner } from "./studio-preference-broker.mjs
 import { useEffect, useRef, useState } from "react";
 import { createSiteOrderRepository, orderedSiteIds, siteOrderPreferenceKey } from "./site-order-repository.mjs";
 import { movedLibraryIds } from "./library-reordering";
-import type { DropAxis, DropEdgeAlignment, WrappedRowBoundaryCue } from "./drop-gap-geometry";
+import type { ReorderLayout, DropEdgeAlignment, WrappedRowBoundaryCue } from "./drop-gap-geometry";
 import { useLibraryReordering } from "./use-library-reordering";
 
 // Keep the last loaded preference available when a route remounts the shared
@@ -14,7 +14,7 @@ const navigationOrderCache = new Map<string, { order: string[]; locallyChanged: 
 const retainSiteOrder = (order: string[]) => order;
 
 /** Sidebar order is an interface preference; site identity and environments stay together. */
-export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = retainSiteOrder, axis: DropAxis = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row", interactionIds?: string[], editing = true) {
+export function useNavigationOrdering(ids: string[], preferenceKey = siteOrderPreferenceKey, label = "Site order", listKey = "sites", edgeAlignment: DropEdgeAlignment = "boundary", normaliseOrder: (order: string[]) => string[] = retainSiteOrder, axis: ReorderLayout = "y", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row", interactionIds?: string[], editing = true) {
   const [order, setOrder] = useState(() => navigationOrderCache.get(preferenceKey)?.order ?? ids);
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("");

@@ -27,6 +27,22 @@ test("gap geometry honours borders, non-uniform sizes, horizontal wrapping and z
  const wrapped=[box(10,20,60,30),box(80,20,50,30),box(10,70,80,40),box(100,70,60,50)];const next=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x");assert.equal(next.top,59);assert.equal(next.height,2);assert.equal(geometry.insertionGapIndex(wrapped,179,49,"x"),2);
  const vertical=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x",2,{before:12,after:12},"boundary","next-item-vertical");assert.deepEqual(vertical,{left:9,top:70,width:2,height:50});
 });
+test("dashboard card bodies select slots while neighbouring card edges share one insertion gap", () => {
+  const grid = [box(10, 10, 100, 90), box(122, 10, 100, 90), box(234, 10, 100, 90), box(10, 112, 100, 90)];
+  assert.deepEqual(geometry.cardGridInsertion(grid, 0, 155, 55), { axis: "x", index: 2 });
+  assert.deepEqual(geometry.cardGridInsertion(grid, 3, 96, 55), { axis: "x", index: 0 });
+  for (const x of [108, 116, 124]) {
+    assert.deepEqual(geometry.cardGridInsertion(grid, 3, x, 55), { axis: "x", index: 1 });
+  }
+  for (const x of [15, 155, 325]) {
+    assert.deepEqual(geometry.cardGridInsertion(grid, 0, x, 106), { axis: "x", index: 3 });
+  }
+  const column = [box(10, 10, 100, 90), box(10, 112, 100, 90), box(10, 214, 100, 90)];
+  assert.deepEqual(geometry.cardGridInsertion(column, 2, 96, 157), { axis: "y", index: 1 });
+  assert.deepEqual(geometry.cardGridInsertion(column, 0, 24, 157), { axis: "y", index: 2 });
+  assert.deepEqual(geometry.cardGridInsertion(column, 0, 96, 106), { axis: "y", index: 1 });
+});
+
 test("root and nested block gaps resolve identically from each side, at transformed scale",()=>{
  const frames=[box(100,100,200,40),box(100,180,200,80),box(100,300,200,40)].map((bounds,index)=>({dataset:{studioNestedBlockId:["a","b","c"][index]},getBoundingClientRect:()=>bounds}));
  const owner={getBoundingClientRect:()=>box(100,90,200,260),querySelectorAll:()=>frames,ownerDocument:{defaultView:{getComputedStyle:()=>({display:"block",getPropertyValue:()=>"24px"})}}};frames.forEach(frame=>frame.parentElement=owner);

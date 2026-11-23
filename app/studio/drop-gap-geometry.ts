@@ -2,6 +2,7 @@ import { OUTER_INSERTION_GAP, type PlacementEdgeGaps } from "./drag-placement-sp
 /** Viewport rectangles, shared by insertion feedback and destination hit testing. */
 export type DropBounds = { left: number; right: number; top: number; bottom: number; width: number; height: number };
 export type DropAxis = "x" | "y";
+export type ReorderLayout = DropAxis | "card-grid";
 export type DropEdgeAlignment = "gap" | "boundary";
 export type WrappedRowBoundaryCue = "full-row" | "next-item" | "next-item-vertical";
 export type DropLine = { left: number; top: number; width: number; height: number };
@@ -26,6 +27,21 @@ export function insertionGapIndex(rows: DropBounds[], x: number, y: number, axis
     }
   }
   return rows.length;
+}
+
+/** A card body selects its slot; its edges and the space between cards select gaps. */
+export function cardGridInsertion(rows: DropBounds[], sourceIndex: number, x: number, y: number, scale = 1) {
+  const axis: DropAxis = visualRows(rows).some(row => row.start !== row.end) ? "x" : "y";
+  const hit = rows.findIndex(row => x >= row.left && x <= row.right && y >= row.top && y <= row.bottom);
+  if (hit < 0) return { axis, index: insertionGapIndex(rows, x, y, axis) };
+
+  const card = rows[hit];
+  const [coordinate, start, end] = axis === "x" ? [x, card.left, card.right] : [y, card.top, card.bottom];
+  // Leave a narrow edge zone for an explicit before/after drop on the card.
+  const edge = Math.min(12 * scale, (end - start) / 4);
+  if (coordinate < start + edge) return { axis, index: hit };
+  if (coordinate > end - edge) return { axis, index: hit + 1 };
+  return { axis, index: hit > sourceIndex ? hit + 1 : hit };
 }
 
 export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "boundary", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row"): DropLine {

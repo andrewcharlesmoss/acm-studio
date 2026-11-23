@@ -95,3 +95,33 @@ test('dashboard saves through the editor tab holding Studio write ownership', as
     await expect(tools.first()).toHaveAttribute('data-library-entry-id', toolId!);
   } finally { await dashboard.close(); }
 });
+
+for (const { label, width, from, to, across } of [
+  { label: "within a row", width: 1150, from: 0, to: 1, across: 0.4 },
+  { label: "up a wrapped row", width: 1150, from: 4, to: 0, across: 0.85 },
+  { label: "up a single column", width: 390, from: 1, to: 0, across: 0.85 },
+]) {
+  test(`the first drag puts a site card in the card slot ${label}`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1200 });
+    await page.goto('/');
+    await expect(page.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
+    const grid = page.locator('.dashboard-site-grid');
+    const cards = grid.locator('.dashboard-card-reorder');
+    const handle = cards.nth(from).getByRole('button', { name: /^Reorder / });
+    await handle.scrollIntoViewIfNeeded();
+    const original = await cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
+    const expected = [...original];
+    expected.splice(to, 0, ...expected.splice(from, 1));
+    const grip = (await handle.boundingBox())!;
+    const target = (await cards.nth(to).boundingBox())!;
+    const end = { x: target.x + target.width * across, y: target.y + target.height / 2 };
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 12 });
+    await expect(grid.locator('.studio-gap-line')).toHaveCount(1);
+    await page.mouse.up();
+    await expect.poll(() => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')))).toEqual(expected);
+    await expect(grid.locator('.studio-gap-line')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('acm-studio-dashboard-sites-order-v1') || '[]'))).toEqual(expected);
+  });
+}
