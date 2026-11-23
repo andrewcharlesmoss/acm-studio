@@ -3,6 +3,7 @@ import { WebsiteFontAvailabilityContext } from "./site-editor/font-availability-
 import { effectiveWebsiteDesign } from "./site-editor/website-design";
 import { collectSiteImages, stageSiteImages } from "./test-site/featured-images";
 import { TemplatePreviewControls } from "./template-preview-controls";
+import { RangeDragHistoryContext } from "./controls/range-control";
 import { TextInput } from "./controls/native-fields";
 import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { useLibraryReordering } from "./use-library-reordering";
@@ -243,10 +244,21 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     }
   }
 
+  const paddingEdit = useRef<symbol | undefined>(undefined);
+  function beginPaddingDrag(input: HTMLInputElement) {
+    if (!input.closest('[data-dimension-control="padding"]')) return;
+    const group = Symbol("template padding drag");
+    return (change: () => void) => {
+      // Only this input's synchronous change belongs to the drag. Other edits
+      // (including peer updates between pointer moves) retain their own history.
+      paddingEdit.current = group;
+      try { change(); } finally { paddingEdit.current = undefined; }
+    };
+  }
   function changeSet(next: TemplateSet) { return templates.commit(store => {
     const original = store.sets.find(item => item.id === next.id);
     return replaceTemplateLibraryContext(store, editingScope === "global" && original ? { ...next, identity: original.identity, navigation: original.navigation, socialLinks: original.socialLinks } : next);
-  }); }
+  }, { historyGroup: paddingEdit.current }); }
   function changeCurrentTargetNodes(setId: string, targetId: string, kind: PageTemplate["kind"] | TemplatePart["kind"], update: (nodes: TemplateNode[]) => TemplateNode[] | null) {
     let changed = false;
     const accepted = templates.commit(store => {
@@ -531,5 +543,5 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closeDialog}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable}>Save</StudioButton></StudioDialogActions>
     </form>
   </StudioDialog> : null;
-  return <GroupGlobalStylesContext.Provider value={{ style: globalGroupStyle, apply: applyGroupStyles }}><WebsiteFontAvailabilityContext.Provider value={previewFontStyles}>{panel}{dialogElement}</WebsiteFontAvailabilityContext.Provider></GroupGlobalStylesContext.Provider>;
+  return <RangeDragHistoryContext.Provider value={beginPaddingDrag}><GroupGlobalStylesContext.Provider value={{ style: globalGroupStyle, apply: applyGroupStyles }}><WebsiteFontAvailabilityContext.Provider value={previewFontStyles}>{panel}{dialogElement}</WebsiteFontAvailabilityContext.Provider></GroupGlobalStylesContext.Provider></RangeDragHistoryContext.Provider>;
 }

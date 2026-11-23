@@ -630,9 +630,10 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .studio-code-title:focus:where(html:not([data-studio-focus-visible="false"]) *), .studio-code-subtitle:focus:where(html:not([data-studio-focus-visible="false"]) *) { border-color: #5c5e5c; box-shadow: none; outline: var(--focus-ring-width) solid var(--focus-ring-colour); outline-offset: var(--focus-ring-offset); }
 .studio-code-help { color: var(--muted); font-size: var(--studio-ui-size); margin: -6px 0 0; }
 .studio-code-status { color: var(--accent-strong, #1e1e1e); font-size: var(--studio-ui-size); margin: -6px 0 0; }
-.studio-list-view { background: var(--studio-pane-surface, #fff); border-right: 1px solid #d2d0c8; display: flex; flex: 0 0 280px; flex-direction: column; min-height: 0; min-width: 0; position: static; width: 280px; z-index: 20; }
+.studio-workspace { --studio-list-view-width: 280px; }
+.studio-list-view { background: var(--studio-pane-surface, #fff); border-right: 1px solid #d2d0c8; display: flex; flex: 0 0 var(--studio-list-view-width, 280px); flex-direction: column; min-height: 0; min-width: 0; position: static; width: var(--studio-list-view-width, 280px); z-index: 20; }
 @container (max-width: 680px) {
-  .studio-list-view { bottom: 0; box-shadow: 5px 0 18px rgba(35, 36, 37, .12); left: 0; position: absolute; top: 0; width: min(280px, 85%); }
+  .studio-list-view { bottom: 0; box-shadow: 5px 0 18px rgba(35, 36, 37, .12); left: 0; position: absolute; top: 0; width: min(var(--studio-list-view-width, 280px), 85%); }
   .studio-list-backdrop { background: rgba(0, 0, 0, .2); border: 0; display: block; inset: 0; position: absolute; z-index: 19; }
   .editor-document-counts { display: none; }
 }
@@ -717,7 +718,8 @@ html:has(.studio-hosted-home-state.is-loading), body:has(.studio-hosted-home-sta
 .document-cover-shell + .canvas-blocks { margin-top: var(--studio-block-gap, 24px); }
 .canvas-cover-wrap { position: relative; }
 .metadata-block-editor.document-dynamic-field.template-subtitle, .studio-block-preview .document-dynamic-field .template-subtitle { font: var(--template-font-size, 1rem)/1.45 var(--template-font, var(--font-sans)); margin: 0; max-width: 42em; }
-.canvas-cover-wrap:hover .canvas-cover-actions, .canvas-cover-wrap:focus-within .canvas-cover-actions { opacity: 1; pointer-events: auto; }
+.canvas-cover-wrap:is(:hover, :focus-within) .canvas-cover-actions { opacity: 1; }
+.canvas-cover-wrap:is(:hover, :focus-within) .canvas-cover-actions button { pointer-events: auto; }
 .canvas-cover-actions { align-items: center; background: rgba(23, 26, 29, .16); display: flex; gap: 10px; inset: 0; justify-content: center; opacity: 0; pointer-events: none; position: absolute; transition: opacity .15s; }
 .canvas-cover-actions button, .canvas-add-cover { background: rgba(255, 255, 255, .94); border: 1px solid transparent; border-radius: 5px; color: var(--ink); cursor: pointer; font-size: var(--studio-ui-size); padding: 7px 9px; }
 .canvas-cover-actions .cover-action-button { align-items: center; border-radius: 50%; display: inline-flex; height: 42px; justify-content: center; padding: 0; width: 42px; }

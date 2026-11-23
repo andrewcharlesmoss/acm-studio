@@ -27,7 +27,17 @@ async function choose(page: Page, name: string) {
 for (const [host, fixture] of Object.entries(hosts)) {
   test(`canonical Files replaces actual ${host} image, preserves styles and supports history`, async ({page}) => {
     const requests:string[]=[];
-    page.on('request',request=>{if(request.url().includes('/__studio/'))requests.push(request.url());});
+    page.on('request', request => {
+      const url = new URL(request.url());
+      if (!url.pathname.startsWith('/__studio/')) return;
+      // The Studio shell reads its shared style source independently of Files.
+      if (url.origin === new URL(page.url()).origin && url.pathname === '/__studio/shared-styles' && request.method() === 'POST') {
+        const input = request.postDataJSON();
+        const keys = Object.keys(input ?? {}).sort().join(',');
+        if (input?.action === 'load' && (keys === 'action' || keys === 'action,scope' && ['website', 'interface'].includes(input.scope))) return;
+      }
+      requests.push(`${request.method()} ${request.url()}`);
+    });
     await page.goto(fixture.url);
     if(host==='library')await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready','true');
     const image=page.getByRole('img',{name:fixture.alt,exact:true});await image.click();

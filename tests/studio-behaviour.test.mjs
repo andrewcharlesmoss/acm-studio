@@ -606,14 +606,10 @@ test("Studio environment badges use the neutral Local label", async () => {
 });
 
 test("template cover actions only render when handlers are available", async () => {
-  const [renderer, styles] = await Promise.all([
-    readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/studio/studio.css", import.meta.url), "utf8"),
-  ]);
+  const renderer = await readFile(new URL("../app/studio/template-renderer.tsx", import.meta.url), "utf8");
   assert.match(renderer, /const actions = onChangeCover \|\| onRemoveCoverImage \|\| onRemoveCoverBlock \? <div className="canvas-cover-actions">/);
   assert.match(renderer, /onRemoveCoverImage \? <button className="cover-action-button"/);
   assert.match(renderer, /onRemoveCoverBlock \? <button className="cover-action-button is-destructive"/);
-  assert.match(styles, /\.canvas-cover-wrap:hover \.canvas-cover-actions, \.canvas-cover-wrap:focus-within \.canvas-cover-actions \{[^}]*pointer-events: auto/);
 });
 
 test("document cover actions only render when handlers are available", async () => {

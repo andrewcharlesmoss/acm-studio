@@ -61,6 +61,24 @@ export function ImageResizeControls({ block, src, enabled, link, onChange }: {
     : block;
 
   useLayoutEffect(() => {
+    const frame = surface.current;
+    const image = frame?.querySelector("img");
+    if (!frame || !image || displayedBlock.displayWidth || displayedBlock.displayHeight) return;
+    // A viewBox alone supplies a ratio but no width to a shrink-to-fit frame.
+    const sizeDecodedImage = () => {
+      if (image.naturalWidth && !image.getBoundingClientRect().width) {
+        frame.style.width = `${image.naturalWidth}px`;
+      }
+    };
+    image.addEventListener("load", sizeDecodedImage);
+    if (image.complete) sizeDecodedImage();
+    return () => {
+      image.removeEventListener("load", sizeDecodedImage);
+      frame.style.removeProperty("width");
+    };
+  }, [src, displayedBlock.displayWidth, displayedBlock.displayHeight, block.imageEdit, link?.href]);
+
+  useLayoutEffect(() => {
     const active = gesture.current;
     if (!active || enabled && JSON.stringify(block) === active.sourceSnapshot) return;
     gesture.current = null;

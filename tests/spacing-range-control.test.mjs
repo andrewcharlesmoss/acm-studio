@@ -1,5 +1,6 @@
 import { createIsolatedModuleLoader } from "./production-module.mjs";
 
+import { createContext } from "react";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -80,7 +81,7 @@ test("spacing labels distinguish named presets, unset, mixed and custom values",
 test("range labels follow focus, thumb hover, drag cancellation and disabled state without writing values", () => {
   const states = []; let cursor = 0; let writes = 0;
   const { RangeControl } = load("app/studio/controls/range-control.tsx", {
-    react: { useState(initial) { const index = cursor++; if (!(index in states)) states[index] = initial; return [states[index], next => { states[index] = next; }]; } },
+    react: { createContext, useContext: () => null, useRef(initial) { return states[cursor++] ??= { current: initial }; }, useState(initial) { const index = cursor++; if (!(index in states)) states[index] = initial; return [states[index], next => { states[index] = next; }]; } },
   });
   const render = props => { cursor = 0; return RangeControl({ min: 0, max: 300, value: 150, onChange() { writes++; }, ...props }); };
   const input = tree => tree.props.children[0];

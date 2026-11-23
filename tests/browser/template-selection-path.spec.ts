@@ -43,10 +43,12 @@ test('Header selection breadcrumbs and List View expose real ancestors, menu lin
     await expect(trail.getByRole('button')).toHaveCount(1);
     const headerRoot = list.locator('nav > ol > li > .studio-list-item > .studio-list-select');
     await expect(headerRoot).toHaveText('Header');
-    const headerChildren = headerRoot.locator('xpath=ancestor::li[1]').locator(':scope > ol > li > .studio-list-item > .studio-list-select');
-    await expect(headerChildren.first()).toHaveText('Row');
-    const rowChildren = headerChildren.first().locator('xpath=ancestor::li[1]').locator(':scope > ol > li > .studio-list-item > .studio-list-select');
-    await expect(rowChildren.first()).toHaveText('Group');
+    const childButtons = (parent: typeof headerRoot) => parent.locator('xpath=ancestor::li[1]').locator(':scope > ol > li > .studio-list-item > .studio-list-select');
+    const headerChildren = childButtons(headerRoot);
+    await expect(headerChildren).toHaveText(['Group']);
+    const groupChildren = childButtons(headerChildren);
+    await expect(groupChildren).toHaveText(['Site Title', 'Row']);
+    await expect(childButtons(rowInList)).toHaveText(['Navigation']);
     await list.getByRole('button', { name: 'Navigation', exact: true }).click();
     await headerRoot.click();
     await expect(headerRoot).toHaveAttribute('aria-current', 'true');
@@ -69,7 +71,7 @@ test('Header selection breadcrumbs and List View expose real ancestors, menu lin
     await expect(headerGroup).toHaveCSS('flex-direction', 'row');
     await expect(pageListItems).toHaveCSS('display', 'flex');
     await expect(pageListItems).toHaveCSS('flex-wrap', 'wrap');
-    const pageListLabels = pageListItems.locator(':scope > li > a');
+    const pageListLabels = pageListItems.getByRole('link');
     await expect(pageListLabels).toHaveText(['Hello from WordPress Playground!', 'Sample Page']);
     const desktopNavigationList = headerNavigation.locator(':scope > .template-navigation-desktop > .template-navigation-items');
     await expect(desktopNavigationList.locator(':scope > li:not([data-navigation-page-list])')).toHaveCount(0);
@@ -92,8 +94,9 @@ test('Header selection breadcrumbs and List View expose real ancestors, menu lin
     expect(pageListBox).not.toBeNull();
     expect(pageListBox!.x).toBeGreaterThanOrEqual(navigationBox!.x - 1);
     expect(pageListBox!.x + pageListBox!.width).toBeLessThanOrEqual(navigationBox!.x + navigationBox!.width + 1);
-    for (const width of [1920, 900, 560]) {
+    for (const width of [1920, 900, 700, 560]) {
       await page.setViewportSize({ width, height: 1000 });
+      await expect.poll(async () => (await surface.boundingBox())?.width, { message: `Header retains its 320px preview with List View open at ${width}px` }).toBeGreaterThanOrEqual(320);
       const surfaceBox = await surface.boundingBox();
       const titleBox = await title.boundingBox();
       expect(surfaceBox).not.toBeNull();

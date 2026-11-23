@@ -679,8 +679,14 @@ before or after menu links from its block toolbar. Its saved position belongs to
 the block; when no position is stored, it appears after the menu's links. Existing
 automatic Page Lists saved in template v0.73.0 and earlier remain readable and
 are projected as the selectable block when edited. Saving the block uses
-template v0.74.0. Navigation Search can be added to the root menu and moved among
-its links.
+template v0.74.0.
+
+In a global original, selecting a generated page on the canvas selects its Page
+List block. Converting that block to editable links would change both the shared
+template and a site-owned menu. Conversion is available only when one owner can
+save both changes together.
+
+Navigation Search can be added to the root menu and moved among its links.
 Its settings control label visibility, placeholder, button position, input
 width and the outer Search item display width with a CSS unit; the button can use
 text or an icon. It searches the current local site's

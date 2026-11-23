@@ -143,6 +143,7 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
 @media (forced-colors: active) { .template-part:is([data-shared-part-selected="true"], [tabindex="0"]:hover:not(:has([data-template-part]:hover)))::before { border-color: Highlight; } }
 .template-part-content { min-width: 0; }
 .template-edit-part { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 10px; border: 1px solid #d1cfc7; border-radius: 6px; background: #fff; color: #1c1c1e; font: var(--studio-ui-size)/1.4 var(--studio-ui-font); white-space: nowrap; position: absolute; right: calc(100% + 12px); top: 0; z-index: 4; }
+.studio-hosted-home-editor .template-header > .template-edit-part { position: static; }
 .template-node-selectable { min-width: 0; }
 .template-editing .template-node-selectable:has(.template-node-selectable:hover):not([data-studio-selected="true"]) { outline: 0; }
 .template-editing .canvas-block:not(.is-selected):has(.template-node-selectable:hover) { border-color: transparent; outline: 0; }
@@ -206,7 +207,12 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
   .studio-desktop-only .studio-breadcrumbs strong { white-space: nowrap; }
   .studio-desktop-only .studio-state { display: flex; justify-content: flex-start; flex-wrap: nowrap; }
   .studio-desktop-only .studio-actions { display: flex; justify-content: flex-end; flex-wrap: nowrap; }
-  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: var(--studio-library-width) minmax(160px, 1fr) minmax(min(260px, var(--studio-inspector-width)), var(--studio-inspector-width)); height: calc(100dvh - 111px); min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  .studio-desktop-only .studio-workspace { display: grid; grid-template-columns: var(--studio-library-width) minmax(var(--studio-editor-track-min, 160px), 1fr) minmax(min(260px, var(--studio-inspector-width)), var(--studio-inspector-width)); height: calc(100dvh - 111px); min-width: 0; overflow-x: auto; overflow-y: hidden; }
+  /* An open List View must leave a 320px part preview, two 24px resize
+     handles and the editor border reachable through the workspace scroll. */
+  .template-workspace:has(.studio-list-view):has(.studio-part-resize-frame) {
+    --studio-editor-track-min: calc(320px + 2 * 24px + 1px + var(--studio-docked-list-width, 0px));
+  }
   .studio-desktop-only .studio-workspace:not(.is-tool) .studio-inspector-track { position: sticky; right: 0; z-index: 42; }
   .studio-desktop-only:has(> .studio-workspace.is-tool) { min-width: 0; width: 100%; }
   .studio-desktop-only .studio-workspace.is-tool { grid-template-columns: var(--studio-library-width) minmax(0, 1fr); min-width: 0; }
@@ -217,14 +223,15 @@ html[data-studio-toolbar-spacing="on"] .template-editing .template-authoring-sur
   .studio-desktop-only .editor-canvas-scroll { padding: 30px clamp(18px, 4vw, 48px) 80px; }
 }
 @media (max-width: 640px) {
-  .studio-desktop-only .studio-workspace:not(.is-tool) { grid-template-columns: var(--studio-library-width) minmax(160px, 1fr) minmax(min(270px, var(--studio-inspector-width), calc(100vw - 24px)), min(var(--studio-inspector-width), calc(100vw - 24px))); }
+  .studio-desktop-only .studio-workspace:not(.is-tool) { grid-template-columns: var(--studio-library-width) minmax(var(--studio-editor-track-min, 160px), 1fr) minmax(min(270px, var(--studio-inspector-width), calc(100vw - 24px)), min(var(--studio-inspector-width), calc(100vw - 24px))); }
 }
 @media (max-width: 680px) {
   .studio-desktop-only .studio-notice { padding-left: 18px; padding-right: 18px; }
   .studio-desktop-only .editor-document-bar { gap: 12px; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-rows: none; height: 64px; min-height: 64px; padding: 0 16px; }
   .studio-desktop-only .editor-mode-control { grid-column: auto; grid-row: auto; }
   .studio-desktop-only .editor-document-actions { grid-column: auto; grid-row: auto; }
-  .studio-desktop-only .studio-list-view { bottom: auto; box-shadow: none; left: auto; position: static; top: auto; width: 280px; }
+  .studio-desktop-only .studio-workspace { --studio-docked-list-width: var(--studio-list-view-width); }
+  .studio-desktop-only .studio-list-view { bottom: auto; box-shadow: none; left: auto; position: static; top: auto; width: var(--studio-list-view-width, 280px); }
   .studio-desktop-only .studio-list-backdrop { display: none; }
   .studio-desktop-only .inserter-backdrop { inset: auto; position: relative; width: 320px; }
   .studio-desktop-only .inserter-dismiss { display: none; }

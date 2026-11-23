@@ -636,7 +636,7 @@ test('returning to a query-specific Icons entry preserves its collection',async(
   await expect(page.getByRole('region',{name:'UK Keyboard Collection',exact:true})).toBeVisible();
 });
 
-test('inherited Additional CSS can be cleared and replaced with keyboard input', async ({ page }) => {
+test('clearing local Additional CSS suppresses inherited colour until Reset', async ({ page }) => {
   await page.setViewportSize({ width: 2200, height: 1000 });
   await page.goto('/studio/ui/blocks/paragraph');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
@@ -646,18 +646,26 @@ test('inherited Additional CSS can be cleared and replaced with keyboard input',
   const parentCss = site.getByRole('textbox', { name: /Additional CSS/ });
   await parentCss.fill('color: red;');
   const css = block.locator('textarea');
+  const paragraph = page.locator('.ui-block-canvas .rich-text-editor').first();
   await expect(css).toHaveValue('color: red;');
+  await expect(paragraph).toHaveCSS('color', 'rgb(255, 0, 0)');
   await css.click();
   await css.press('Meta+a');
   await css.press('Backspace');
   await expect(css).toHaveValue('');
   await css.pressSequentially('color: blue;');
   await expect(css).toHaveValue('color: blue;');
+  await expect(paragraph).toHaveCSS('color', 'rgb(0, 0, 255)');
   await expect(parentCss).toHaveValue('color: red;');
   await css.press('Meta+a');
   await css.press('Backspace');
   await css.blur();
+  await expect(css).toHaveValue('');
+  await expect(paragraph).not.toHaveCSS('color', 'rgb(255, 0, 0)');
+  await expect(paragraph).not.toHaveCSS('color', 'rgb(0, 0, 255)');
+  await block.getByRole('button', { name: 'Reset Additional CSS', exact: true }).click();
   await expect(css).toHaveValue('color: red;');
+  await expect(paragraph).toHaveCSS('color', 'rgb(255, 0, 0)');
 });
 
 test('Site styles keeps an empty CSS draft while replacing an inherited Universal value', async ({ page }) => {

@@ -52,7 +52,9 @@ test('List Styles typography reaches painted item text and markers', async ({ pa
   const baseline = await initialText.evaluate(node => ({ size: getComputedStyle(node).fontSize, height: getComputedStyle(node).lineHeight, transform: getComputedStyle(node).textTransform }));
   await page.getByRole('group', { name: 'Block Styles panes example' }).getByRole('button', { name: 'Small', exact: true }).click();
   await page.getByRole('group', { name: 'Block Styles panes example' }).getByRole('spinbutton', { name: 'Line height', exact: true }).fill('1.8');
-  await page.getByRole('group', { name: 'Block Styles panes example' }).getByRole('radio', { name: 'Upper case', exact: true }).click();
+  const upperCase = page.getByRole('group', { name: 'Block Styles panes example' }).getByRole('radio', { name: 'Upper case', exact: true });
+  await upperCase.click();
+  await expect(upperCase).toBeChecked();
   const preview = page.getByLabel('List style preview', { exact: true });
   for (const selector of ['.list-item-text', '.list-field-marker']) {
     const painted = preview.locator(selector).first();
@@ -62,8 +64,11 @@ test('List Styles typography reaches painted item text and markers', async ({ pa
   }
   const controls = page.getByRole('group', { name: 'Block Styles panes example' });
   await controls.getByRole('button', { name: 'Undo', exact: true }).click();
-  await expect(preview.locator('.list-item-text').first()).not.toHaveCSS('text-transform', 'uppercase');
+  await expect(upperCase).not.toBeChecked();
+  await expect(preview.locator('.list-item-text').first()).toHaveCSS('text-transform', baseline.transform);
+  await expect(preview.locator('.list-item-text').first()).toHaveCSS('line-height', '25.2px');
   await controls.getByRole('button', { name: 'Redo', exact: true }).click();
+  await expect(upperCase).toBeChecked();
   await expect(preview.locator('.list-item-text').first()).toHaveCSS('text-transform', 'uppercase');
   await controls.getByRole('button', { name: 'States', exact: true }).click();
   await page.getByRole('menuitemradio', { name: 'Mobile', exact: true }).click();
@@ -174,6 +179,8 @@ test('Actual List editor and Preview preserve authored nested font size', async 
   await page.goto('/studio/ui/blocks/list');
   await expect(page.locator('.ui-block-specimen')).toHaveAttribute('data-ready', 'true');
   const nested = page.locator('.list-item-editor[data-list-context-id="list-library-specimen-nested"]').first();
+  const parentText = page.locator('.list-item-editor[data-list-context-id="list-library-specimen"]').first();
+  const parentSize = await parentText.evaluate(element => getComputedStyle(element).fontSize);
   await nested.click();
   await page.getByRole('button', { name: 'Select parent block: List', exact: true }).click();
   await page.getByRole('tablist', { name: 'List inspector', exact: true }).getByRole('tab', { name: 'Styles', exact: true }).click();
@@ -181,8 +188,11 @@ test('Actual List editor and Preview preserve authored nested font size', async 
   await page.getByRole('spinbutton', { name: 'Custom font size', exact: true }).fill('24');
   await page.getByRole('spinbutton', { name: 'Custom font size', exact: true }).press('Enter');
   await expect(nested).toHaveCSS('font-size', '24px');
+  await expect(nested.locator('xpath=ancestor::li[1]').locator(':scope > .list-field-marker')).toHaveCSS('font-size', '24px');
+  await expect(parentText).toHaveCSS('font-size', parentSize);
   await page.getByRole('button', { name: 'Preview', exact: true }).click();
   await expect(page.locator('.list-item-text').filter({ hasText: 'A nested item' })).toHaveCSS('font-size', '24px');
+  await expect(page.locator('.list-item-text').filter({ hasText: 'A first item' })).toHaveCSS('font-size', parentSize);
 });
 
 test('List toolbar remains reachable at 200% document scaling', async ({ page }) => {

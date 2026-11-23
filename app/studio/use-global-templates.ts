@@ -1,4 +1,5 @@
 "use client";
+import { recordTemplateCheckpoint, type TemplateCheckpoint } from "./template-history";
 import { refreshWebsiteDesignStartup } from "./site-editor/website-design-startup-cache";
 import { validateWebsiteDesign, type WebsiteDesign } from "./site-editor/website-design";
 import { currentBrowserTemplateReferences } from "./browser-template-references";
@@ -56,7 +57,7 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
   const resolvingConflict = useRef(false);
   const reloading = useRef(false);
   const foreignWhileSaving = useRef(false);
-  const past = useRef<TemplateStore[]>([]);
+  const past = useRef<TemplateCheckpoint[]>([]);
   const future = useRef<TemplateStore[]>([]);
   const request = useRef(site.requestGlobalTemplates);
   useEffect(() => { request.current = site.requestGlobalTemplates; }, [site.requestGlobalTemplates]);
@@ -293,9 +294,9 @@ export function useGlobalTemplates(site: ReturnType<typeof useTestSite>, enabled
     syncStatus, syncConflict,
     resolveSyncConflict: async choice => { if (reloading.current || resolvingConflict.current) throw new Error("Global templates are reconnecting. Try resolving the conflict afterwards."); if (choice === "mine" && queuedConflict.current) throw new Error("This draft contains newer changes that cannot be merged automatically. Export the draft before reloading."); const broker = sync.current; if (!broker) throw new Error("The global template broker is unavailable. Your draft was preserved."); resolvingConflict.current = true; try { await broker.resolveConflict(choice); queuedConflict.current = false; foreignWhileSaving.current = false; pending.current = false; setSyncConflict(null); setError(null); } finally { resolvingConflict.current = false; } },
     retryConnection: () => { if (reloading.current || resolvingConflict.current) return; if (pending.current && !window.confirm("Reload global templates and discard this unsaved global draft?")) return; pending.current = false; reloading.current = true; setReloadInProgress(true); setSyncStatus("connecting"); void load().then(applied => { if (applied) { setSyncConflict(null); setSourceEpoch(epoch => epoch + 1); } else if (alive.current) setSyncStatus(sync.current?.getStatus() ?? "disconnected"); }).catch(reason => setError(String(reason))).finally(() => { reloading.current = false; if (alive.current) setReloadInProgress(false); }); },
-    commit: (update, options) => { const before = current.current.templates; try { const next = update(copyTemplateData(before)); if (options?.skipUnchanged && JSON.stringify(next) === JSON.stringify(before)) return writable; return install(next, () => { past.current = globalTemplateChangeCanUndo(before, next) ? [...past.current, before] : []; future.current = []; setHistoryState({ undo: past.current.length > 0, redo: false }); }); } catch (reason) { setError(reason instanceof Error ? reason.message : "Invalid global template change."); return false; } },
-    undo: () => { const next = past.current.at(-1); return Boolean(!busy && next && install(next, () => { past.current.pop(); future.current.push(store); setHistoryState({ undo: past.current.length > 0, redo: true }); })); },
-    redo: () => { const next = future.current.at(-1); return Boolean(!busy && next && install(next, () => { future.current.pop(); past.current.push(store); setHistoryState({ undo: true, redo: future.current.length > 0 }); })); },
+    commit: (update, options) => { const before = current.current.templates; try { const next = update(copyTemplateData(before)); if (options?.skipUnchanged && JSON.stringify(next) === JSON.stringify(before)) return writable; return install(next, () => { past.current = globalTemplateChangeCanUndo(before, next) ? recordTemplateCheckpoint(past.current, before, options?.historyGroup) : []; future.current = []; setHistoryState({ undo: past.current.length > 0, redo: false }); }); } catch (reason) { setError(reason instanceof Error ? reason.message : "Invalid global template change."); return false; } },
+    undo: () => { const next = past.current.at(-1)?.store; return Boolean(!busy && next && install(next, () => { past.current.pop(); future.current.push(store); setHistoryState({ undo: past.current.length > 0, redo: true }); })); },
+    redo: () => { const next = future.current.at(-1); return Boolean(!busy && next && install(next, () => { future.current.pop(); past.current.push({ store }); setHistoryState({ undo: true, redo: future.current.length > 0 }); })); },
     flush: async () => { const expectedGeneration = editGeneration.current; if (completion.current) await completion.current; if (pending.current && !completion.current) throw new Error("Global templates could not be saved. Export the preserved draft before reloading."); if (editGeneration.current !== expectedGeneration) throw new Error("Global templates changed while saving. Reload before continuing."); },
     canUndo: writable && !busy && historyState.undo, canRedo: writable && !busy && historyState.redo,
   };

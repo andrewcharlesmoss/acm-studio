@@ -417,7 +417,12 @@ export function buttonInteractionClassName(styles?: Partial<Record<ButtonInterac
 }
 
 export function buttonVisualCss(style?: ParagraphStyle, interactionStyles?: Partial<Record<ButtonInteractionState, ButtonInteractionStyle>>): Record<string, string> {
-  const css = paragraphStyleToCss(style);
+  const css = responsiveStyleCss(resolveTextStyleVariation(style), effective => {
+    const surface = paragraphBaseStyleToCss(effective);
+    // An explicit solid fill also owns the image layer of the Button.
+    if (effective.backgroundColor && !surface.backgroundImage && !surface.background) surface.backgroundImage = "none";
+    return surface;
+  });
   delete css.margin;
   delete css["--studio-rs-tablet-margin"];
   delete css["--studio-rs-mobile-margin"];

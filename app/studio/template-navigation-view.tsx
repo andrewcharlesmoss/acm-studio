@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { safeTextLink } from "../content/rich-text";
 import { paragraphStyleToCss, paragraphStyleClassName, paragraphStyleAnchor } from "../content/paragraph-styles";
@@ -10,8 +10,10 @@ import { attachNavigationRuntime } from "./navigation-runtime";
 import { navigationLinkRel } from "./navigation-items";
 import { navigationSearchStyleTargets } from "./navigation-search";
 
-export function TemplateNavigationView({ node, links, pageListLinks = [], documentHref, homeHref = "/", renderLink, overlayContent, overlayAppender, showDesktopAppender = true, suppressLinkAnchors = false, searchEntries }: {
-  node: NavigationTemplateNode; links: NavigationItem[]; pageListLinks?: SiteLink[]; documentHref?: string; homeHref?: string; renderLink?: (link: SiteLink) => ReactNode; overlayContent?: ReactNode; overlayAppender?: ReactNode; showDesktopAppender?: boolean; suppressLinkAnchors?: boolean; searchEntries?: () => Array<{ title: string; href: string; text: string }>;
+export type PageListEditing = { selected: boolean; onSelect: () => void; toolbar: ReactNode };
+
+export function TemplateNavigationView({ node, links, pageListLinks = [], documentHref, homeHref = "/", renderLink, pageListEditing, overlayContent, overlayAppender, showDesktopAppender = true, suppressLinkAnchors = false, searchEntries }: {
+  node: NavigationTemplateNode; links: NavigationItem[]; pageListLinks?: SiteLink[]; documentHref?: string; homeHref?: string; renderLink?: (link: SiteLink) => ReactNode; pageListEditing?: PageListEditing; overlayContent?: ReactNode; overlayAppender?: ReactNode; showDesktopAppender?: boolean; suppressLinkAnchors?: boolean; searchEntries?: () => Array<{ title: string; href: string; text: string }>;
 }) {
   const root = useRef<HTMLElement>(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -43,7 +45,19 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
           <div className="template-navigation-search-results" data-navigation-search-results aria-live="polite" hidden />
         </form></li>);
       }
-      if (hasPageList && pageListPosition === index) entries.push(<li key={pageListBlock.id} id={anchors ? paragraphStyleAnchor(pageListBlock.visualStyle) ?? pageListBlock.id : undefined} className={["template-navigation-page-list", paragraphStyleClassName(pageListBlock.visualStyle)].filter(Boolean).join(" ")} data-navigation-page-list data-navigation-page-list-id={pageListBlock.id} style={paragraphStyleToCss(pageListBlock.visualStyle)}>{pageList(pageListLinks, anchors)}</li>);
+      if (hasPageList && pageListPosition === index) {
+        const editingProps = pageListEditing ? {
+          role: "group", tabIndex: 0, "aria-label": "Page List block", "data-studio-nested-block-id": pageListBlock.id,
+          "data-studio-selected": pageListEditing.selected,
+          onFocus: pageListEditing.onSelect, onClick: pageListEditing.onSelect,
+          onKeyDown: (event: KeyboardEvent) => {
+            if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+              event.preventDefault(); event.stopPropagation(); pageListEditing.onSelect();
+            }
+          },
+        } : undefined;
+        entries.push(<li key={pageListBlock.id} id={anchors ? paragraphStyleAnchor(pageListBlock.visualStyle) ?? pageListBlock.id : undefined} className={["template-navigation-page-list", pageListEditing?.selected && "is-selected", paragraphStyleClassName(pageListBlock.visualStyle)].filter(Boolean).join(" ")} data-navigation-page-list data-navigation-page-list-id={pageListBlock.id} style={paragraphStyleToCss(pageListBlock.visualStyle)} {...editingProps}>{pageListEditing?.toolbar}{pageList(pageListLinks, anchors)}</li>);
+      }
     };
     items.forEach((link, index) => {
       appendExtras(index);
@@ -64,7 +78,7 @@ export function TemplateNavigationView({ node, links, pageListLinks = [], docume
     return <ul className="template-navigation-items">{entries}</ul>;
   };
   const pageList = (items: NavigationItem[], anchors = true): ReactNode => <ul className="template-navigation-items template-navigation-page-list-items">{items.filter(link => !isNavigationSpacer(link)).map(link => { if (isNavigationSpacer(link)) return null; return <li key={link.id} id={anchors ? paragraphStyleAnchor(link.visualStyle) : undefined} data-navigation-anchor={paragraphStyleAnchor(link.visualStyle)} style={paragraphStyleToCss(link.visualStyle)}>
-    <span className="template-navigation-link-label" style={paragraphStyleToCss({ ...link.visualStyle, additionalCss: undefined })}>{renderLink?.(link) ?? <a href={safeTextLink(link.url) ?? undefined} aria-current={link.url === documentHref ? "page" : undefined}>{link.label}</a>}</span>
+    <span className="template-navigation-link-label" style={paragraphStyleToCss({ ...link.visualStyle, additionalCss: undefined })}>{(pageListEditing ? undefined : renderLink?.(link)) ?? <a data-navigation-link-id={pageListEditing ? link.id : undefined} onClick={pageListEditing ? event => event.preventDefault() : undefined} href={safeTextLink(link.url) ?? undefined} aria-current={link.url === documentHref ? "page" : undefined}>{link.label}</a>}</span>
     {link.children?.length ? pageList(link.children, anchors) : null}
   </li>;})}</ul>;
   return <nav ref={root} data-navigation-block-id={overlayAppender ? node.id : undefined} id={paragraphStyleAnchor(node.visualStyle)} data-navigation-anchor={paragraphStyleAnchor(node.visualStyle)} aria-label={node.ariaLabel || "Site navigation"} className={["template-navigation acm-navigation", paragraphStyleClassName(node.visualStyle)].filter(Boolean).join(" ")} data-navigation-layout={node.layout ?? "row"} data-navigation-align={node.horizontalAlign ?? node.align ?? "left"} data-navigation-overlay={node.overlayMenu ?? "never"} data-navigation-custom-overlay={overlayContent ? "true" : undefined} data-submenu-click={node.submenuOpenOnClick || undefined} data-submenu-icon={node.showSubmenuIcon === false ? "hidden" : undefined} style={{ ...paragraphStyleToCss(node.visualStyle), "--navigation-submenu-text": node.submenuTextColor, "--navigation-submenu-background": node.submenuBackgroundColor, justifyContent: node.horizontalAlign === "centre" || !node.horizontalAlign && node.align === "centre" ? "center" : node.horizontalAlign === "right" || !node.horizontalAlign && node.align === "right" ? "flex-end" : node.horizontalAlign === "space-between" ? "space-between" : "flex-start", flexWrap: node.allowWrap === false ? "nowrap" : "wrap", gap: node.gap === undefined ? undefined : `${node.gap}px` } as CSSProperties}>

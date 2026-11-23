@@ -969,6 +969,16 @@
 
 ### Fixed
 
+- Undo restores template padding to its value before a slider drag.
+- Honour a Button’s solid background inside a container with a Button gradient, and show a nested List’s chosen font size in Edit and Preview.
+- Keep Block Styles controls under the pointer when a line-height edit updates the preview, so the first click on Upper case takes effect.
+- Keep SVG images without authored dimensions visible and selectable in the template editor.
+- Allow a Featured Image restored by Undo to be selected by clicking the image between or outside its action buttons.
+- Keep the Header preview usable when List View is open in a narrow editor window.
+- Keep Edit Header reachable by pointer in the Site Editor home editor.
+- Retain caption formatting controls when selecting image caption text.
+- Restore Page List insertion and selection in the global template Navigation editor.
+
 - Show the Control Centre drop line at the approached row edge, including drops before the first card and after the last card in each row, even when the card is already in that position.
 
 - Drop Control Centre cards into the intended slot on the first drag, including across rows and in single-column layouts.

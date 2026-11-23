@@ -23,7 +23,7 @@ import type { ContentBlock } from "../content/model";
 import type { SpacerOrientation } from "../content/spacer";
 import type { StudioDocument } from "./editor-model";
 import { containsTemplateElementsInCover, templateEditorBlocks, type NavigationItem, type NavigationTemplateNode, type SiteLink, type SiteStyles, type TemplateNode, type TemplatePart, type TemplateSet, type TemplateSnapshot } from "./template-model";
-import { TemplateNavigationView } from "./template-navigation-view";
+import { TemplateNavigationView, type PageListEditing } from "./template-navigation-view";
 import { StudioIcon } from "./studio-icons";
 import { resolveTemplateCopyright } from "./template-placeholders";
 import { TemplateContentLayout } from "./template-content-slot";
@@ -154,6 +154,7 @@ export type TemplateRenderContext = {
   onEditPart?: (id: string) => void;
   onSelectPart?: () => void;
   renderNavigationLink?: (link: SiteLink, node: NavigationTemplateNode) => ReactNode;
+  navigationPageListEditing?: (node: NavigationTemplateNode) => PageListEditing | undefined;
   renderNavigationOverlayAppender?: (node: NavigationTemplateNode) => ReactNode;
   showNavigationDesktopAppender?: (node: NavigationTemplateNode) => boolean;
   navigationMenuLinks?: (node: NavigationTemplateNode) => NavigationItem[];
@@ -332,7 +333,7 @@ export function TemplateNodes({ nodes, ...context }: TemplateRenderContext & { n
             submenuTextColor: node.submenuTextColor ?? navigationStyle.navigationSubmenuTextColor,
             submenuBackgroundColor: node.submenuBackgroundColor ?? navigationStyle.navigationSubmenuBackgroundColor,
           } : node;
-          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={themedNode} links={links} pageListLinks={context.navigationPageListLinks?.(node) ?? []} searchEntries={context.navigationSearchEntries ? () => context.navigationSearchEntries!(node) : undefined} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} homeHref={set.identity.homeUrl} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} overlayAppender={!shared ? context.renderNavigationOverlayAppender?.(node) : undefined} showDesktopAppender={context.showNavigationDesktopAppender?.(node)} />;
+          element = (!shared ? context.renderNavigation?.(node) : undefined) ?? <TemplateNavigationView node={themedNode} links={links} pageListEditing={!shared ? context.navigationPageListEditing?.(node) : undefined} pageListLinks={context.navigationPageListLinks?.(node) ?? []} searchEntries={context.navigationSearchEntries ? () => context.navigationSearchEntries!(node) : undefined} suppressLinkAnchors={suppressLinkAnchors} documentHref={context.documentHref} homeHref={set.identity.homeUrl} renderLink={context.renderNavigationLink ? link => context.renderNavigationLink?.(link, node) : undefined} overlayContent={overlayContent} overlayAppender={!shared ? context.renderNavigationOverlayAppender?.(node) : undefined} showDesktopAppender={context.showNavigationDesktopAppender?.(node)} />;
           break;
         }
         case "copyright": element = <p className="template-copyright">{resolveTemplateCopyright(set.identity.copyright, set.identity.name)}</p>; break;

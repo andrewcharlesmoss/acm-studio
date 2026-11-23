@@ -256,6 +256,19 @@ function NavigationCanvasSpacer({ item, vertical, ...props }: NavigationEditingP
   </li>;
 }
 
+export function NavigationPageListToolbar({ block, writable, vertical, position, linkCount, onSelectParent, onMove, onEdit, onRemove }: {
+  block: NavigationPageListBlock; writable: boolean; vertical: boolean; position: number; linkCount: number;
+  onSelectParent: () => void; onMove: (position: number) => void; onEdit?: () => void; onRemove: () => void;
+}) {
+  return <BlockToolbar actions={resolveBlockToolbar({ block, writable, selected: true })} blockType="navigation-page-list" className="navigation-link-toolbar navigation-search-toolbar" label="Page List block tools">
+    <button type="button" className="navigation-parent-select" onClick={event => { event.stopPropagation(); onSelectParent(); }} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button>
+    <button type="button" disabled={!writable || position === 0} onClick={event => { event.stopPropagation(); onMove(position - 1); }} aria-label={`Move Page List ${vertical ? "up" : "left"}`} title={vertical ? "Move up" : "Move left"}><StudioIcon name={vertical ? "arrow-up" : "arrow-left"} size={20} /></button>
+    <button type="button" disabled={!writable || position >= linkCount} onClick={event => { event.stopPropagation(); onMove(position + 1); }} aria-label={`Move Page List ${vertical ? "down" : "right"}`} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button>
+    <button type="button" disabled={!writable || !onEdit} onClick={event => { event.stopPropagation(); onEdit?.(); }} aria-label="Edit Page List" title="Convert to editable links"><StudioIcon name="pencil" size={20} /></button>
+    <button type="button" disabled={!writable} onClick={event => { event.stopPropagation(); onRemove(); }} aria-label="Remove Page List" title="Remove Page List"><StudioIcon name="trash" size={20} /></button>
+  </BlockToolbar>;
+}
+
 function NavigationCanvasList({ siblings, vertical, version, root = false, pageListPosition, searchPosition, searchEnabled = false, searchButtonUseIcon = false, searchLabelVisible, searchButtonPosition, searchPlaceholder, searchWidth, searchDisplayWidth, searchDisplayWidthUnit, searchNode, pageListNode, navigationNode, ...props }: NavigationEditingProps & { siblings: NavigationItem[]; vertical: boolean; version: string; root?: boolean; pageListPosition?: number; searchEnabled?: boolean; searchPosition?: number; searchButtonUseIcon?: boolean; searchLabelVisible?: boolean; searchButtonPosition?: NavigationTemplateNode["searchButtonPosition"]; searchPlaceholder?: string; searchWidth?: number; searchDisplayWidth?: number; searchDisplayWidthUnit?: NavigationSearchWidthUnit; searchNode?: NavigationTemplateNode; pageListNode?: NavigationPageListBlock; navigationNode?: NavigationTemplateNode }) {
   const reorder = useGapReordering({ ids: siblings.map(link => link.id), version, writable: props.writable, axis: vertical ? "y" : "x",
     accepts: move => Boolean(reorderNavigationItem(props.links, move.id, move.targetId, move.edge)),
@@ -266,13 +279,18 @@ function NavigationCanvasList({ siblings, vertical, version, root = false, pageL
   const searchAt = Math.max(0, Math.min(siblings.length, searchPosition ?? siblings.length));
   const renderPages = (items: SiteLink[]): ReactNode => <ul>{items.map(page => <li key={page.id}><span style={{ color: "var(--studio-paragraph-link-color, inherit)" }}>{page.label}</span>{page.children?.length ? renderPages(page.children.filter((child): child is SiteLink => !isNavigationSpacer(child))) : null}</li>)}</ul>;
   const pageList = pageListNode ? <li id={paragraphStyleAnchor(pageListNode.visualStyle) ?? pageListNode.id} className={["navigation-page-list-preview", props.selectedPageList ? "is-selected" : "", paragraphStyleClassName(pageListNode.visualStyle)].filter(Boolean).join(" ")} data-navigation-page-list data-navigation-page-list-id={pageListNode.id} style={paragraphStyleToCss(pageListNode.visualStyle)} role="group" tabIndex={0 /* eslint-disable-line jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions -- Authored Navigation block boundaries retain keyboard selection and editable descendants. */} aria-label="Page List block" onFocus={() => props.onSelectPageList?.(pageListNode.id)} onClick={() => props.onSelectPageList?.(pageListNode.id)} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); props.onSelectPageList?.(pageListNode.id); } if (event.key === "Escape") { event.stopPropagation(); props.onSelect(null); } }}>
-    {props.selectedPageList && navigationNode ? <BlockToolbar actions={resolveBlockToolbar({ block: { id: pageListNode.id, type: "navigation-page-list" }, writable: props.writable, selected: true })} blockType="navigation-page-list" className="navigation-link-toolbar navigation-search-toolbar" label="Page List block tools">
-      <button type="button" className="navigation-parent-select" onClick={event => { event.stopPropagation(); props.onSelect(null); }} aria-label="Select parent block: Navigation" title="Select parent block: Navigation"><AcmIcon name="navigation.menu" size={24} /></button>
-      <button type="button" disabled={!props.writable || position === 0 || !navigationNode} onClick={event => { event.stopPropagation(); if (navigationNode) props.onNodeChange?.({ ...navigationNode, pageListBlock: { ...pageListNode, position: position - 1 }, automaticPageList: undefined, automaticPageListPosition: undefined }); }} aria-label={`Move Page List ${vertical ? "up" : "left"}`} title={vertical ? "Move up" : "Move left"}><StudioIcon name={vertical ? "arrow-up" : "arrow-left"} size={20} /></button>
-      <button type="button" disabled={!props.writable || position >= siblings.length || !navigationNode} onClick={event => { event.stopPropagation(); if (navigationNode) props.onNodeChange?.({ ...navigationNode, pageListBlock: { ...pageListNode, position: position + 1 }, automaticPageList: undefined, automaticPageListPosition: undefined }); }} aria-label={`Move Page List ${vertical ? "down" : "right"}`} title={vertical ? "Move down" : "Move right"}><StudioIcon name={vertical ? "arrow-down" : "arrow-right"} size={20} /></button>
-      <button type="button" disabled={!props.writable || !props.onConvertPageList || !canMaterializeNavigationPageList(props.links, pages, position)} onClick={event => { event.stopPropagation(); const converted = materializeNavigationPageList(props.links, pages, position); const first = converted?.[position]; if (converted && first && navigationNode && props.onConvertPageList?.(converted, { ...navigationNode, pageListBlock: undefined, automaticPageList: undefined, automaticPageListPosition: undefined })) { props.onSelect(first.id); focusNavigationItem(first.id, props.blockId); } }} aria-label="Edit Page List" title="Convert to editable links"><StudioIcon name="pencil" size={20} /></button>
-      <button type="button" disabled={!props.writable || !navigationNode} onClick={event => { event.stopPropagation(); if (navigationNode) props.onNodeChange?.({ ...navigationNode, pageListBlock: undefined, automaticPageList: undefined, automaticPageListPosition: undefined }); props.onSelect(null); }} aria-label="Remove Page List" title="Remove Page List"><StudioIcon name="trash" size={20} /></button>
-    </BlockToolbar> : null}
+    {props.selectedPageList && navigationNode ? <NavigationPageListToolbar block={pageListNode} writable={props.writable} vertical={vertical}
+      position={position} linkCount={siblings.length} onSelectParent={() => props.onSelect(null)}
+      onMove={next => props.onNodeChange?.({ ...navigationNode, pageListBlock: { ...pageListNode, position: next }, automaticPageList: undefined, automaticPageListPosition: undefined })}
+      onEdit={props.onConvertPageList && canMaterializeNavigationPageList(props.links, pages, position) ? () => {
+        const converted = materializeNavigationPageList(props.links, pages, position);
+        const first = converted?.[position];
+        if (converted && first && props.onConvertPageList?.(converted, { ...navigationNode, pageListBlock: undefined, automaticPageList: undefined, automaticPageListPosition: undefined })) {
+          props.onSelect(first.id);
+          focusNavigationItem(first.id, props.blockId);
+        }
+      } : undefined}
+      onRemove={() => { props.onNodeChange?.({ ...navigationNode, pageListBlock: undefined, automaticPageList: undefined, automaticPageListPosition: undefined }); props.onSelect(null); }} /> : null}
     <strong>Page List</strong>{renderPages(pages)}</li> : null;
   const searchStyle = searchNode?.searchVisualStyle;
   const searchPositionMode = searchButtonPosition ?? "outside";

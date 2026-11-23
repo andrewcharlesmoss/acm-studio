@@ -1,4 +1,5 @@
 "use client";
+import { recordTemplateCheckpoint, type TemplateCheckpoint } from "./template-history";
 import { assertBrowserGlobalReferences, withTemplateReferenceWrite } from "./template-reference-gate";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { copyTemplateData, emptyTemplateStore, type TemplateStore } from "./template-model";
@@ -17,7 +18,7 @@ export function useTemplates(generation: number, writable: boolean) {
   const currentGeneration = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveLabel, setSaveLabel] = useState("Loading templates…");
-  const history = useRef<TemplateStore[]>([]);
+  const history = useRef<TemplateCheckpoint[]>([]);
   const future = useRef<TemplateStore[]>([]);
   const syncRef = useRef<StudioSyncSession<TemplateStore> | null>(null);
   const authoritativeStoreRef = useRef(copyTemplateData(emptyTemplateStore()));
@@ -172,19 +173,19 @@ export function useTemplates(generation: number, writable: boolean) {
       return true;
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save templates locally."); setSaveLabel("Could not save locally"); return false; }
   }
-  function commit(update: (store: TemplateStore) => TemplateStore, options?: { skipUnchanged?: boolean }) {
+  function commit(update: (store: TemplateStore) => TemplateStore, options?: { skipUnchanged?: boolean; historyGroup?: symbol }) {
     const before = current.current;
     try {
       const next = update(copyTemplateData(before));
       if (options?.skipUnchanged && JSON.stringify(next) === JSON.stringify(before)) return ready && loadedGeneration === generation && currentGeneration.current === generation && writable && editable;
       if (!install(next)) return false;
-      history.current = [...history.current.slice(-59), before]; future.current = [];
+      history.current = recordTemplateCheckpoint(history.current, before, options?.historyGroup, 60); future.current = [];
       setAvailability({ undo: true, redo: false });
       return true;
     } catch (reason) { setError(reason instanceof Error ? reason.message : "The template change could not be applied."); setSaveLabel("Could not save locally"); return false; }
   }
   function undo() {
-    const next = history.current.at(-1); if (!next) return false;
+    const next = history.current.at(-1)?.store; if (!next) return false;
     const before = current.current;
     if (!install(next)) return false;
     history.current.pop(); future.current.push(before); setAvailability({ undo: history.current.length > 0, redo: true }); return true;
@@ -193,7 +194,7 @@ export function useTemplates(generation: number, writable: boolean) {
     const next = future.current.at(-1); if (!next) return false;
     const before = current.current;
     if (!install(next)) return false;
-    future.current.pop(); history.current.push(before); setAvailability({ undo: true, redo: future.current.length > 0 }); return true;
+    future.current.pop(); history.current.push({ store: before }); setAvailability({ undo: true, redo: future.current.length > 0 }); return true;
   }
   async function resolveSyncConflict(choice: "mine" | "theirs") {
     const session = syncRef.current;

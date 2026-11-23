@@ -138,7 +138,11 @@ export function websiteDesignRules(selection: StyleSelection, scopeId: string, l
       const roleValue = role === "buttons" ? `var(--button-group-${name},${buttonValue})` : role === "links" && name === "color" ? `var(--studio-paragraph-link-color,${value})` : value;
       const effectiveTargets = role === "text" && name === "color" ? [...propertyTargets, ".canvas-appender-trigger"] : propertyTargets;
       const authoredGuard = role === "links" && name === "color" ? `:where(:not(.site-block-authored-${name}):not(.site-block-authored-${name} *))` : `:not(.site-block-authored-${name}):not(.site-block-authored-${name} *)`;
-      if (effectiveTargets.length) rules.push(`${scope} :is(${effectiveTargets.join(",")})${authoredGuard}${buttonStates}{${name}:${roleValue}}`);
+      // Nested Lists and their items render inside the parent block. Their text
+      // and markers inherit the nearest sized wrapper in both Edit and Preview.
+      const listSizeGuard = role === "text" && name === "font-size"
+        ? ":where(:not(.has-custom-font-size :is(.list-item-editor,.list-item-text,.list-field-marker)))" : "";
+      if (effectiveTargets.length) rules.push(`${scope} :is(${effectiveTargets.join(",")})${authoredGuard}${listSizeGuard}${buttonStates}{${name}:${roleValue}}`);
     }
     if (role === "text") emit([".template-surface", ".test-site-page"], css, false);
   }

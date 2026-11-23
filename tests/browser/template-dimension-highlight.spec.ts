@@ -2,27 +2,48 @@ import { expect, test } from '@playwright/test';
 import { createStudioHttpFixture } from '../helpers/studio-http-fixture.mjs';
 
 test('template spacing highlights the selected block without persisting the overlay', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
   const fixture = await createStudioHttpFixture({ frontendURL: String(testInfo.project.use.baseURL ?? 'http://localhost:3010') });
-  try {
-    await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=studio-twenty-twenty-five-parts&target=tt5-header`);
+  async function selectHeader() {
     await page.getByRole('button', { name: 'List View', exact: true }).click();
     await page.getByRole('complementary', { name: 'List View' }).getByRole('button', { name: 'Header', exact: true }).click();
+  }
+  try {
+    await page.goto(`${fixture.origin}/studio?site=test2&mode=templates&scope=global&set=studio-twenty-twenty-five-parts&target=tt5-header`);
+    await selectHeader();
     await expect(page.getByRole('group', { name: 'Group block tools' }).getByRole('button', { name: /Transform .* block/ })).toBeEnabled();
     const slider = page.getByRole('slider', { name: 'Padding Vertical amount' });
     await slider.hover();
     const overlay = page.locator('[data-dimension-highlight="padding"]');
     await expect(overlay).toBeVisible();
-    const before = await slider.inputValue();
     const bounds = await slider.boundingBox();
     if (!bounds) throw new Error('Padding slider is not visible');
-    await page.mouse.move(bounds.x + 5, bounds.y + bounds.height / 2);
+    const initial = await slider.inputValue();
+    await slider.click({ position: { x: bounds.width * .3, y: bounds.height / 2 } });
+    await expect.poll(() => slider.inputValue()).not.toBe(initial);
+    const before = await slider.inputValue();
+    const beforeText = await slider.getAttribute('aria-valuetext');
+    if (!beforeText) throw new Error('The authored padding has no accessible value.');
+    await page.mouse.move(bounds.x + bounds.width * .3, bounds.y + bounds.height / 2);
     await page.mouse.down();
+    await page.mouse.move(bounds.x + bounds.width * .5, bounds.y + bounds.height / 2, { steps: 3 });
+    await page.keyboard.down('Shift');
     await page.mouse.move(bounds.x + bounds.width * .75, bounds.y + bounds.height / 2, { steps: 5 });
     await page.mouse.up();
+    await page.keyboard.up('Shift');
     await expect.poll(() => slider.inputValue()).not.toBe(before);
+    const dragged = await slider.inputValue();
     await page.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect.poll(() => slider.inputValue()).toBe(before);
-    await slider.click({ position: { x: 80, y: 5 } });
+    await page.getByRole('button', { name: 'Redo', exact: true }).click();
+    await expect(slider).toHaveValue(dragged);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(slider).toHaveValue(before);
+    await expect(page.getByText('Global templates saved locally', { exact: true })).toBeVisible();
+    await page.reload();
+    await selectHeader();
+    await expect(slider).toHaveValue(before);
+    await expect(slider).toHaveAttribute('aria-valuetext', beforeText);
     await slider.hover();
     await expect.poll(async () => overlay.locator('div').count()).toBe(2);
     await expect.poll(async () => (await overlay.locator('div').first().boundingBox())?.height ?? 0).toBeGreaterThan(0);
@@ -46,8 +67,8 @@ test('template spacing highlights the selected block without persisting the over
     await expect(page.locator('[data-dimension-highlight]')).toHaveCount(0);
     await expect(page.getByText('Global templates saved locally')).toBeVisible();
     await page.reload();
-    await page.getByRole('button', { name: 'List View', exact: true }).click();
-    await page.getByRole('complementary', { name: 'List View' }).getByRole('button', { name: 'Header', exact: true }).click();
+    await selectHeader();
+    await expect(slider).toHaveValue(before);
     await expect(page.getByRole('slider', { name: 'Margin Vertical amount' })).toHaveValue(savedMargin);
     await expect(page.locator('[data-dimension-highlight]')).toHaveCount(0);
     await expect(page.getByRole('group', { name: 'Group block tools' }).getByRole('button', { name: /Transform .* block/ })).toBeEnabled();

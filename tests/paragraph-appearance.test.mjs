@@ -33,6 +33,7 @@ test("Button interaction styles keep base values as fallbacks and expose state-s
   assert.equal(css.backgroundColor, undefined);
   assert.equal(css["--button-base-color"], "#111111");
   assert.equal(css["--button-base-background-color"], "#eeeeee");
+  assert.equal(css["--button-base-background-image"], "none");
   assert.equal(css["--button-hover-color"], "#ffffff");
   assert.equal(css["--button-hover-background-color"], "#123456");
   assert.equal(css["--button-hover-background-image"], "none");
@@ -44,6 +45,13 @@ test("Button interaction styles keep base values as fallbacks and expose state-s
   assert.equal(css["--button-focus-border-width"], "2px");
   assert.match(buttonInteractionClassName(interactionStyles), /has-button-focus-border-width/);
   assert.match(buttonInteractionClassName(interactionStyles, "hover"), /is-button-state-preview-hover/);
+});
+
+test("a solid Button clears inherited gradients only where it owns the background", () => {
+  const css = buttonVisualCss({ responsive: { mobile: { backgroundColor: "#eeeeee" } } });
+  assert.equal(css.backgroundImage, undefined);
+  assert.equal(css["--studio-rs-mobile-background-image"], "none");
+  assert.equal(buttonVisualCss({ backgroundColor: "#eeeeee" }).backgroundImage, "none");
 });
 
 test("Button explicit border removal overrides the Outline default and remains the state fallback", () => {

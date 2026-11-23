@@ -1,3 +1,4 @@
+import * as templateHistory from "../app/studio/template-history.ts";
 import { evaluateProductionModule } from "./production-module.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -294,6 +295,7 @@ test("global hook installs merged acknowledgements and restarts its broker after
   const request = async () => { if (deferRead) { deferRead = false; return new Promise(resolve => { deferredRead = resolve; }); } return ({ library: structuredClone(authoritative), revision: hash, initialised: true }); };
   evaluateProductionModule((source), { exports, Error, Boolean, JSON, window: { addEventListener() {}, removeEventListener() {}, confirm: () => true }, setInterval: callback => { intervals.push(callback); return intervals.length; }, clearInterval() {}, require(name) {
     if (name === "react") return react;
+    if (name === "./template-history") return templateHistory;
     if (name.endsWith("website-design-startup-cache")) return {refreshWebsiteDesignStartup(){}};
     if (name === "./site-editor/website-design") return designContracts;
     if (name === "./browser-template-references") return { currentBrowserTemplateReferences: () => [] };

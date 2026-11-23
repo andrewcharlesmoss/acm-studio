@@ -440,3 +440,22 @@ test('selected Image block can be resized from either edge and the dimensions un
   await page.getByRole('group', { name: 'Specimen view' }).getByRole('button', { name: 'Preview' }).click();
   await expect(page.locator('.ui-library-canvas').getByRole('button', { name: /Resize image/ })).toHaveCount(0);
 });
+
+test('template SVG without dimensions respects an authored width and height', async ({ page }) => {
+  await page.goto('/studio/ui/selection/template');
+  const image = page.getByRole('img', { name: 'Template landscape example', exact: true });
+  await expect(image).toBeVisible();
+  await image.click();
+  await page.getByRole('tabpanel', { name: 'Workspace' }).getByRole('tab', { name: 'Styles', exact: true }).click();
+  const width = page.getByRole('spinbutton', { name: 'Width (px)', exact: true });
+  const height = page.getByRole('spinbutton', { name: 'Height (px)', exact: true });
+  await width.fill('180');
+  await width.press('Enter');
+  await height.fill('75');
+  await height.press('Enter');
+  await expect(image).toHaveCSS('width', '180px');
+  await expect(image).toHaveCSS('height', '75px');
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(image).toHaveCSS('width', '180px');
+  await expect(image).toHaveCSS('height', '75px');
+});
