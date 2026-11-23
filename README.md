@@ -103,7 +103,8 @@ recorded in [`docs/design-canvas.md`](docs/design-canvas.md).
 ## Clean checkout setup
 
 Studio owns Icons, Ribbon, and Styles in `packages/`. The private Panel
-dependency is pinned to its GitHub Packages release. A clean `npm ci` requires
+dependency comes from the independent `packages` repository and is pinned to
+its GitHub Packages release. A clean `npm ci` requires
 read access to that registry. The workspace style guide remains in the
 independent `workspace-governance` repository. For a reproducible build, check
 out the verified guide revision alongside Studio. From a new parent directory

@@ -53,6 +53,8 @@
 
 ### Changed
 
+- Studio installs Panel v0.1.0 from GitHub Packages. The `packages` repository now owns Panel.
+
 - Preserve the original shared package repositories in the local recovery archive while maintaining active sources within Studio.
 
 - Split specialist interface, local site, and Site Editor instructions into
