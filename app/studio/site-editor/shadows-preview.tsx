@@ -3,7 +3,7 @@ import { SettingLabel, SettingInheritanceProvider, useSettingInherited } from ".
 import { canAddWebsiteStyleEntry, WEBSITE_SHADOW_LAYER_LIMIT } from "./website-style-limits";
 import { cssDecimal } from "../../content/box-lengths";
 import { useEffect, useRef, useState, type Dispatch } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioButton } from "../controls/button";
 import { TextInput } from "../controls/native-fields";
 import { RadioGroup } from "../controls/radio-group";

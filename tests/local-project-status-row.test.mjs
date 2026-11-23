@@ -6,7 +6,7 @@ import { createIsolatedModuleLoader } from "./production-module.mjs";
 
 const load = createIsolatedModuleLoader({ overrides: {
   "./button": { StudioButton: props => React.createElement("button", props, props.children) }, // eslint-disable-line react/prop-types -- isolated renderer stub
-  "@acm/icons/react": { AcmIcon: () => null },
+  "@andrewcharlesmoss/icons/react": { AcmIcon: () => null },
 } });
 const { LocalProjectStatusRow } = load(new URL("../app/studio/controls/local-project-status-row.tsx", import.meta.url));
 

@@ -53,6 +53,8 @@
 
 ### Changed
 
+- Studio installs Icons v0.35.1 from GitHub Packages for the web interface and native preview.
+
 - Studio installs Ribbon v0.2.0 from GitHub Packages.
 
 - Studio installs Panel v0.1.0 from GitHub Packages. The `packages` repository now owns Panel.

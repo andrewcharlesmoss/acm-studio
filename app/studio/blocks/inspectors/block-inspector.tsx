@@ -22,7 +22,7 @@ import { changeGroupLayout, groupStyleVariation, groupVariationFor, setGroupStyl
 
 import { AdvancedFieldsControl, type AdvancedFields } from "../../controls/advanced-fields-control";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ButtonInteractionState, ColumnBlock, ColumnWidthUnit, ContentBlock, DocumentTitleLevel, ListItemSelection, ParagraphBackgroundGradient, ParagraphStyle, PostDateFormat, SiteSectionRole, SpacerUnit, TextAlignment } from "../../../content/model";
 import { NumberUnitField } from "../../controls/number-unit-field";
 import type { LayoutMode } from "../../../content/model";

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { StudioIcon } from "../studio-icons";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { StyleViewport } from "../../content/responsive-styles";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import "./viewport-states-menu.css";

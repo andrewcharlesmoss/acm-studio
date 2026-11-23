@@ -15,7 +15,7 @@ import { rotationFromKey, rotationFromPointer, rotationPointerAngle } from "./co
 import { HistoryActions } from "./controls/history-actions";
 import { StudioDialog } from "./overlays/dialog";
 import { StudioAnchoredMenu } from "./overlays/anchored-menu";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useBlobUrls } from "./controls/use-blob-urls";
 import { ColourPicker } from "./controls/colour-picker";
 import { FontFamilySelect } from "./controls/font-family-setting";

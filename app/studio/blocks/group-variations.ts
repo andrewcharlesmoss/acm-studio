@@ -1,4 +1,4 @@
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import type { ContentBlock, LayoutMode } from "../../content/model";
 import { sectionStyleReference } from "../site-editor/section-style-variations";
 import { GROUP_LAYOUT_VARIATIONS } from "./group-layout-contract";

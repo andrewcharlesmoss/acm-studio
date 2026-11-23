@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ContentBlock } from "../content/model";
 
 type TableBlock = Extract<ContentBlock, { type: "table" }>;

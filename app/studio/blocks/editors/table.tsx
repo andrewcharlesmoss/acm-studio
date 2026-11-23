@@ -6,7 +6,7 @@ import { StudioAnchoredMenu } from "../../overlays/anchored-menu";
 import { TableCaptionControl, useTableCaption } from "../../table-caption-control";
 import { tableCellPresentation, tablePresentation } from "../../../content/table-presentation";
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { TableActionIcon, TableIcon, type TableAction } from "../../table-icons";
 import { textToRuns } from "../../../content/rich-text";
 import { normaliseTableColumnWidths, type ContentBlock, type RichTextRun } from "../../../content/model";

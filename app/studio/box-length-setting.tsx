@@ -6,7 +6,7 @@ import { NumberUnitField } from "./controls/number-unit-field";
 import { RangeControl } from "./controls/range-control";
 
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { cssDecimal, compactBoxLengths, expandBoxLengths, validBoxLengths } from "../content/box-lengths";
 import { SpacingRangeControl } from "./controls/spacing-range-control";
 import { spacingRangeSettings } from "./controls/spacing-range-settings";

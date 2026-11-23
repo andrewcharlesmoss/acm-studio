@@ -73,7 +73,7 @@ test("Heading catalogue dependency resolves to the shared level control and alig
 });
 
 test("all Heading level marks resolve to shared catalogue SVG geometry", () => {
-  const { iconMetadata, iconGeometry } = require("@acm/icons");
+  const { iconMetadata, iconGeometry } = require("@andrewcharlesmoss/icons");
   for (const [index, word] of ["one", "two", "three", "four", "five", "six"].entries()) {
     const name = `text.heading-${word}`;
     assert.equal(iconMetadata[name].label, `Heading ${index + 1}`);

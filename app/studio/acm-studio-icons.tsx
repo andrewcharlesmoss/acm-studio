@@ -4,7 +4,7 @@
  */
 
 import type { SVGProps } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 
 export type AcmStudioIconName =
   | "add" | "align-centre" | "align-left" | "align-right" | "archive"

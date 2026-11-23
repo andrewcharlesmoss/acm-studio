@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createKeyboardSvg } from "@acm/icons/keyboard";
+import { createKeyboardSvg } from "@andrewcharlesmoss/icons/keyboard";
 import { createKeyboardCatalogueState, getKeyboardAppearancePreset, getKeyboardAppearancePresetName, getKeyboardColourControlKey, keyboardCatalogueReducer, KEYBOARD_APPEARANCE_PRESETS } from "../app/studio/ui/keyboard-appearance.mjs";
 
 test("Studio keyboard preview starts with its filled Default preset", () => {

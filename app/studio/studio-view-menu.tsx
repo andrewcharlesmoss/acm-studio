@@ -5,7 +5,7 @@ import { StudioAnchoredMenu } from "./overlays/anchored-menu";
 import { StudioFocusOutlineSetting } from "./focus-outline-preferences";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import { StudioIcon } from "./studio-icons";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 
 export type StudioViewport = "desktop" | "tablet" | "mobile";
 

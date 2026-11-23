@@ -3,7 +3,7 @@ import { RadioGroup } from "../controls/radio-group";
 import { RangeControl } from "../controls/range-control";
 import { useState } from "react";
 import { InspectorToolsSection } from "../inspector-tools-section";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { groupFlexAlignment, groupHorizontalChoices, groupUsesContentWidth, type GroupAlignmentChoice as Choice } from "./group-layout-alignment";
 import type { ContentBlock } from "../../content/model";
 import { ToggleSetting } from "../controls/toggle-setting";

@@ -1,7 +1,7 @@
 "use client";
 import { canAddWebsiteStyleEntry } from "./website-style-limits";
 import { useEffect, useId, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioButton } from "../controls/button";
 import { PaneTabs, PaneTabPanel } from "../panes/pane-components";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";

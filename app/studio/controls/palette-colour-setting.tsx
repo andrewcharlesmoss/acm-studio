@@ -1,7 +1,7 @@
 "use client";
 
 import "./palette-colour-setting.css";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { ColourPicker, ColourValueSwatch, type ColourPaletteEntry } from "./colour-picker";
 import { useSettingInherited } from "./setting-inheritance";
 import { InheritedIndicator } from "./inherited-indicator";

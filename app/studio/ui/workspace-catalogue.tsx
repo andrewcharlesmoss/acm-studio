@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { PaneSpecimen } from "../panes/pane-specimen";
 import { defaultRegions, skeletonDefinition } from "../panes/catalogue-model";
 import type { PaneTabIndicatorVariant } from "../panes/pane-components";

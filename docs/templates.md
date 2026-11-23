@@ -1159,7 +1159,7 @@ workspace v50, publication snapshot v41, template
 store/package/snapshot v0.61.0, clipboard v27, backup v27, Test/Test2 fixture
 source v39, and global template library v31. Earlier envelopes remain readable
 for legacy social blocks and reject generic service children when under-versioned.
-The 42 added @acm/icons service symbols are original ACM monograms, not official
+The 42 added @andrewcharlesmoss/icons service symbols are original ACM monograms, not official
 brand artwork; LinkedIn, TikTok, chain, envelope, and RSS continue to use their
 existing catalogue symbols.
 

@@ -331,7 +331,7 @@ test("Application Section Navigation is generic, route-ready and exposed in Work
 test("shared Icons section keeps ACM artwork and describes usage as catalogue examples", () => {
   const icons = read("app/studio/ui/icons-catalogue.tsx");
   const page = read("app/studio/ui/icons/page.tsx");
-  assert.match(icons, /from "@acm\/icons"/);
+  assert.match(icons, /from "@andrewcharlesmoss\/icons"/);
   assert.match(page, /<StudioUiSectionHost section="icons">/);
   assert.match(icons, /iconAddedAt/);
   assert.match(icons, /Newest Added/);
@@ -368,12 +368,12 @@ test("Block Library catalogue previews the exact shared and Studio symbols used 
 
 test("keyboard inspector exposes each selected key's artwork provenance and available licence notice", () => {
   const keyboard = read("app/studio/ui/keyboard-catalogue.tsx");
-  assert.match(keyboard, /import \{ iconMetadata \} from "@acm\/icons"/);
+  assert.match(keyboard, /import \{ iconMetadata \} from "@andrewcharlesmoss\/icons"/);
   assert.match(keyboard, /const artwork = iconMetadata\[asset\.key\.icon\]/);
   assert.match(keyboard, /<summary>Artwork provenance and licensing<\/summary>/);
   assert.match(keyboard, /\{artwork\.provenance\}/);
-  assert.ok(keyboard.includes('acm-studio/packages/acm-icons/masters/${asset.key.icon}.svg'));
-  assert.ok(keyboard.includes('acm-studio/packages/acm-icons/src/keyboard-layout.js'));
+  assert.ok(keyboard.includes('packages/icons/masters/${asset.key.icon}.svg'));
+  assert.ok(keyboard.includes('packages/icons/src/keyboard-layout.js'));
   assert.match(keyboard, /artwork\.licenceNotice &&/);
   assert.match(keyboard, /<summary>Full licence notice<\/summary>/);
   assert.match(keyboard, /<pre>\{artwork\.licenceNotice\}<\/pre>/);

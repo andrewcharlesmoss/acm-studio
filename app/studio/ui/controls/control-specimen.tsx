@@ -65,7 +65,7 @@ import { ImageDimensionsSetting } from "../../../studio/controls/image-dimension
 import { ParagraphLengthSetting } from "../../../studio/controls/paragraph-length-setting";
 import { PresetNumberSetting } from "../../../studio/controls/preset-number-setting";
 import { StudioIcon } from "../../../studio/studio-icons";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { LibraryDragHandle } from "../../../studio/library-drag-handle";
 import { DragPlacementIndicator } from "../../../studio/drag-placement-indicator";
 import { useLibraryReordering } from "../../../studio/use-library-reordering";

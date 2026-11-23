@@ -1,6 +1,6 @@
 "use client";
 
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import "./inherited-indicator.css";
 
 /** Decorative mark; the owning control supplies its accessible name. */

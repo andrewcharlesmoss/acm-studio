@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { fullKeyboardLayout } from '@acm/icons/keyboard/layout';
+import { fullKeyboardLayout } from '@andrewcharlesmoss/icons/keyboard/layout';
 
 test('platform symbols switch the full keyboard by pointer and keyboard', async ({ page }) => {
   await page.goto('/studio/ui/icons?collection=keyboard');

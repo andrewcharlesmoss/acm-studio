@@ -5,7 +5,7 @@ import type { StyleSelection } from "./styles-preview-state";
 import { cssDecimal } from "../../content/box-lengths";
 import { previewColourEntries, previewColourValue, previewPaletteReference, type PreviewColours } from "./colours-preview-model";
 import type { PreviewPalette } from "./colours-preview-model";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { PaletteColourSetting } from "../controls/palette-colour-setting";
 import { NumberUnitField } from "../controls/number-unit-field";
 import { RadioGroup } from "../controls/radio-group";

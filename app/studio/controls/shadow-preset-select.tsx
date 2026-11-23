@@ -1,7 +1,7 @@
 "use client";
 import { SettingLabel } from "./setting-inheritance";
 import { useRef, useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioAnchoredPopover } from "../overlays/anchored-popover";
 import { PopoverHeading } from "../overlays/popover-heading";
 import { StudioButton } from "./button";

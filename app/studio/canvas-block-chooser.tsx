@@ -3,7 +3,7 @@
 import { SearchInput } from "./controls/native-fields";
 import type { BlockLibraryItemType, blockCatalogue } from "./editor-model";
 import { BlockLibraryIcon } from "./block-library-icons";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioIcon } from "./studio-icons";
 import { StudioAnchoredPopover } from "./overlays/anchored-popover";
 

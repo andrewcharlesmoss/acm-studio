@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioMenuItem } from "../overlays/menu";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 

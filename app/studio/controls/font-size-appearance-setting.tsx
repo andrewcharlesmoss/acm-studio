@@ -1,7 +1,7 @@
 "use client";
 import { SettingLabel } from "./setting-inheritance";
 
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ReactNode } from "react";
 import type { ParagraphAppearance, ParagraphFontSize, ParagraphWeight } from "../../content/model";
 import { CustomFontSizeSetting } from "./custom-font-size-setting";

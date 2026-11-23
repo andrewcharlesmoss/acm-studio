@@ -4,8 +4,8 @@ import { CheckboxControl } from "../controls/checkbox-control";
 
 import { SearchInput, TextInput } from "../controls/native-fields";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { iconNames, iconMetadata, type IconName } from "@acm/icons";
-import { AcmIcon } from "@acm/icons/react";
+import { iconNames, iconMetadata, type IconName } from "@andrewcharlesmoss/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { PanelCard } from "@andrewcharlesmoss/panel";
 import { Ribbon, RibbonButton, RibbonControls, RibbonField, RibbonGroup, RibbonPanel, RibbonToggleButton } from "@andrewcharlesmoss/ribbon";
 import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET } from "./styles/canonical-style-guide";
@@ -45,7 +45,7 @@ const blockEntries: Entry[] = blockLibraryEntries.map((entry) => ({
 const iconEntries: Entry[] = iconNames.map((name) => {
   const metadata = iconMetadata[name];
   return { id: `icon:${name}`, name: metadata.label, section: "Icons", purpose: metadata.description,
-    owner: "@acm/icons", consumers: `Symbol ${name}`, dependencies: metadata.keywords.join(", ") || "Three optical sizes",
+    owner: "@andrewcharlesmoss/icons", consumers: `Symbol ${name}`, dependencies: metadata.keywords.join(", ") || "Three optical sizes",
     href: `/studio/ui/icons?icon=${encodeURIComponent(name)}`, preview: { kind: "icon", key: name } };
 });
 const controlById = Object.fromEntries(studioControlEntries.map((entry) => [entry.id, entry])) as Record<string, StudioControlEntry>;

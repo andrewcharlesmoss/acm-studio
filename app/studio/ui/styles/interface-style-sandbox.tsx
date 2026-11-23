@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { interfaceStylePresetToCssVariables, validateInterfaceStylePreset, type InterfaceStylePreset } from "@acm/styles";
 import { INTERFACE_STYLE_PRESET, STYLE_GUIDE_MARKDOWN } from "./canonical-style-guide";
 import { StudioButton } from "../../controls/button";

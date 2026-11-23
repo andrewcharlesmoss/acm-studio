@@ -5,7 +5,7 @@ import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { InserterToggleIcon } from "./controls/inserter-toggle-icon";
 
 import { Fragment, useId, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties, type DragEvent } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ContentBlock, ParagraphAppearance } from "../content/model";
 import { equivalentLinkDestination, updatedLinkDestination } from "../content/link-destination";
 import { paragraphStyleToCss, paragraphStyleClassName, paragraphStyleAnchor } from "../content/paragraph-styles";

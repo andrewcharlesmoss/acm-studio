@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import { preserveTextSelection } from "./editors/rich-text";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioHoverIcon } from "../studio-hover-icon";

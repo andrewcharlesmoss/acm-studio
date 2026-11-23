@@ -8,7 +8,7 @@ import { ToggleSetting } from "../../controls/toggle-setting";
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { StudioButton } from "../../controls/button";
 import { forwardRef, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type FocusEvent, type MouseEvent, type PointerEvent, type SetStateAction, type UIEvent } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import {
   resolveUniversalStyleValue,
   universalStylePresetToCssVariables,

@@ -1,4 +1,4 @@
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "react";
 import { controlLibraryAttributes } from "./control-library-links";
 import "./back-action.css";

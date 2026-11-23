@@ -4,10 +4,10 @@ import { readStudioSource } from "./studio-module-source.mjs";
 import { readFileSync } from "node:fs";
 
 import test from "node:test";
-import { iconGeometry, iconMetadata, iconNames, iconScales } from "@acm/icons";
+import { iconGeometry, iconMetadata, iconNames, iconScales } from "@andrewcharlesmoss/icons";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { hasFilledIcon } from "@acm/icons/filled";
+import { hasFilledIcon } from "@andrewcharlesmoss/icons/filled";
 
 function load(file) {
   return createIsolatedModuleLoader({ globals: { console, URL, Map, Set } })(file);

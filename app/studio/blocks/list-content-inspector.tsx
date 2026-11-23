@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useLayoutEffect, useRef, useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ContentBlock, ListBlock } from "../../content/model";
 import { focusInspectorListItem, ListInspectorCanvasContext } from "../list-inspector-navigation";
 

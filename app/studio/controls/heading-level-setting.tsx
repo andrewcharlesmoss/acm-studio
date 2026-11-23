@@ -1,7 +1,7 @@
 "use client";
 
-import { AcmIcon } from "@acm/icons/react";
-import type { IconName } from "@acm/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import type { HeadingLevel } from "../../content/model";
 
 const headingSymbols: Record<HeadingLevel, IconName> = {

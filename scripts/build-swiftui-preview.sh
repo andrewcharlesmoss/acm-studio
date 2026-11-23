@@ -1,9 +1,16 @@
 #!/bin/sh
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+icon_source() (
+  cd "$root"
+  node --input-type=module -e '
+    import { fileURLToPath } from "node:url";
+    console.log(fileURLToPath(import.meta.resolve(process.argv[1])));
+  ' "@andrewcharlesmoss/icons/svg/$1/Regular-M.svg"
+)
 for icon_name in arrange.reorder view.show view.hide; do
-  if [ ! -f "$root/packages/acm-icons/dist/svg/$icon_name/Regular-M.svg" ]; then
-    printf '%s\n' "Missing shared icon $icon_name; build the packages/acm-icons package first." >&2
+  if ! icon_file=$(icon_source "$icon_name") || [ ! -f "$icon_file" ]; then
+    printf '%s\n' "Missing shared icon $icon_name. Run npm ci in the Studio root." >&2
     exit 1
   fi
 done
@@ -11,9 +18,9 @@ swift build --package-path "$root/native/ACMReorderPreview" -c release --product
 bundle="$root/native/ACMReorderPreview/.build/ACMReorderPreview.app/Contents"
 mkdir -p "$bundle/MacOS" "$bundle/Resources"
 cp "$root/native/ACMReorderPreview/.build/release/ACMReorderPreview" "$bundle/MacOS/ACMReorderPreview"
-cp "$root/packages/acm-icons/dist/svg/arrange.reorder/Regular-M.svg" "$bundle/Resources/reorder.svg"
+cp "$(icon_source arrange.reorder)" "$bundle/Resources/reorder.svg"
 for icon_name in view.show view.hide; do
-  cp "$root/packages/acm-icons/dist/svg/$icon_name/Regular-M.svg" "$bundle/Resources/$icon_name.svg"
+  cp "$(icon_source "$icon_name")" "$bundle/Resources/$icon_name.svg"
 done
 cat > "$bundle/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

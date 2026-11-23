@@ -1,4 +1,4 @@
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import type { ContentBlock } from "../../content/model";
 
 export type GroupBlock = Extract<ContentBlock, { type: "group" }>;

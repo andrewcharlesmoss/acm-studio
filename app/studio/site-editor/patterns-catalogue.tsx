@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioAnchoredPopover } from "../overlays/anchored-popover";
 import { RadioGroup } from "../controls/radio-group";

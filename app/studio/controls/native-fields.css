@@ -8,7 +8,7 @@
 /* Canonical indicator geometry must survive consumers’ background/padding shorthands. */
 select.studio-native-field[data-select-indicator="inset"]:not([multiple]):not([size]) {
   appearance:none !important;
-  background-image:url("@acm/icons/svg/navigation.disclosure/Regular-S.svg?inline") !important;
+  background-image:url("@andrewcharlesmoss/icons/svg/navigation.disclosure/Regular-S.svg?inline") !important;
   background-repeat:no-repeat !important;
   background-position:right 12px center !important;
   background-size:16px 16px !important;

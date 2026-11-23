@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { SettingLabel } from "../controls/setting-inheritance";
 import { TextArea } from "../controls/native-fields";
 import { StudioButton } from "../controls/button";

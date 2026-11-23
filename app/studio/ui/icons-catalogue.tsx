@@ -6,17 +6,17 @@ import { ColourPicker } from "../controls/colour-picker";
 
 import { SelectControl, TextInput } from "../controls/native-fields";
 import { useState } from "react";
-import { iconNames, iconMetadata, iconScales, iconAddedAt, iconModifiedAt, resolveIconName, type IconName } from "@acm/icons";
-import { AcmIcon } from "@acm/icons/react";
-import { hasFilledIcon, createFilledSvg } from "@acm/icons/filled";
-import { createStatusSvg, statusColourRole } from "@acm/icons/status-colours";
-import { createIllustrationSvg, hasIllustrationColours } from "@acm/icons/illustration-colours";
-import { createSecuritySvg, hasSecurityColours } from "@acm/icons/security-colours";
-import { createFeatureSvg, hasFeatureColours } from "@acm/icons/feature-colours";
-import { createAnnotationSvg, hasAnnotationColours } from "@acm/icons/annotation-colours";
-import { createMediaSvg, mediaColourRole } from "@acm/icons/media-colours";
+import { iconNames, iconMetadata, iconScales, iconAddedAt, iconModifiedAt, resolveIconName, type IconName } from "@andrewcharlesmoss/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
+import { hasFilledIcon, createFilledSvg } from "@andrewcharlesmoss/icons/filled";
+import { createStatusSvg, statusColourRole } from "@andrewcharlesmoss/icons/status-colours";
+import { createIllustrationSvg, hasIllustrationColours } from "@andrewcharlesmoss/icons/illustration-colours";
+import { createSecuritySvg, hasSecurityColours } from "@andrewcharlesmoss/icons/security-colours";
+import { createFeatureSvg, hasFeatureColours } from "@andrewcharlesmoss/icons/feature-colours";
+import { createAnnotationSvg, hasAnnotationColours } from "@andrewcharlesmoss/icons/annotation-colours";
+import { createMediaSvg, mediaColourRole } from "@andrewcharlesmoss/icons/media-colours";
 import { useSharedStylePreset } from "./styles/shared-style-preset";
-import { hasSocialBrandVariant, createSocialBrandSvg } from "@acm/icons/social-brand";
+import { hasSocialBrandVariant, createSocialBrandSvg } from "@andrewcharlesmoss/icons/social-brand";
 import { AcmStudioIcon } from "../acm-studio-icons";
 import { studioToolIcons } from "../studio-tool-icon";
 import { blockLibraryEntries } from "../blocks/library-catalogue";
@@ -283,7 +283,7 @@ export function IconsCatalogue({ initialIcon, initialBlock, collection = "icons"
           <h3>Ribbon catalogue examples</h3>
           <ul className="rl-usage">{ribbonExamples.map((control) => <li key={control.id}><small>{control.product === "skeleton" ? "Component Specimen" : control.product === "studio" ? "ACM Studio" : "ACM Account"}</small>{control.label}{icon !== control.icon ? " (state variant)" : ""}</li>)}</ul>
           {!ribbonExamples.length && <p>No Ribbon catalogue examples use this symbol.</p>}
-          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>acm-studio/packages/acm-icons/masters/{icon}.svg</code><p>{iconStyle === "filled" ? "Filled artwork is derived from this master at all three optical scales." : "Three editable optical scales from the shared ACM icon catalogue."}</p></details>
+          <details><summary>Provenance and source</summary><p>{iconMetadata[icon].provenance}</p><code>packages/icons/masters/{icon}.svg</code><p>{iconStyle === "filled" ? "Filled artwork is derived from this master at all three optical scales." : "Three editable optical scales from the shared ACM icon catalogue."}</p></details>
         </aside>
       </div>}
     </section>;

@@ -28,7 +28,7 @@ import { PopoverHeading } from "../overlays/popover-heading";
 import { StudioButton } from "../controls/button";
 import { IdentityImagePicker } from "./identity-image-picker";
 import { useBlobUrls } from "../controls/use-blob-urls";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { blockStyleProfiles, blockStyleLabels, type BlockStyleControl } from "./block-style-profiles";
 import { previewButtonWidth, effectivePreviewBlockStyle, type HeadingBackground, type PreviewBlockId, type PreviewBlockStyle } from "./blocks-preview-model";
 import { visibleTypographyFonts, resolveFontSizePresets } from "./typography-preview-model";

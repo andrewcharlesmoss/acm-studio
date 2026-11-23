@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { SearchInput } from "../../controls/native-fields";
 import { blockContextEntries as blockLibraryEntries } from "./block-contexts";
 import { CatalogueNavigation, type CatalogueNavigationGroup } from "../catalogue-navigation.tsx";

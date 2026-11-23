@@ -907,8 +907,8 @@ test("text block hover controls use shared ACM icons", async () => {
     readFile(new URL("../app/studio/block-library-icons.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(canvas, /aria-label=\{`Transform \$\{blockOutlineLabel\(block\)\} block`\}/);
-  assert.match(canvas, /import \{ AcmIcon \} from "@acm\/icons\/react"/);
-  assert.match(canvas, /import type \{ IconName \} from "@acm\/icons"/);
+  assert.match(canvas, /import \{ AcmIcon \} from "@andrewcharlesmoss\/icons\/react"/);
+  assert.match(canvas, /import type \{ IconName \} from "@andrewcharlesmoss\/icons"/);
   assert.match(canvas, /<HoverBlockTypeIcon type=\{block\.type === "group" \? groupVariationFor\(block\)\.type : block\.type\} headingLevel=\{block\.type === "heading" \? block\.level : undefined\}/);
   assert.match(canvas, /return <BlockTypeIcon type=\{type\} \/>/);
   assert.match(canvas, /return <BlockLibraryIcon type=\{type\} \/>/);

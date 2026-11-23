@@ -19,7 +19,7 @@ The Icons catalogue provides a session-only preview colour for its grid and insp
 ## Tool navigation icons
 
 `app/studio/studio-tool-icon.tsx` owns tool icon mappings for the homepage and
-editor navigation. Both surfaces render the same `@acm/icons` catalogue artwork
+editor navigation. Both surfaces render the same `@andrewcharlesmoss/icons` catalogue artwork
 at the Regular-M optical scale. Files uses `library.files`, Design Canvas uses
 `library.designs`, Backup uses `output.backup`, and Bin uses `action.delete`.
 Templates uses `component.block`, Content Studio uses `action.edit`, and Studio
@@ -111,7 +111,7 @@ workbench stacks before its three columns exceed the available page width.
 ## Ownership boundaries
 
 The library groups reference views without combining package ownership. The
-Studio-owned `@acm/icons` package owns original shared symbol artwork and metadata;
+Studio-owned `@andrewcharlesmoss/icons` package owns original shared symbol artwork and metadata;
 ACM Studio owns its Studio-specific symbols. The Block Library collection
 identifies which source supplies each tile symbol and previews both sets at
 16, 24 and 32px. Shared symbols use their Regular-S, Regular-M and Regular-L
@@ -396,7 +396,7 @@ The Icons inspector downloads the selected original symbol as SVG at its chosen
 three times the selected pixel dimensions and retain a transparent background.
 The Interface Icons collection keeps catalogue order by default and can sort
 symbols by newest or oldest first. The inspector shows the selected symbol's
-first package commit timestamp in UK local time; the owning `@acm/icons` package
+first package commit timestamp in UK local time; the owning `@andrewcharlesmoss/icons` package
 keeps the complete ISO timestamp with its UTC offset for exact chronological
 sorting.
 
@@ -695,7 +695,7 @@ Function assignments and optional keys vary by model, OS and manufacturer;
 this is a catalogue of common key types rather than a model-exact physical
 layout.
 
-The Studio-owned `@acm/icons` package owns the glyph masters, shared square,
+The Studio-owned `@andrewcharlesmoss/icons` package owns the glyph masters, shared square,
 wide, tall, Backspace, Spacebar, numeric-zero and left/right Shift keycap frames, platform
 metadata and SVG composer. Backspace is 84 × 48 units, Spacebar is 240 × 48,
 left Shift is 84 × 48, right Shift is 96 × 48 and numeric zero is 96 × 48.
@@ -733,7 +733,7 @@ and Up use small and large suns without additional minus/plus marks;
 Touch ID and Power have separate symbols, AltGr has its own legend, and the
 Context Menu key uses a menu symbol. The F6 Focus key uses a broad, clearly
 legible crescent. The selected-key inspector includes the icon's catalogue
-provenance and any full licence notice supplied by `@acm/icons`. Copilot uses
+provenance and any full licence notice supplied by `@andrewcharlesmoss/icons`. Copilot uses
 the MIT-licensed monochrome brand SVG from Lobe Icons, with one preserved
 ribbon shape at all three scales.
 Its pinned source and licence live in `acm-icons/sources/copilot/`; SVG downloads
@@ -789,7 +789,7 @@ The caption prompt is not a persisted content attribute.
 
 The Table toolbar uses 40px icon targets, 24px formatting symbols and wider
 paired alignment controls. Its caption visibility button consumes the original
-`text.caption` symbol from `@acm/icons`; the accessible name switches between
+`text.caption` symbol from `@andrewcharlesmoss/icons`; the accessible name switches between
 Add caption and Remove caption. Table spacing is scoped to its toolbar, while
 dropdown rows retain their own dimensions.
 
@@ -934,7 +934,7 @@ consume that same route-scoped token in Edit and Preview. Pane surfaces remain i
 
 ## Drag-to-position specimen
 
-The web implementation is the interactive example below. On macOS, choose Open SwiftUI Preview to open the genuine native example in a separate window. From the Studio root, prepare it with `./scripts/build-swiftui-preview.sh`; restart the local Studio server after adding the preview bridge. The local-only bridge launches a fixed prebuilt executable and is unavailable in hosted Studio. The build requires `packages/acm-icons` to provide `dist/svg/arrange.reorder/Regular-M.svg` and copies that icon into the preview application. The native preview’s eye button reveals per-item visibility controls, right-hand drag handles, a visible/hidden count and Done. Hidden items remain muted and recoverable while editing; Done closes editing after immediate temporary changes. Undo, Redo and Reset include both order and visibility. The read-only example prevents mutations. The handle inherits the shared macOS open-hand hover and closed-hand drag cursor. Build and test this fixture from the Studio root with `./scripts/build-swiftui-preview.sh` and `swift test --package-path native/ACMReorderPreview`. The build also requires the shared `view.show` and `view.hide` icons from the shared catalogue.
+The web implementation is the interactive example below. On macOS, choose Open SwiftUI Preview to open the genuine native example in a separate window. From the Studio root, prepare it with `./scripts/build-swiftui-preview.sh`; restart the local Studio server after adding the preview bridge. The local-only bridge launches a fixed prebuilt executable and is unavailable in hosted Studio. The build copies the installed `@andrewcharlesmoss/icons/svg/arrange.reorder/Regular-M.svg` into the preview application. The native preview’s eye button reveals per-item visibility controls, right-hand drag handles, a visible/hidden count and Done. Hidden items remain muted and recoverable while editing; Done closes editing after immediate temporary changes. Undo, Redo and Reset include both order and visibility. The read-only example prevents mutations. The handle inherits the shared macOS open-hand hover and closed-hand drag cursor. Build and test this fixture from the Studio root with `./scripts/build-swiftui-preview.sh` and `swift test --package-path native/ACMReorderPreview`. The build also requires the shared `view.show` and `view.hide` icons from the shared catalogue.
 
 The reusable SwiftUI
 vertical-list implementation lives at `native/ACMReorder`; Project Ports uses
@@ -1454,7 +1454,7 @@ for those families. It does not scan sibling products or generated output.
 
 
 The shared Select dropdown owns its single-select indicator: the original
-`@acm/icons` navigation.disclosure artwork is centred vertically, inset 12px
+`@andrewcharlesmoss/icons` navigation.disclosure artwork is centred vertically, inset 12px
 from the inline end, with 36px reserved end padding. Disabled and invalid states
 retain the same geometry; right-to-left selects mirror the placement. Forced
 colours restores the native indicator. Multiple/size listboxes retain native
@@ -2073,7 +2073,7 @@ The Keyboard UK Set includes illustrative full-size Mac and Windows layouts with
 numeric keypads. The Mac layout follows the supplied UK keyboard references;
 the unlabeled navigation utility remains intentionally unidentified. The full
 keyboard preview and SVG/PNG exports reuse the shared
-`@acm/icons/keyboard/layout` composition and the key colour settings. The Mac
+`@andrewcharlesmoss/icons/keyboard/layout` composition and the key colour settings. The Mac
 keyboard has a silver case and rounded outer key corners; exports remain
 transparent outside it and inside keys when Transparent Fill is selected.
 Selected upper punctuation legends are enlarged in the full Mac layout to

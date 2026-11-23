@@ -1,4 +1,4 @@
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import { safeTextLink } from "./rich-text";
 
 /** WordPress 7.1's built-in core/social-link service keys and visible names. */

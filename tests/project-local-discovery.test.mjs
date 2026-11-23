@@ -51,7 +51,7 @@ function harness() {
   const require = id => id === "react" ? react : id === "react/jsx-runtime" ? { jsx, jsxs: jsx }
     : id.endsWith("project-registry") ? { studioProjects: ["test", "test2", "acm-studio"].map(id => ({ id, name: id === "test" ? "Test" : id === "test2" ? "Test2" : "ACM Studio" })) }
     : id.endsWith("test-site/sites") ? { isLocalFixtureSiteId: id => id === "test" || id === "test2", localFixtureHref: id => `/studio?site=${id}` }
-    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id.endsWith("local-project-status-row") ? statusComponents : id === "@acm/icons/react" ? { AcmIcon: "icon" } : {};
+    : id.endsWith("studio-icons") ? { StudioIcon: "icon" } : id.endsWith("controls/button") ? { StudioButton: "button" } : id.endsWith("local-project-status-row") ? statusComponents : id === "@andrewcharlesmoss/icons/react" ? { AcmIcon: "icon" } : {};
   const production = createHostModuleEvaluator(["require", "exports", "fetch", "window", "document", "AbortController", "queueMicrotask", "URL"], `${source}\nreturn {...exports, useProjectLocalVisit};`)(require, {}, fetch, window, { visibilityState: "visible" }, AbortController, queueMicrotask, URL);
   function component(render) {
     const owner = { cursor: 0, slots: [], effects: [], layoutEffects: [], updates: 0, render({ passive = true } = {}) {

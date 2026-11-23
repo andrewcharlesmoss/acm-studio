@@ -1,7 +1,7 @@
 "use client";
 
 import { ToggleSetting } from "./controls/toggle-setting";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { handleStudioHistoryShortcut } from "./studio-history-shortcuts.mjs";
 import { HistoryActions } from "./controls/history-actions";
 import { StudioButton } from "./controls/button";

@@ -18,8 +18,8 @@
     "test:browser": "playwright test"
   },
   "dependencies": {
-    "@acm/icons": "file:./packages/acm-icons",
     "@acm/styles": "file:./packages/acm-styles",
+    "@andrewcharlesmoss/icons": "0.35.1",
     "@andrewcharlesmoss/panel": "0.1.0",
     "@andrewcharlesmoss/ribbon": "0.2.0",
     "highlight.js": "^11.11.1",

@@ -5,7 +5,7 @@ import type { ContentBlock, TableCellMetadata, TextAlignment } from "../../conte
 import { setTableCellAlignment, tableCellPresentation, type TableCellPosition } from "../../content/table-presentation";
 import { validTableActiveCell } from "../../content/table-actions";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { AlignmentIcon } from "./editors/rich-text";
 
 /** Production and Library share the same target validation, actions and dismissal. */

@@ -1,4 +1,4 @@
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 
 export type ComponentName = "Ribbon" | "RibbonTabs" | "RibbonPanel" | "RibbonGroup" | "RibbonControls" | "RibbonButton" | "RibbonToggleButton" | "RibbonField";
 export type ControlKind = "button" | "toggle" | "text" | "number" | "select" | "range" | "split" | "compound-range";

@@ -38,7 +38,7 @@ It is a command specimen, not a second drawing editor.
   exposes its own popup ref for inspection across the portal boundary. Selected
   popup actions carry an inset inspection border that follows shared placement
   without a second positioning controller.
-- The shared `packages/acm-icons` package owns editable masters, metadata, generated
+- The shared `@andrewcharlesmoss/icons` package owns editable masters, metadata, generated
   portable assets and the React adapter. Studio does not edit generated paths.
 - Studio's block hover toolbar, block transforms, alignment controls and rich-text
   menus consume the shared ACM icon package. Their actions and accessible names
@@ -76,7 +76,7 @@ snapshot revision/hashes and review the rendered result together.
 
 The shared workspace AGENTS.md and STYLE_GUIDE.md are unversioned; this work used
 governance commit `029d90672e94d69ceb12db07450197d07ffa96d1`. The current icon contract
-is [ACM icon specification v0.8.0](../packages/acm-icons/SPECIFICATION.md).
+is [ACM icon specification v0.8.0](https://github.com/andrewcharlesmoss/packages/blob/icons/v0.35.1/icons/SPECIFICATION.md).
 
 ## Local setup and verification
 

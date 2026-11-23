@@ -5,7 +5,7 @@ import { InheritedIndicator } from "./inherited-indicator";
 import "./background-selection.css";
 
 import { useRef, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 import type { ParagraphBackgroundGradient } from "../../content/model";
 import { paragraphTextColourHasPoorContrast } from "../../content/paragraph-styles";

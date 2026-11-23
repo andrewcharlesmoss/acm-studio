@@ -39,8 +39,8 @@ These dimensions are a visual reference; its artwork comes from the ACM icon
 collection. Keep the menu compact and do not infer CSS sizes from Retina
 screenshots.
 
-Studio interaction controls use original ACM artwork from the Studio-owned
-`@acm/icons` catalogue. Use its React adapter and optical scales, and keep
+Studio interaction controls use original ACM artwork from the shared
+`@andrewcharlesmoss/icons` catalogue. Use its React adapter and optical scales, and keep
 new shared symbols product-neutral. Preserve the `StudioIcon` and table-icon
 wrappers as compatibility APIs. Do not trace or copy third-party paths.
 The Design rotation handle uses the shared `arrange.rotate-free` two-arrow
@@ -51,11 +51,11 @@ Library rotation specimen inherit `RotationHandle`, its shared CSS and
 `rotation-geometry.ts`; owners retain transaction and persistence adapters.
 Andrew explicitly authorised the Copilot keyboard mark
 as a sourced brand exception on 26 September 2026. Its MIT-licensed Lobe Icons
-SVG, provenance and licence are owned by `packages/acm-icons/sources/copilot/`; preserve
+SVG, provenance and licence are owned by `icons/sources/copilot/` in the Packages repository. Preserve
 the shared geometry and licence notices when previewing or exporting it.
 Andrew authorised Inter-derived H1–H6 heading marks on 2 October 2026. These
 shared font-outline assets use the pinned, licensed source in
-`packages/acm-icons/sources/inter/`; retain their provenance and licence notices.
+`icons/sources/inter/` in the Packages repository. Retain their provenance and licence notices.
 
 ## Library specimens and saved styles
 
@@ -90,9 +90,9 @@ Workspace composes the shared Ribbon and Pane specimens; Ribbon details live at
 `/studio/ui/ribbon`, Pane details at `/studio/ui/panes`, and the broadly shared
 icon catalogue at `/studio/ui/icons`. The prior `/studio/ribbon` and
 `/studio/panes` routes redirect to their new sections. ACM symbols come from the
-`packages/acm-icons` shared package. The UK Keyboard collection lives at
+`@andrewcharlesmoss/icons` shared package. The UK Keyboard collection lives at
 `/studio/ui/icons?collection=keyboard`. Shared keycap assets are owned by
-`@acm/icons/keyboard`. The collection covers the common UK ISO Mac and Windows
+`@andrewcharlesmoss/icons/keyboard`. The collection covers the common UK ISO Mac and Windows
 key families; layouts and hardware-dependent legends remain model-specific.
 The Studio preview's default appearance and Reset to Default behaviour are
 defined in `docs/studio-ui-library.md`; keep them separate from the shared

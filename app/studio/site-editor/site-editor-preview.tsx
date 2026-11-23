@@ -20,7 +20,7 @@ import type { StyleViewport } from "../../content/responsive-styles";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { BlockRenderer } from "../../components/content";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { TwoLeftPaneWorkspace } from "../panes/two-left-pane-workspace";
 import { StudioNavigationWorkspace } from "../panes/studio-navigation-workspace";
 import { StudioNavigationFrame } from "../studio-navigation-frame";

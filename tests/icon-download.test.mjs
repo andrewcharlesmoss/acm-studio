@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { iconGeometry, iconNames, iconMetadata, iconScales } from "@acm/icons";
+import { iconGeometry, iconNames, iconMetadata, iconScales } from "@andrewcharlesmoss/icons";
 import { createIconSvg } from "../app/studio/ui/icon-download.mjs";
 
 const escapeXml = (value) => value.replace(/[<>&"']/g, (character) => ({

@@ -1,8 +1,8 @@
 /** Compatibility wrapper for ACM Studio's shared, original icon collection. */
 
 import type { SVGProps } from "react";
-import { AcmIcon } from "@acm/icons/react";
-import type { IconName } from "@acm/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import { AcmStudioIcon, type AcmStudioIconName } from "./acm-studio-icons";
 
 export type StudioIconName = Extract<AcmStudioIconName,

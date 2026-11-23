@@ -1,6 +1,6 @@
 "use client";
 
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useState } from "react";
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { RadioGroup } from "../../controls/radio-group";

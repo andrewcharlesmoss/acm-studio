@@ -102,7 +102,7 @@ recorded in [`docs/design-canvas.md`](docs/design-canvas.md).
 
 ## Clean checkout setup
 
-Studio owns Icons and Styles in `packages/`. The private Panel and Ribbon
+Studio owns Styles in `packages/`. The private Icons, Panel, and Ribbon
 dependencies come from the independent `packages` repository and are pinned to
 their GitHub Packages releases. A clean `npm ci` requires
 read access to that registry. The workspace style guide remains in the

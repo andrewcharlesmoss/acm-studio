@@ -13,7 +13,7 @@ import { AUTHORED_LINE_BREAK_HTML, LINE_BREAK_FILLER_HTML, isRichTextLineBreakFi
 import { marksAtCaret, changeCaretMark, formatCaretInsertion } from "../../../content/caret-formatting";
 import { caretFormats, CARET_FORMAT_EVENT, type CaretFormatRequest, type CaretFormatSnapshot } from "../../caret-formatting-command";
 import { useLayoutEffect, useRef, type ClipboardEvent as ReactClipboardEvent, type HTMLAttributes, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type RefObject, type TextareaHTMLAttributes } from "react";
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import { useFitText } from "../../../components/fit-text-paragraph";
 import { isInteractiveTextMark, normaliseTextRuns, plainTextFromRuns, safeImageSource, safeTextLink, textToRuns, updateTextMark, withoutInteractiveTextMarks } from "../../../content/rich-text";
 import { type RichTextRun, type TextAlignment, type TextMark } from "../../../content/model";

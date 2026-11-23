@@ -1,4 +1,4 @@
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { GROUP_LAYOUT_VARIATIONS } from "./group-layout-contract";
 import type { LayoutMode } from "../../content/model";
 import { RadioGroup } from "../controls/radio-group";

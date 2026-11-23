@@ -1,6 +1,6 @@
 "use client";
 
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useLayoutEffect, useRef, type ComponentPropsWithoutRef, type PointerEvent } from "react";
 import { StudioButton } from "./button";
 import { NumberInput } from "./native-fields";

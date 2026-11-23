@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { safeTextLink } from "../content/rich-text";
 import { paragraphStyleToCss, paragraphStyleClassName, paragraphStyleAnchor } from "../content/paragraph-styles";
 import { navigationPageListBlock, isNavigationSpacer, type NavigationTemplateNode, type NavigationItem, type SiteLink } from "./template-model";

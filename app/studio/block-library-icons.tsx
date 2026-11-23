@@ -1,6 +1,6 @@
 import type { GroupVariationType } from "./blocks/group-variations";
-import type { IconName, IconScale } from "@acm/icons";
-import { AcmIcon } from "@acm/icons/react";
+import type { IconName, IconScale } from "@andrewcharlesmoss/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ContentBlock } from "../content/model";
 import { coreSocialServiceIcon, socialServiceFromInsertType, type SocialServiceInsertType } from "../content/social-services";
 

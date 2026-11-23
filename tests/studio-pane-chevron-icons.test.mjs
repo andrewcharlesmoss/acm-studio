@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { iconScales } from "@acm/icons";
+import { iconScales } from "@andrewcharlesmoss/icons";
 
 const read = path => readFileSync(path, "utf8");
 
@@ -20,8 +20,8 @@ test("pane controls use the catalogued horizontal chevron and keep disclosure se
   assert.deepEqual(iconScales, ["Regular-S", "Regular-M", "Regular-L"]);
   assert.match(catalogue, /Three editable optical scales from the shared ACM icon catalogue/);
   assert.match(catalogue, /iconMetadata\[icon\]\.provenance/);
-  assert.ok(catalogue.includes("acm-studio/packages/acm-icons/masters/{icon}.svg"));
-  assert.match(read("packages/acm-icons/masters/navigation.chevron-right.svg"), /<svg\b/);
+  assert.ok(catalogue.includes("packages/icons/masters/{icon}.svg"));
+  assert.match(readFileSync(new URL(import.meta.resolve("@andrewcharlesmoss/icons/svg/navigation.chevron-right/Regular-M.svg")), "utf8"), /<svg\b/);
 });
 
 test("vertical options compatibility icon uses the vertical catalogue artwork", () => {

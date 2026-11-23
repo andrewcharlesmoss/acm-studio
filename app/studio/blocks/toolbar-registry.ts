@@ -1,5 +1,5 @@
 import type { ContentBlock } from "../../content/model";
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import type { StudioIconName } from "../studio-icons";
 
 type BlockToolbarIcon = IconName | StudioIconName;

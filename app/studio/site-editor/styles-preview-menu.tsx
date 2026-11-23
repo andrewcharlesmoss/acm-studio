@@ -1,4 +1,4 @@
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 
 /** Available categories share the temporary Styles history; future categories remain visible. */
 export function StylesPreviewMenu({ onBrowse, onTypography, onColours, onBackground, onShadows, onLayout, onBlocks }: { onBrowse?: () => void; onTypography?: () => void; onColours?: () => void; onBackground?: () => void; onShadows?: () => void; onLayout?: () => void; onBlocks?: () => void }) {

@@ -1,4 +1,4 @@
-import { iconGeometry, iconMetadata } from "@acm/icons";
+import { iconGeometry, iconMetadata } from "@andrewcharlesmoss/icons";
 
 /**
  * @param {string} value
@@ -16,8 +16,8 @@ function escapeXml(value) {
 /**
  * Build a portable SVG with an explicit foreground colour and the chosen
  * optical variant. The standalone artwork stays transparent around the glyph.
- * @param {import("@acm/icons").IconName} name
- * @param {import("@acm/icons").IconScale} scale
+ * @param {import("@andrewcharlesmoss/icons").IconName} name
+ * @param {import("@andrewcharlesmoss/icons").IconScale} scale
  * @param {number} size
  */
 export function createIconSvg(name, scale, size) {

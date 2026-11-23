@@ -23,7 +23,7 @@ import { GroupGlobalStylesContext } from "./blocks/inspectors/paragraph-inspecto
 
 import { loadStoredInlineImages } from "./inline-image-library";
 import { useEffect, useLayoutEffect, useEffectEvent, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useStudioWorkspace } from "./use-studio-workspace";
 import { useTemplates } from "./use-templates";
 import { useStudioHistoryShortcuts } from "./use-studio-history-shortcuts";

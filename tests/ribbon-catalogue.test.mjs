@@ -16,7 +16,7 @@ test("multiple real Ribbon instances render unique accessible tab/panel relation
   assert.equal([...markup.matchAll(/aria-hidden="true" tabindex="-1"/gi)].length,2);
 });
 import { readFileSync } from "node:fs";
-import { iconNames, iconScales, iconGeometry } from "@acm/icons";
+import { iconNames, iconScales, iconGeometry } from "@andrewcharlesmoss/icons";
 import { commandInventory, componentDescriptions, examples, flattenControls, flattenStructure, shapeOptions, structureFor, studioExample, accountExample, zoomOptions } from "../app/studio/ribbon/catalogue-model.ts";
 import { controlPresentation, demoCanvasSize, disabledReason, hasAccountSelection, initialDemo, rangeValue, runDemoCommand, setAccountColumns, setDemoSelection, visibleRows } from "../app/studio/ribbon/demo-state.ts";
 const control = (id) => { const result = commandInventory.find((item) => item.id === id); assert.ok(result,id); return result; };

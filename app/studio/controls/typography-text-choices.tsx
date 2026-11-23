@@ -1,6 +1,6 @@
 "use client";
 
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ReactNode } from "react";
 import { RadioGroup } from "./radio-group";
 

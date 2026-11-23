@@ -3,7 +3,7 @@ import { explicitPaletteColour } from "./style-provenance";
 import { SettingLabel, SettingInheritanceProvider, inheritedSettingLabels } from "../controls/setting-inheritance";
 
 import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioButton } from "../controls/button";
 import { ColourPicker, ColourValueSwatch } from "../controls/colour-picker";
 import { GradientPicker } from "../controls/gradient-picker";

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { iconNames } from '@acm/icons';
-import { hasFilledIcon } from '@acm/icons/filled';
+import { iconNames } from '@andrewcharlesmoss/icons';
+import { hasFilledIcon } from '@andrewcharlesmoss/icons/filled';
 
 test('filled icon selection previews and downloads the matching artwork', async ({ page }) => {
   const filledNames = iconNames.filter(name => !name.startsWith('keyboard.') && hasFilledIcon(name)).sort();
@@ -13,7 +13,7 @@ test('filled icon selection previews and downloads the matching artwork', async 
   }).toPass({ timeout: 15000 });
   await expect(page.getByLabel('Icon Colours')).toBeDisabled();
   await page.getByText('Provenance and source').click();
-  await expect(page.locator('.rl-inspector code').last()).toHaveText('acm-studio/packages/acm-icons/masters/navigation.home.svg');
+  await expect(page.locator('.rl-inspector code').last()).toHaveText('packages/icons/masters/navigation.home.svg');
   for (const name of ['navigation.home', 'library.files', 'action.search', 'action.copy', 'action.duplicate', 'action.archive', 'action.delete', 'communication.bell', 'communication.envelope', 'time.calendar', 'device.mobile', 'taxonomy.tag']) {
     await cards.filter({ has: page.getByText(name, { exact: true }) }).click();
     const paths = await page.locator('.rl-scale-samples > div').nth(1).locator('span:first-child svg path').evaluateAll(elements => elements.map(element => element.getAttribute('d')));
@@ -30,7 +30,7 @@ test('filled icon selection previews and downloads the matching artwork', async 
   await page.getByRole('button', { name: 'Download 16px PNG at 3×' }).click();
   expect((await pngPending).suggestedFilename()).toContain('-filled-16px-3x.png');
   await page.getByRole('radio', { name: 'Outline' }).check();
-  await expect(page.locator('.rl-inspector code').last()).toHaveText('acm-studio/packages/acm-icons/masters/taxonomy.tag.svg');
+  await expect(page.locator('.rl-inspector code').last()).toHaveText('packages/icons/masters/taxonomy.tag.svg');
   await expect(page.getByLabel('Icon Colours')).toBeEnabled();
   await expect.poll(async () => (await cards.locator('small').allTextContents()).sort()).toEqual(outlineNames);
 });

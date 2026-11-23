@@ -1,5 +1,5 @@
-import { AcmIcon } from "@acm/icons/react";
-import type { IconName } from "@acm/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
+import type { IconName } from "@andrewcharlesmoss/icons";
 
 const tableActions = {
   "insert-row-before": "table.row-before",

@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, type CSSProperties } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { TextInput } from "../controls/native-fields";
 import { StudioButton } from "../controls/button";
 import { ToggleSetting } from "../controls/toggle-setting";

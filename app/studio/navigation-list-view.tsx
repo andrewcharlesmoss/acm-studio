@@ -1,4 +1,4 @@
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ContentBlock } from "../content/model";
 import { isNavigationSpacer, type NavigationItem, type SiteLink } from "./template-model";
 import type { StudioListViewEntry } from "./studio-presentation";

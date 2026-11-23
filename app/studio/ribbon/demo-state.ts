@@ -1,4 +1,4 @@
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import { flattenControls, type ControlDefinition, type ExampleDefinition } from "./catalogue-model.ts";
 
 export type DemoRow = { id: string; name: string; username: string; email: string; status: string };

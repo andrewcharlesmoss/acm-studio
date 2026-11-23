@@ -92,7 +92,7 @@ test("rendered tool buttons invoke zero-argument commands without forwarding the
   const source = await readFile(new URL("../app/studio/studio-navigation-frame.tsx",import.meta.url),"utf8");
   const modules = {
     react: {useId:()=>"navigation",useRef:value=>({current:value}),useState:value=>[value,()=>{}]}, "react/jsx-runtime":jsxRuntime,
-    "@acm/icons/react": {AcmIcon:"icon"}, "./panes/pane-components": {Pane:"pane",PaneTabPanel:"panel",PaneTabs:"tabs"},
+    "@andrewcharlesmoss/icons/react": {AcmIcon:"icon"}, "./panes/pane-components": {Pane:"pane",PaneTabPanel:"panel",PaneTabs:"tabs"},
     "./project-local-links": {LocalFixtureSiteNavigation:"sites"}, "./studio-icons": {StudioIcon:"icon"}, "./studio-tool-icon": {StudioToolIcon:"tool-icon"},
     "./library-drag-handle": {LibraryDragHandle:"handle"}, "./drag-placement-indicator": {DragPlacementIndicator:"indicator"}, "./controls/tooltip-group": {StudioTooltipGroup:"tooltips"},
     "./inspector-accordion": {InspectorAccordionSection:"section"}, "./studio-navigation-visibility": {useStudioNavigationVisibility:()=>null}, "./studio-navigation-visibility-contract.mjs": {studioNavigationToolItems},

@@ -163,7 +163,7 @@ function box(value, layout, state = null) {
   const writes = [], stateChanges = [];
   const { BoxLengthSetting } = load("app/studio/box-length-setting.tsx", {
     react: { ...require("react"), useContext: context => context._currentValue, useState: initial => [state ?? (typeof initial === "function" ? initial() : initial), next => stateChanges.push(next)] },
-    "@acm/icons/react": { AcmIcon() {} }, "./studio-icons": { StudioIcon() {} },
+    "@andrewcharlesmoss/icons/react": { AcmIcon() {} }, "./studio-icons": { StudioIcon() {} },
   });
   const tree = BoxLengthSetting({ label: "Margin", value, layout, min: -100, max: 200, onChange: value => writes.push(value) });
   return { tree, writes, stateChanges, rows: nodes(tree).filter(node => typeof node.type === "function" && node.type.name === "BoxLengthRow") };
@@ -203,7 +203,7 @@ test("blank custom measurement clears rather than storing an explicit zero; expl
       resolveImport(id, fallback, filename) {
         if (filename.endsWith("/box-length-setting.tsx")) {
           if (id === "react") return { useId: () => "test-box-value", useState: () => [index++ === 0 ? true : renderDraft, () => {}] };
-          if (id === "@acm/icons/react") return {};
+          if (id === "@andrewcharlesmoss/icons/react") return {};
         }
         return fallback();
       },

@@ -1,4 +1,4 @@
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioButton } from "./controls/button";
 import type { LocalFixtureSiteId } from "./test-site/sites";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import type { ContentBlock } from "../../content/model";
 import { StudioHoverIcon } from "../studio-hover-icon";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";

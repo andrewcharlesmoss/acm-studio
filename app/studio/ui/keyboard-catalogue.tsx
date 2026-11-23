@@ -5,11 +5,11 @@ import { CheckboxControl } from "../controls/checkbox-control";
 import { RadioGroup } from "../controls/radio-group";
 
 import { useId, useReducer, useRef, useState } from "react";
-import { iconMetadata } from "@acm/icons";
-import { AcmIcon } from "@acm/icons/react";
-import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyGroup, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@acm/icons/keyboard";
-import { createFullKeyboardSvg, fullKeyboardLayout, windowsLayoutKeyAsset } from "@acm/icons/keyboard/layout";
-import { AcmKeycap } from "@acm/icons/keyboard/react";
+import { iconMetadata } from "@andrewcharlesmoss/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
+import { keyboardKeys, keyboardAsset, createKeyboardSvg, type KeyboardKeyGroup, type KeyboardKeyId, type KeyboardMode, type KeyboardPlatform } from "@andrewcharlesmoss/icons/keyboard";
+import { createFullKeyboardSvg, fullKeyboardLayout, windowsLayoutKeyAsset } from "@andrewcharlesmoss/icons/keyboard/layout";
+import { AcmKeycap } from "@andrewcharlesmoss/icons/keyboard/react";
 import { createSvgPng, downloadIconFile } from "./icon-download.mjs";
 import { createKeyboardCatalogueState, getKeyboardAppearancePresetName, getKeyboardColourControlKey, keyboardCatalogueReducer } from "./keyboard-appearance.mjs";
 import "./keyboard-catalogue.css";
@@ -216,7 +216,7 @@ export function KeyboardCatalogue() {
           <summary>Artwork provenance and licensing</summary>
           {windowsLayout && <p>Windows layout artwork by ACM, based on the supplied Surface Keyboard photo.</p>}
           <p>{artwork.provenance}</p>
-          <code>{windowsLayout ? "acm-studio/packages/acm-icons/src/keyboard-layout.js" : `acm-studio/packages/acm-icons/masters/${asset.key.icon}.svg`}</code>
+          <code>{windowsLayout ? "packages/icons/src/keyboard-layout.js" : `packages/icons/masters/${asset.key.icon}.svg`}</code>
           {artwork.licenceNotice && <details>
             <summary>Full licence notice</summary>
             <pre>{artwork.licenceNotice}</pre>

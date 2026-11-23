@@ -1,5 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioButton } from "../controls/button";
 import { stylePalettes, styleTypography, styleVariations } from "./style-reference-data";
 import { previewStyleDetails, type StyleSelection } from "./styles-preview-state";

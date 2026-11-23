@@ -1,5 +1,5 @@
 import { responsiveStyleCss } from "../content/responsive-styles";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { blockAlignmentClass } from "../content/block-alignment";
 import { paragraphBackgroundGradientCss } from "../content/paragraph-styles";
 import type { ContentBlock, SocialIconBlock } from "../content/model";

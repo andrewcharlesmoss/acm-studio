@@ -104,7 +104,7 @@ import { createContext, Fragment, useMemo, useCallback, useContext, useEffect, u
 import { ListInspectorCanvasContext } from "./list-inspector-navigation";
 import { blockSelectionRange, normaliseBlockSelection, orderedBlockEntries } from "./block-selection.mjs";
 import { blockSelectionPointerTarget, markBlockSelectionHosts } from "./block-selection-dom";
-import type { IconName } from "@acm/icons";
+import type { IconName } from "@andrewcharlesmoss/icons";
 import { BlockRenderer, renderText } from "../components/content";
 import { documentAuthor, documentDateTime, documentFieldVisible, formatDocumentDate } from "../content/document-metadata";
 import { imageDisplayStyle } from "../content/image-style";

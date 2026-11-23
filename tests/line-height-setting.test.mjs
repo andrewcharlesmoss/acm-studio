@@ -37,7 +37,7 @@ function stepperHarness(initialValue = "1.4", defaultValue = 1.5) {
  const slots = []; let index = 0; let dirty = false;
  const useState = initial => { const id = index++; if (!(id in slots)) slots[id] = initial; return [slots[id], next => { const value = typeof next === "function" ? next(slots[id]) : next; if (value !== slots[id]) { slots[id] = value; dirty = true; } }]; };
  const jsx = (type, props) => ({ type, props });
- const require = name => name === "react" ? { useState, useRef: current => ({ current }), useLayoutEffect() {} } : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("native-fields") ? { TextInput: "input", NumberInput: "input" } : name.endsWith("button") ? { StudioButton: "button" } : name === "@acm/icons/react" ? { AcmIcon: "svg" } : name === "./number-stepper" ? { NumberStepper: renderStepper } : {};
+ const require = name => name === "react" ? { useState, useRef: current => ({ current }), useLayoutEffect() {} } : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name.endsWith("native-fields") ? { TextInput: "input", NumberInput: "input" } : name.endsWith("button") ? { StudioButton: "button" } : name === "@andrewcharlesmoss/icons/react" ? { AcmIcon: "svg" } : name === "./number-stepper" ? { NumberStepper: renderStepper } : {};
  const numberStepper = createHostModuleEvaluator(["require", "exports"], `${stepperSource}\nreturn exports.NumberStepper;`)(require, {});
  const renderStepper = props => numberStepper(props);
  const component = createHostModuleEvaluator(["require", "exports"], `${source}\nreturn exports.LineHeightSetting;`)(require, {});

@@ -15,7 +15,7 @@ import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState
 import { studioProjects } from "./project-registry";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioIcon } from "./studio-icons";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useStudioNavigationVisibility } from "./studio-navigation-visibility";
 import { studioNavigationSiteItems } from "./studio-navigation-visibility-contract.mjs";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioButton } from "./button";
 import { TextInput } from "./native-fields";
 import { SettingInheritanceProvider } from "./setting-inheritance";

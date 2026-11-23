@@ -5,7 +5,7 @@ import { InheritedIndicator } from "../controls/inherited-indicator";
 import { canAddWebsiteStyleEntry } from "./website-style-limits";
 
 import { useEffect, useRef, useState, type Dispatch } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioButton } from "../controls/button";
 import { ColourPicker, ColourValueSwatch } from "../controls/colour-picker";
 import { PaneTabs } from "../panes/pane-components";

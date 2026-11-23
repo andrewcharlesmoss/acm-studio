@@ -3,7 +3,7 @@
 import { TextArea } from "./controls/native-fields";
 import { useResponsiveStyleScope } from "./responsive-style-context";
 import { useId, useRef, useState } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import type { ContentBlock } from "../content/model";
 import { safeTextLink } from "../content/rich-text";
 import { equivalentLinkDestination, updatedLinkDestination } from "../content/link-destination";

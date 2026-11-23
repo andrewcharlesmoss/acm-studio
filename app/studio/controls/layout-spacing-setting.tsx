@@ -3,7 +3,7 @@
 import { NumberInput } from "./native-fields";
 import { useId, useState } from "react";
 import { SpacingRangeControl } from "./spacing-range-control";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 
 type LayoutSpacingSettingProps = {
   label: string;

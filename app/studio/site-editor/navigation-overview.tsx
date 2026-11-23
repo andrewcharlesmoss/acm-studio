@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioIcon } from "../studio-icons";
 import { StudioAnchoredMenu } from "../overlays/anchored-menu";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";

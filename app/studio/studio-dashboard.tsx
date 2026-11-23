@@ -7,7 +7,7 @@ import { DragPlacementIndicator } from "./drag-placement-indicator";
 import { DashboardApplicationHeader } from "./application-section-headers";
 import { studioProjects, type StudioProject } from "./project-registry";
 import { ProjectLocalLink, ProjectLocalLinksProvider, ProjectLocalStatus } from "./project-local-links";
-import { AcmIcon } from "@acm/icons/react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { StudioIcon } from "./studio-icons";
 import { ProjectEnvironmentActions } from "./project-environment-links";
 import { StudioToolIcon } from "./studio-tool-icon";

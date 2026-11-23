@@ -1,5 +1,5 @@
-import { AcmIcon } from "@acm/icons/react";
-import type { IconName } from "@acm/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
+import type { IconName } from "@andrewcharlesmoss/icons";
 
 /** Tool identity stays the same on the dashboard and in editor navigation. */
 export const studioToolIcons = {

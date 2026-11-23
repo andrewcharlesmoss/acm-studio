@@ -3,8 +3,8 @@
 import { LibraryApplicationHeader } from "../application-section-headers";
 import { studioToolIcons } from "../studio-tool-icon";
 import type { ReactNode } from "react";
-import type { IconName } from "@acm/icons";
-import { AcmIcon } from "@acm/icons/react";
+import type { IconName } from "@andrewcharlesmoss/icons";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { createContext, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import "@andrewcharlesmoss/ribbon/styles.css";
 import "../ribbon/ribbon-library.css";
