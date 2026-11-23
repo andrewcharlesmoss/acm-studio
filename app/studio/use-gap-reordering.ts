@@ -6,7 +6,7 @@ import { useDragPlacement } from "./use-drag-placement";
 /** Domain adapter: owned sibling rows inherit the canonical placement controller. */
 export function useGapReordering({ ids, version, writable, axis = "y", edgeAlignment = "boundary", wrappedRowBoundaryCue = "full-row", accepts, onMove }: { ids: string[]; version: string; writable: boolean; axis?: ReorderLayout; edgeAlignment?: DropEdgeAlignment; wrappedRowBoundaryCue?: WrappedRowBoundaryCue; accepts: (move: LibraryMove) => boolean; onMove: (move: LibraryMove) => boolean }) {
   const rowsFor = (container: HTMLElement): HTMLElement[] => Array.from(container.querySelectorAll<HTMLElement>("[data-gap-row]")).filter(row => row.dataset.gapOwner === drag.owner);
-  const drag = useDragPlacement<string, LibraryMove>({ version: JSON.stringify([version, axis, edgeAlignment, wrappedRowBoundaryCue, ids]), writable,
+  const drag = useDragPlacement<string, LibraryMove | null>({ version: JSON.stringify([version, axis, edgeAlignment, wrappedRowBoundaryCue, ids]), writable,
     axis: axis === "card-grid" ? "x" : axis,
     rows: rowsFor,
     canStart: id => ids.length > 1 && ids.includes(id),
@@ -17,16 +17,24 @@ export function useGapReordering({ ids, version, writable, axis = "y", edgeAlign
       if (rows.length !== ids.length || rows.some((row, index) => row.dataset.gapRow !== ids[index])) return null;
       const boxes = rows.map(row => row.getBoundingClientRect());
       const scale = dropContainerScale(container);
+      const sourceIndex = ids.indexOf(id);
       const placement = axis === "card-grid"
-        ? cardGridInsertion(boxes, ids.indexOf(id), x, y, scale)
+        ? cardGridInsertion(boxes, sourceIndex, x, y, scale)
         : { index: insertionGapIndex(boxes, x, y, axis), axis };
       const { index, axis: dropAxis } = placement;
       const target: LibraryMove = { id, baseline: [...ids], targetId: ids[Math.min(index, ids.length - 1)], edge: index === ids.length ? "after" : "before" };
-      if (!movedLibraryIds(ids, target) || !accepts(target)) return null;
+      const move = movedLibraryIds(ids, target) ? target : null;
+      if (!move) {
+        if (axis !== "card-grid") return null;
+        const source = boxes[sourceIndex];
+        if (x >= source.left && x <= source.right && y >= source.top && y <= source.bottom) return null;
+        // An adjacent gap still gets a cue, even when releasing needs no move.
+      }
+      if (!accepts(target)) return null;
       const line = dropLineInContainer(insertionGapLine(boxes, index, bounds, scale, dropAxis, 2, placementEdgeGaps(container, dropAxis), edgeAlignment, wrappedRowBoundaryCue, y), bounds, bounds, scale, { scrollLeft: container.scrollLeft, scrollTop: container.scrollTop, borderLeft: container.clientLeft, borderTop: container.clientTop });
-      return { target, line };
+      return { target: move, line };
     },
-    commit: (_id, move) => onMove(move),
+    commit: (_id, move) => move !== null && onMove(move),
   });
   return { ...drag, rowProps: (id: string) => ({ "data-gap-row": id, "data-gap-owner": drag.owner }), listProps: { ...drag.listProps, "data-gap-container": drag.owner } };
 }

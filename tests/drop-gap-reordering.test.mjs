@@ -22,6 +22,19 @@ test("no-op, cancellation, foreign owner, stale data, read-only and rejected pol
  for(const mode of ["noop","cancel","foreign","stale","readonly","policy","outside"]){const f=control();let ui=f.render();ui.start(f.event(30),"a");ui.listProps.onDragOver(f.event(130));assert.ok(f.render().line);
  if(mode==="cancel")ui.cancel();if(mode==="foreign")f.transfer.getData=()=>"other";if(mode==="stale")f.setVersion("changed");if(mode==="readonly")f.setWritable(false);if(mode==="policy")f.setAllowed(false);ui=f.render();const event=f.event(mode==="noop"?60:mode==="outside"?220:130);ui.listProps.onDrop(event);assert.equal(f.moves.length,0,mode);assert.equal(f.render().line,null,mode);}
 });
+test("an adjacent card gap previews without submitting a move", () => {
+  const grid = control("card-grid");
+  const drag = grid.render();
+  const at = x => ({ ...grid.event(30), clientX: x });
+  drag.start(at(30), "a");
+  drag.listProps.onDragOver(at(35));
+  assert.equal(grid.render().line, null);
+  drag.listProps.onDragOver(at(60));
+  assert.ok(grid.render().line);
+  drag.listProps.onDrop(at(60));
+  assert.deepEqual(grid.moves, []);
+  assert.equal(grid.render().line, null);
+});
 test("gap geometry honours borders, non-uniform sizes, horizontal wrapping and zoom",()=>{
  const rows=[box(100,100,200,60),box(100,200,200,120)];const line=geometry.insertionGapLine(rows,1,box(80,80,240,300),2);assert.equal(line.top,49);assert.equal(line.height,2);
  const wrapped=[box(10,20,60,30),box(80,20,50,30),box(10,70,80,40),box(100,70,60,50)];const next=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x");assert.equal(next.top,59);assert.equal(next.height,2);assert.equal(geometry.insertionGapIndex(wrapped,179,49,"x"),2);

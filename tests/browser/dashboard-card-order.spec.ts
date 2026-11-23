@@ -170,16 +170,21 @@ for (const side of ['right of Habit Tracker', 'left of Loquage']) {
     await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), preference)).toEqual(expected);
     await expect(line).toHaveCount(0);
 
-    const movedLid = (await grid.locator('[data-library-entry-id="lid-angle"]').boundingBox())!;
-    const movedHabit = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
     const movedHandle = grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true });
     await expect(movedHandle).toHaveAttribute('aria-disabled', 'false');
     const movedGrip = (await movedHandle.boundingBox())!;
     await page.mouse.move(movedGrip.x + movedGrip.width / 2, movedGrip.y + movedGrip.height / 2);
     await page.mouse.down();
-    await page.mouse.move((movedHabit.x + movedHabit.width + movedLid.x) / 2, movedHabit.y + movedHabit.height / 2, { steps: 6 });
-    await expect(line).toHaveCount(0);
+    // Lid Angle now ends this row, immediately before Loquage on the next.
+    const repeatX = side === 'left of Loquage' ? beforeLoquage.x : loquage.x + 4;
+    await page.mouse.move(repeatX, beforeLoquage.y, { steps: 12 });
+    await expect(line).toBeVisible();
+    const repeatMarker = (await line.boundingBox())!;
+    expect(repeatMarker.width).toBe(2);
+    expect(Math.abs(repeatMarker.x + repeatMarker.width / 2 - loquage.x)).toBeLessThan(1);
+    expect(Math.abs(repeatMarker.y - loquage.y)).toBeLessThan(1);
     await page.mouse.up();
+    await expect(line).toHaveCount(0);
     await expect.poll(order).toEqual(expected);
   });
 }
