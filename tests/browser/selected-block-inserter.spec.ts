@@ -37,14 +37,13 @@ test('adding beside a filled block inserts after it rather than at the document 
   await expect(blocks.nth(2)).toHaveAttribute('data-studio-block-anchor-id', 'last-filled');
 });
 
-test('the add-block button follows a nested paragraph and inserts within its group', async ({ page }) => {
+test('the keyboard can insert a block between paragraphs within their group', async ({ page }) => {
   const doc = { id: 'nested-selected', kind: 'page', title: 'Nested', subtitle: '', slug: 'nested', excerpt: '', status: 'draft', updatedAt: '2026-10-31T00:00:00.000Z', documentShellVersion: 1, tags: [], seoTitle: '', seoDescription: '', blocks: [{ id: 'group', type: 'group', layout: 'flow', children: [{ id: 'nested-first', type: 'paragraph', text: 'Nested first' }, { id: 'nested-last', type: 'paragraph', text: 'Nested last' }] }] };
   await page.addInitScript(value => localStorage.setItem('acm-studio-workspace-v2', JSON.stringify({ version: 56, activeDocumentId: value.id, documents: [value], categories: [], bin: [] })), doc);
   await page.goto('/studio');
-  const first = page.locator('[data-studio-nested-block-id="nested-first"]');
-  await first.click();
-  await expect(first.locator(':scope > .canvas-appender-button')).toBeVisible();
-  await first.locator(':scope > .canvas-appender-button').click();
+  const next = page.locator('[data-studio-nested-block-id="nested-last"]');
+  const anchor = next.getByRole('button', { name: 'Add block before Paragraph', exact: true });
+  await anchor.press('Enter');
   await page.getByRole('dialog', { name: 'Choose a block' }).getByRole('button', { name: 'Heading', exact: true }).click();
   const children = page.locator('[data-studio-block-anchor-id="group"] .studio-nested-group > .studio-nested-block');
   await expect(children).toHaveCount(3);
