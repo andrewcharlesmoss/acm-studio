@@ -1,4 +1,4 @@
-import type { ResponsiveValue, StyleViewport } from "@acm/styles";
+import type { ResponsiveValue, StyleViewport } from "@andrewcharlesmoss/styles";
 
 /** Reset only the selected viewport to the loaded source's override policy. */
 export function resetResponsiveStyleMetric<T>(current: ResponsiveValue<T>, baseline: ResponsiveValue<T>, viewport: StyleViewport): ResponsiveValue<T> {

@@ -1,4 +1,4 @@
-import { universalStylePresetToCss } from "@acm/styles";
+import { universalStylePresetToCss } from "@andrewcharlesmoss/styles";
 import { UNIVERSAL_STYLE_PRESET } from "../ui/styles/canonical-style-guide";
 // The same scoped site stylesheet is installed in editor and standalone output.
 export const testSiteCss = universalStylePresetToCss(UNIVERSAL_STYLE_PRESET, ".test-site-page") + `

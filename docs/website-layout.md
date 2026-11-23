@@ -1,7 +1,7 @@
 # Shared website layout contract — v0.1.0
 
 Studio owns this website presentation contract in `app/studio/website-layout.ts`.
-The framework-neutral `@acm/styles` preset remains the universal ACM foundation;
+The framework-neutral `@andrewcharlesmoss/styles` preset remains the universal ACM foundation;
 it does not own website profiles or their persistence. The foundation supplies pure validation, inheritance resolution, and legacy
 capture. The preview controls described below use that resolver with illustrative
 in-memory data. Existing renderers, stores, gateways, fixtures, and generated

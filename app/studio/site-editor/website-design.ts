@@ -1,4 +1,4 @@
-import { universalStylePresetToCssVariables } from "@acm/styles";
+import { universalStylePresetToCssVariables } from "@andrewcharlesmoss/styles";
 import { validateWebsiteStyles } from "./website-style-validation";
 import { parseSiteImageName, SITE_IMAGE_MAX_BYTES, siteImageName, siteImageSignature } from "../../content/site-featured-image.mjs";
 import { stylePalettes, styleTypography } from "./style-reference-data";
@@ -135,7 +135,7 @@ export async function hydrateWebsiteDesign(design: WebsiteDesign, imageUrl: (src
 }
 
 /** Preserve the executable baseline when connecting the former reference controls. */
-export function legacyWebsiteDefaults(preset: import('@acm/styles').UniversalStylePreset): WebsiteDesign {
+export function legacyWebsiteDefaults(preset: import('@andrewcharlesmoss/styles').UniversalStylePreset): WebsiteDesign {
   universalStylePresetToCssVariables(preset);
   // Existing site CSS remains the baseline until the user authors a setting.
   return validateWebsiteDesign({ identity: { ...originalIdentityText }, styles: {} });

@@ -14,7 +14,7 @@ const jsx = (type, props) => ({ type, props });
 const code = readFileSync(new URL('../app/studio/ui/styles/style-guide-sandbox.tsx', import.meta.url), 'utf8');
 const require = name => name === 'react' ? { useState: () => ['size', () => {}], forwardRef: fn => fn }
   : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx }
-  : name === '@acm/styles' ? realRequire(name)
+  : name === '@andrewcharlesmoss/styles' ? realRequire(name)
   : name === '../../controls/range-control' ? { RangeControl }
   : name === '../../controls/number-unit-field' ? { NumberUnitField }
   : name === '../../controls/native-fields' ? { NumberInput, SelectControl } : {};

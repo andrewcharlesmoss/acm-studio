@@ -1,4 +1,4 @@
-import { validateInterfaceStylePreset, validateUniversalStylePreset } from "@acm/styles";
+import { validateInterfaceStylePreset, validateUniversalStylePreset } from "@andrewcharlesmoss/styles";
 
 // Shared by the live source preview and the local file gateway. Only token
 // table cells change; policy prose and line positions remain intact.
@@ -256,7 +256,7 @@ function parseTokenValues(document, originals) {
     universal.layout[key] = parseLayoutMetric(row.cells[2], key, path, row.line);
   }
 
-  // Validation remains owned by @acm/styles; malformed Markdown never falls back to defaults.
+  // Validation remains owned by @andrewcharlesmoss/styles; malformed Markdown never falls back to defaults.
   return {
     universalPreset: validateUniversalStylePreset(universal),
     interfacePreset: validateInterfaceStylePreset(interfacePreset),

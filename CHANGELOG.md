@@ -53,6 +53,8 @@
 
 ### Changed
 
+- Studio installs Styles v1.3.0 from GitHub Packages and reads style values from the workspace Style Guide.
+
 - Studio installs Icons v0.35.1 from GitHub Packages for the web interface and native preview.
 
 - Studio installs Ribbon v0.2.0 from GitHub Packages.

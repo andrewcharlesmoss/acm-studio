@@ -1,4 +1,4 @@
-import type { StyleViewport } from "@acm/styles";
+import type { StyleViewport } from "@andrewcharlesmoss/styles";
 
 export const WEBSITE_LAYOUT_VERSION = "0.1.0" as const;
 

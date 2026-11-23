@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useRef, useState } from "react";
-import type { StyleViewport } from "@acm/styles";
+import type { StyleViewport } from "@andrewcharlesmoss/styles";
 import type { WebsiteLayoutOverrides } from "../../website-layout";
 import { WebsiteLayoutEditorPreview } from "./website-layout-editor-preview";
 import { SelectControl } from "../../controls/native-fields";

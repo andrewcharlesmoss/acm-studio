@@ -67,7 +67,7 @@ test("button normal and hover text colours are documented and editable in the St
   const guide = source.document;
   const component = ["style-guide-sandbox.tsx", "formatted-guide-document.tsx"].map(file => fs.readFileSync(path.join(root, "app/studio/ui/styles", file), "utf8")).join("\n");
   const styles = fs.readFileSync(path.join(root, "app/studio/ui/style-guide.css"), "utf8");
-  const presetStyles = fs.readFileSync(path.join(root, "packages/acm-styles/src/styles.css"), "utf8");
+  const presetStyles = fs.readFileSync(new URL(import.meta.resolve("@andrewcharlesmoss/styles/styles.css")), "utf8");
 
   assert.match(guide, /\| Preset path \| Background \| Text colour \| Border \| Border width \| Hover background \| Hover text colour \|/);
   assert.match(guide, /Each button variant has separately editable text colours for its normal and\s+hover states\./);
@@ -299,4 +299,52 @@ test("Styles hover inspection is opt-in and never suppresses deliberate inspecti
     assert.doesNotMatch(body, /if \(!hoverInspection\)/);
   }
   assert.match(component, /Enable Hover Inspection to inspect rules by hovering/);
+});
+
+test("the Markdown parser builds executable presets from all current governance token tables", () => {
+  const guide = styleGuideMarkdown;
+  const parsed = parseStyleGuidePresets(guide);
+  assert.deepEqual(parsed.universalPreset, preset);
+  assert.deepEqual(parsed.interfacePreset, interfacePreset);
+  const rows = guide.split("\n").filter(line => line.startsWith("| ")).map(line => line.split("|").slice(1, -1).map(cell => cell.trim()));
+  const rowFor = presetPath => {
+    const row = rows.find(cells => cells[0] === presetPath);
+    assert.ok(row, "missing guide source row: " + presetPath);
+    return row;
+  };
+  const cssColourNames = Object.fromEntries(Object.keys(preset.palette).map(key => [key, key.replace(/[A-Z]/g, char => "-" + char.toLowerCase())]));
+  for (const [key, cssName] of Object.entries(cssColourNames)) {
+    const row = rowFor("palette." + key);
+    assert.equal(row[3], preset.palette[key], "guide colour value drift: " + key);
+    assert.equal(row[1], "--acm-color-" + cssName, "guide colour property drift: " + key);
+  }
+  for (const [key, style] of Object.entries(preset.typography)) {
+    const row = rowFor("typography." + key);
+    assert.equal(row[1].toLowerCase(), "inter", "guide font family drift: " + key);
+    assert.equal(row[2], style.size.desktop.value + style.size.desktop.unit, "guide font size drift: " + key);
+    assert.equal(Number(row[3]), style.weight, "guide font weight drift: " + key);
+    assert.equal(row[4], style.style, "guide font style drift: " + key);
+    assert.equal(Number(row[5]), style.lineHeight.desktop.value, "guide line height drift: " + key);
+    assert.equal(row[6], style.letterSpacing.desktop.value + style.letterSpacing.desktop.unit, "guide letter spacing drift: " + key);
+    assert.equal(row[7], style.transform, "guide text transform drift: " + key);
+  }
+  for (const key of ["base", "secondary", "outline"]) {
+    const button = preset.buttons[key];
+    const matchingRows = rows.filter(cells => cells[0] === "buttons." + key);
+    const row = matchingRows[0];
+    const defaultsRow = matchingRows[1];
+    assert.ok(row && defaultsRow, "missing saved/default button rows: " + key);
+    assert.deepEqual(row.slice(1), [button.background, button.foreground, button.border, button.borderWidth + "px", button.hoverBackground, button.hoverForeground], "guide button token drift: " + key);
+    const original = parsed.originalUniversalPreset.buttons[key];
+    assert.deepEqual(defaultsRow.slice(1), [original.background, original.foreground, original.border, original.borderWidth + "px", original.hoverBackground, original.hoverForeground], "guide original button default drift: " + key);
+  }
+  const layoutCssNames = { spacing: "spacing", contentWidth: "content-width", radius: "radius", borderWidth: "border-width" };
+  for (const [key, cssName] of Object.entries(layoutCssNames)) {
+    const row = rowFor("layout." + key);
+    assert.equal(row[1], "--acm-layout-" + cssName, "guide layout property drift: " + key);
+    assert.equal(row[2], `${preset.layout[key].value}${preset.layout[key].unit}`, "guide layout value drift: " + key);
+  }
+  for (const specimen of ["link", "unordered-list", "ordered-list", "quote"]) {
+    assert.ok(rows.some(row => row[0] === "`specimen." + specimen + "`"), "missing guide specimen mapping: " + specimen);
+  }
 });

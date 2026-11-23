@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -15,7 +16,7 @@ const styleConsumers = [
   "app/studio/ui/styles/canonical-source-lines.css",
   "app/studio/ui/styles/interface-style-sandbox.css",
   "app/studio/ui/styles/website-layout-preview.css",
-  "packages/acm-styles/src/styles.css",
+  fileURLToPath(import.meta.resolve("@andrewcharlesmoss/styles/styles.css")),
 ];
 function sourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {

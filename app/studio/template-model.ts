@@ -33,9 +33,9 @@ import { FEATURED_IMAGE_LABEL } from "./editor-model";
 import { safeImageSource, safeTextLink } from "../content/rich-text";
 import { containsVideoBlock, containsVideoCaptionTrack } from "../content/video-block";
 import { isRecord, PUBLICATION_VERSION, validContentBlocks, validParagraphStyle, validatePublicationSnapshot } from "./workspace-validation";
-import { validateUniversalStylePreset } from "@acm/styles";
+import { validateUniversalStylePreset } from "@andrewcharlesmoss/styles";
 import { createUniversalStylePreset, UNIVERSAL_STYLE_PRESET } from "./ui/styles/canonical-style-guide";
-import type { UniversalStylePreset } from "@acm/styles";
+import type { UniversalStylePreset } from "@andrewcharlesmoss/styles";
 
 export const LEGACY_TEMPLATE_VERSION = "0.1.0" as const;
 export const TEMPLATE_VERSION = "0.79.0" as const;

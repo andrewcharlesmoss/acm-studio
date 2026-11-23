@@ -1,7 +1,7 @@
 "use client";
 import { useClientReady } from "../../use-client-ready";
 import { useState, type CSSProperties } from "react";
-import type { StyleViewport } from "@acm/styles";
+import type { StyleViewport } from "@andrewcharlesmoss/styles";
 import type { WebsiteLayoutValues } from "../../website-layout";
 import { TemplateEditor } from "../../template-editor";
 import { validateTemplateSet, type TemplateSet } from "../../template-model";

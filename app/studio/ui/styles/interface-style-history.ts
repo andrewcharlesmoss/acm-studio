@@ -1,4 +1,4 @@
-import type { InterfaceStylePreset } from "@acm/styles";
+import type { InterfaceStylePreset } from "@andrewcharlesmoss/styles";
 
 const limit = 60;
 export type InterfaceStyleHistory = { past: InterfaceStylePreset[]; present: InterfaceStylePreset; future: InterfaceStylePreset[]; editKey?: string };

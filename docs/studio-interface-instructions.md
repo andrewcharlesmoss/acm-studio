@@ -62,7 +62,7 @@ shared font-outline assets use the pinned, licensed source in
 The Studio UI Library at `/studio/ui` groups Workspace, Ribbon, Panes, Panels,
 Icons and Styles. `workspace-governance/STYLE_GUIDE.md` is the only stored source
 of website and interface style values. Studio parses its token tables at load,
-validates the in-memory presets through `@acm/styles`, and derives CSS variables
+validates the in-memory presets through `@andrewcharlesmoss/styles`, and derives CSS variables
 and the source-line index from that Markdown. Draft controls update the specimen
 and source view immediately. In local development, Save Website Styles and Save
 Interface Styles use one fixed-target, revision-checked gateway that writes only
@@ -195,7 +195,7 @@ editing. Save visibility as a shared browser preference and order through the
 existing navigation ordering owner.
 
 Styles → Interactions owns one neutral hover background in the executable
-`@acm/styles` preset, shared by disclosure headings, neutral controls, menu items
+`@andrewcharlesmoss/styles` preset, shared by disclosure headings, neutral controls, menu items
 and list items. It defaults to `#F0F0F0`. Selected, pressed, disabled and
 destructive states keep their own treatments. The Controls → Accordion specimen
 has no separate colour preference; see `docs/studio-ui-library.md`.
@@ -216,7 +216,7 @@ output do not show authoring outlines. The Workspace playground demonstrates
 the shared part, including nested references and reset. The interface preset
 v0.2.0 adds this colour; v0.1.0 CSS exports fall back to block selection.
 Styles → Interactions owns Control accent colour (`#3858E9`) for enabled
-toggles and standard sliders. @acm/styles derives hover by darkening each sRGB
+toggles and standard sliders. @andrewcharlesmoss/styles derives hover by darkening each sRGB
 channel by 12%, and pressed by darkening hover a further 12%. Controls examples
 inherit the shared colour without temporary colour pickers; their reset affects
 example values only. Specialist hue and alpha tracks remain separate.

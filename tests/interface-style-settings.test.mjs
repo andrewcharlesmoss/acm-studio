@@ -5,7 +5,7 @@ import test from "node:test";
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { interfaceStylePresetToCssVariables } from "@acm/styles";
+import { interfaceStylePresetToCssVariables } from "@andrewcharlesmoss/styles";
 import { createInterfaceStylePreset } from "./style-test-presets.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
@@ -22,7 +22,7 @@ function compile(url, dependencies = {}) {
   const code = (readFileSync(url, "utf8"));
   const jsx = (type, props) => ({ type, props });
   const react = { useState: initial => [initial, noop], createElement: (type, props, ...children) => jsx(type, children.length ? { ...props, children } : props) };
-  const require = name => name in dependencies ? dependencies[name] : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "@acm/styles" ? { interfaceStylePresetToCssVariables } : new Proxy({}, { get: (_, key) => key });
+  const require = name => name in dependencies ? dependencies[name] : name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "@andrewcharlesmoss/styles" ? { interfaceStylePresetToCssVariables } : new Proxy({}, { get: (_, key) => key });
   return createHostModuleEvaluator(["require", "exports", "document"], `${code}\nreturn exports;`)(require, {}, { body: {} });
 }
 const component = compile(settingsUrl).InterfaceStyleSettings;
@@ -146,7 +146,7 @@ test("shared value-field picker opens the production palette with its draft inte
     useRef: () => ({ current: null }), useId: () => "value-picker", useLayoutEffect: noop,
   };
   const { ColourPicker } = compile(new URL("../app/studio/controls/colour-picker.tsx", import.meta.url), {
-    react, "../ui/styles/canonical-style-guide": { UNIVERSAL_STYLE_PRESET: { palette: { surface: "#FFFFFF" } } }, "react-dom": { createPortal: node => node }, "@acm/styles": { UNIVERSAL_STYLE_PRESET: { palette: {} } },
+    react, "../ui/styles/canonical-style-guide": { UNIVERSAL_STYLE_PRESET: { palette: { surface: "#FFFFFF" } } }, "react-dom": { createPortal: node => node }, "@andrewcharlesmoss/styles": { UNIVERSAL_STYLE_PRESET: { palette: {} } },
     "../ui/styles/interface-style-scope": { useInterfaceStylePortalStyle: () => ({ "--acm-ui-color-primary-text": "#ABCDEF" }) },
     "../overlays/use-overlay-dismiss": { useOverlayDismiss: noop },
   });

@@ -14,7 +14,7 @@ to Loquafy. Keep preparation bounded. The live WordPress site and the separate
 Sites-based `andrew-moss` repository are distinct targets.
 
 Project direction also records the agreed future WordPress ownership of shared
-website styles, derived `@acm/styles` distribution and guide display, and keeping
+website styles, derived `@andrewcharlesmoss/styles` distribution and guide display, and keeping
 Loquafy's marketing site and application outside WordPress. This is not an
 implemented migration: the Markdown style-value source and existing controls
 remain authoritative until a separately scoped transition is verified. Preserve
@@ -31,10 +31,11 @@ portable publishing data, but it does not own the Andrew Moss public site.
 
 ## Shared packages
 
-ACM Styles lives in `packages/acm-styles`. Studio uses the released
-`@andrewcharlesmoss/icons`, `@andrewcharlesmoss/panel`, and
-`@andrewcharlesmoss/ribbon` from GitHub Packages. The independent `packages`
-repository owns and publishes those packages. The original repositories remain
+Studio uses `@andrewcharlesmoss/icons`, `@andrewcharlesmoss/panel`,
+`@andrewcharlesmoss/ribbon`, and `@andrewcharlesmoss/styles` from GitHub Packages.
+The independent `packages` repository owns and publishes these packages.
+Studio reads style values from `workspace-governance/STYLE_GUIDE.md`. The
+original repositories remain
 historical checkouts in the local
 `_Recovery/acm-packages-2026-11-22` archive. Preserve their histories, branches,
 and uncommitted work.

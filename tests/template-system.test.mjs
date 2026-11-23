@@ -10,7 +10,7 @@ import test from "node:test";
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import * as universalStyles from "@acm/styles";
+import * as universalStyles from "@andrewcharlesmoss/styles";
 import { universalPreset } from "./style-test-presets.mjs";
 import { loadProductionModule } from "./production-module.mjs";
 
@@ -23,7 +23,7 @@ const canonicalStyles = await loadProductionModule(new URL("../app/studio/ui/sty
 const require = createRequire(import.meta.url);
 const plain = value => JSON.parse(JSON.stringify(value));
 function environment(overrides = {}) {
-  overrides = { "@acm/styles": universalStyles, "@andrewcharlesmoss/ribbon": ribbon, ...overrides };
+  overrides = { "@andrewcharlesmoss/styles": universalStyles, "@andrewcharlesmoss/ribbon": ribbon, ...overrides };
   const records = new Map();
   const library = { assets: [], folders: [] };
   let failKey = null; let failures = 0;

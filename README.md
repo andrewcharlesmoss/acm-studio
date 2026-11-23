@@ -33,7 +33,7 @@ capabilities, not an automatic publishing connection to either personal site.
   examples; **Panels** at `/studio/ui/panels` demonstrates the shared card panel;
   **Icons** at `/studio/ui/icons` browses the original shared symbols
   at three scales; **Styles** at `/studio/ui/styles` explores the universal
-  `@acm/styles` preset in a non-persistent preview sandbox. `/studio/ribbon` and
+  `@andrewcharlesmoss/styles` preset in a non-persistent preview sandbox. `/studio/ribbon` and
   `/studio/panes` redirect to their sections.
   See [Studio UI Library](docs/studio-ui-library.md), [Panel details](docs/panel-library.md),
   [Ribbon details](docs/ribbon-library.md),
@@ -102,9 +102,8 @@ recorded in [`docs/design-canvas.md`](docs/design-canvas.md).
 
 ## Clean checkout setup
 
-Studio owns Styles in `packages/`. The private Icons, Panel, and Ribbon
-dependencies come from the independent `packages` repository and are pinned to
-their GitHub Packages releases. A clean `npm ci` requires
+Studio pins Icons, Panel, Ribbon, and Styles to private GitHub Packages
+releases from the independent `packages` repository. A clean `npm ci` requires
 read access to that registry. The workspace style guide remains in the
 independent `workspace-governance` repository. For a reproducible build, check
 out the verified guide revision alongside Studio. From a new parent directory

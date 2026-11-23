@@ -27,7 +27,7 @@ import { TemplateNavigationView } from "./template-navigation-view";
 import { StudioIcon } from "./studio-icons";
 import { resolveTemplateCopyright } from "./template-placeholders";
 import { TemplateContentLayout } from "./template-content-slot";
-import { universalStylePresetToCss, universalStylePresetToCssVariables } from "@acm/styles";
+import { universalStylePresetToCss, universalStylePresetToCssVariables } from "@andrewcharlesmoss/styles";
 import { projectedStyle } from "./site-editor/blocks-preview-model";
 import type { QueryPost } from "../content/post-query";
 

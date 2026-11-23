@@ -112,7 +112,7 @@ baseline; explicit site or block overrides can mask later theme defaults.
 
 ### Shared styling package and distribution
 
-Adapt the existing `@acm/styles` package through an explicit, verified migration
+Adapt the existing `@andrewcharlesmoss/styles` package through an explicit, verified migration
 to distribute supported website values to applications outside WordPress.
 The planned flow is:
 
@@ -158,7 +158,7 @@ and interface contracts without giving WordPress ownership of both.
 
 This is the agreed future direction, not an implemented bridge. The current
 canonical style-value source remains `workspace-governance/STYLE_GUIDE.md`, with
-the existing `@acm/styles` validation, Studio controls, and saving gateway.
+the existing `@andrewcharlesmoss/styles` validation, Studio controls, and saving gateway.
 This documentation does not change tokens, disable controls, or replace current
 values with Twenty Twenty-Five defaults.
 

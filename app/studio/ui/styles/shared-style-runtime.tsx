@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { interfaceStylePresetToCssVariables, universalStylePresetToCssVariables, validateInterfaceStylePreset, validateUniversalStylePreset } from "@acm/styles";
+import { interfaceStylePresetToCssVariables, universalStylePresetToCssVariables, validateInterfaceStylePreset, validateUniversalStylePreset } from "@andrewcharlesmoss/styles";
 import { createSharedStylesClient } from "./shared-styles-client.mjs";
 import { publishSharedStylePreset } from "./shared-style-preset";
 import { publishSharedInterfaceStylePreset } from "./shared-interface-style-preset";

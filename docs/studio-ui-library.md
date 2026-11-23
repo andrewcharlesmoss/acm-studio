@@ -116,8 +116,8 @@ ACM Studio owns its Studio-specific symbols. The Block Library collection
 identifies which source supplies each tile symbol and previews both sets at
 16, 24 and 32px. Shared symbols use their Regular-S, Regular-M and Regular-L
 optical artwork. The Heading tile uses a generic Studio heading marker; the
-selected heading level stays in the block's level control. The Studio-owned
-`@acm/styles` package owns style types, validation and CSS custom-property
+selected heading level stays in the block's level control. The shared
+`@andrewcharlesmoss/styles` package owns style types, validation and CSS custom-property
 exports. `workspace-governance/STYLE_GUIDE.md` is the only stored source for
 website and interface style values and remains authoritative for policy. The Ribbon and Pane implementations remain in their
 existing modules and retain their own contracts. The Panels section consumes the
@@ -361,7 +361,7 @@ standard `.studio-range-control` inputs. Focus outlines follow the Studio
 Focus Outline preference and focus tokens. Pointer hover uses
 `--studio-range-hover-accent`, which defaults to a 12% darker shade of the shared
 accent. While a range is being pressed or dragged, `--studio-range-pressed-accent`
-defaults to a further 12% darker shade of the hover colour. Both state colours are derived automatically in @acm/styles; they have no
+defaults to a further 12% darker shade of the hover colour. Both state colours are derived automatically in @andrewcharlesmoss/styles; they have no
 separate saved settings. The Controls page inherits these shared values and has
 no temporary colour pickers. Reset example restores only its toggle or range
 value. Consumers retain their native range values, bounds, steps and behaviour.
@@ -567,7 +567,7 @@ Source. A remaining lock without a journal also requires checking that its
 recorded server PID has stopped before removing it.
 
 The block HTML editor and document code editor use `StudioButton`: Base for Apply
-and Secondary for Cancel. Its scoped `@acm/styles` preset supplies colours, border, shape and
+and Secondary for Cancel. Its scoped `@andrewcharlesmoss/styles` preset supplies colours, border, shape and
 hover treatment. Studio retains its system UI typography and focus preference;
 the adapter dims disabled buttons and keeps their variant colours while hovered.
 The Styles sandbox previews this same baseline without changing editor settings.
@@ -849,7 +849,7 @@ formatting and history remain independent of product stores.
 
 Clear actions and the inspector Reset All action use `StudioButton` with
 `variant="text"`. The framework-neutral `.acm-button-text` variant in
-`@acm/styles` owns normal, hover, pressed, focus and disabled states. Studio's
+`@andrewcharlesmoss/styles` owns normal, hover, pressed, focus and disabled states. Studio's
 `StudioButton` supplies `--acm-color-accent` from the canonical
 `UNIVERSAL_STYLE_PRESET.palette.accent`, including portalled controls. The
 `.studio-text-action` theme mixes 80% Accent with 20% black for readable small

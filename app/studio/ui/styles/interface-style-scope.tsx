@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { interfaceStylePresetToCssVariables, type InterfaceStylePreset } from "@acm/styles";
+import { interfaceStylePresetToCssVariables, type InterfaceStylePreset } from "@andrewcharlesmoss/styles";
 
 const InterfaceStyleScopeContext = createContext<InterfaceStylePreset | null>(null);
 

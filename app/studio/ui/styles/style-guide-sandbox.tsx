@@ -21,7 +21,7 @@ import {
   type ResponsiveValue,
   type StyleViewport,
   type UniversalStylePreset,
-} from "@acm/styles";
+} from "@andrewcharlesmoss/styles";
 import type { CSSProperties } from "react";
 import { parseStyleGuidePresets, updateStyleGuideTokensFromDraft, indexStyleGuide } from "./style-guide-tokens.mjs";
 import { BUNDLED_STYLE_GUIDE_SOURCE, createUniversalStylePreset, UNIVERSAL_STYLE_PRESET } from "./canonical-style-guide";
@@ -320,7 +320,7 @@ export function StyleGuideSandbox({ active = true }: { active?: boolean }) {
   const hoveredGuidePreviewPath = hoveredGuidePath ? selectedStyleGuidePreviewPath({ ...selection, previewHoverPath: null, focusedSourcePath: null, pinnedSourcePath: null }) : null;
   const activeSourcePath = hoveredGuidePreviewPath ?? hoveredGuidePath ?? hoveredSourcePath ?? focusedSourcePath ?? pinnedSourcePath ?? `typography.${role}.size`;
   const activeSource = styleMappings[activeSourcePath] ?? styleMappings["typography.body.size"];
-  const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @acm/styles token" : displayStyleValue(pathValue(baseline, activeSourcePath), viewport);
+  const activeBaseline = activeSourcePath.startsWith("specimen.") ? "Guidance only — no @andrewcharlesmoss/styles token" : displayStyleValue(pathValue(baseline, activeSourcePath), viewport);
   const activeValue = activeSourcePath.startsWith("specimen.") ? "Documented specimen guidance" : displayStyleValue(pathValue(preset, activeSourcePath), viewport);
   const activeGuideLine = guideJumpLine ?? activeSource?.line ?? 1;
   const buttonPathParts = activeSourcePath.split(".");

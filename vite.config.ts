@@ -13,7 +13,6 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
 const { d1, r2 } = hostingConfig;
-const sharedStylesRoot = fileURLToPath(new URL("./packages/acm-styles/src/", import.meta.url));
 const governanceRoot = fileURLToPath(new URL("../workspace-governance/", import.meta.url));
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
@@ -67,7 +66,7 @@ export default defineConfig(async () => {
       // The Studio UI is same-origin; do not grant other localhost apps CORS access to Vite's file route.
       cors: false,
       // The canonical guide is imported by the Studio UI; CORS above prevents other origins reading allowed files.
-      fs: { allow: [process.cwd(), sharedStylesRoot, governanceRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
+      fs: { allow: [process.cwd(), governanceRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
     },
     plugins: [
       sharedStylesBridge(),

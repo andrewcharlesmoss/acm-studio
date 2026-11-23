@@ -249,7 +249,7 @@ identified Navigation child block and requires v0.74.0; older envelopes remain
 readable and reject these additions rather than silently dropping them.
 `TemplateSet`, `PageTemplate`, `TemplatePart`, `TemplateNode`, `SiteStyles` and
 `TemplateAssignment` are defined in `app/studio/template-model.ts`. `SiteStyles`
-is the versioned `UniversalStylePreset` contract from `@acm/styles`, and newly
+is the versioned `UniversalStylePreset` contract from `@andrewcharlesmoss/styles`, and newly
 created library contexts receive an independent clone of its universal defaults. Assignments
 reference Studio document IDs. The local-storage key is
 `acm-studio-templates-v1`; an absent key means no templates. Invalid or unsupported
@@ -258,7 +258,7 @@ Original Data** retains its raw contents for recovery.
 
 Template pane colour controls edit the palette stored with the current template
 context. Each modified colour can be reset independently to its current
-`@acm/styles` global default. These values remain context-specific after editing;
+`@andrewcharlesmoss/styles` global default. These values remain context-specific after editing;
 the editor preview's colour picker supports pointer dragging and keyboard input.
 The saturation/brightness plane previews a drag locally and commits its final
 colour on pointer release, keeping the picker open while the global save is in

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
-import type { InterfaceStylePreset } from "@acm/styles";
+import type { InterfaceStylePreset } from "@andrewcharlesmoss/styles";
 import { CheckboxControl } from "../../controls/checkbox-control";
 import { StudioButton } from "../../controls/button";
 import { styleSourcePathFromTarget } from "./style-source-path";

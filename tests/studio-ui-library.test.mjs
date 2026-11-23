@@ -1,5 +1,6 @@
 import { createIsolatedModuleLoader } from "./production-module.mjs";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 
 import { readStudioSource } from "./studio-module-source.mjs";
@@ -238,7 +239,7 @@ test("Controls catalogue groups live specimens and preserves direct routes into 
   assert.match(read("app/globals.css"), /--gutenberg-accent: #3858e9/);
   assert.match(studioStyles, /\.acm-button\.studio-text-action \{[^}]*--acm-action-color: color-mix\(in srgb, var\(--acm-ui-color-action-accent\) 80%, black\)/);
   assert.doesNotMatch(studioStyles, /\.studio-clear-action/);
-  const actionStyles = read("packages/acm-styles/src/styles.css");
+  const actionStyles = fs.readFileSync(new URL(import.meta.resolve("@andrewcharlesmoss/styles/styles.css")), "utf8");
   assert.match(actionStyles, /\.acm-button\.acm-button-text:focus-visible/);
   assert.match(actionStyles, /\.acm-button\.acm-button-text:disabled/);
   assert.match(studioStyles, /\.paragraph-gradient-angle-dial span::after \{[^}]*background: var\(--gutenberg-accent\)/);

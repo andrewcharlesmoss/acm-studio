@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { interfaceStylePresetToCssVariables, type InterfaceStylePreset } from "@acm/styles";
+import { interfaceStylePresetToCssVariables, type InterfaceStylePreset } from "@andrewcharlesmoss/styles";
 import { StudioButton } from "../../controls/button";
 import { ColourPicker, type ColourPaletteEntry } from "../../controls/colour-picker";
 import { SelectControl } from "../../controls/native-fields";

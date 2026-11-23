@@ -6,7 +6,7 @@ import test from "node:test";
 import * as tokens from "../app/studio/ui/styles/style-guide-tokens.mjs";
 import { styleGuideMarkdown } from "./style-test-presets.mjs";
 import { loadProductionModule } from "./production-module.mjs";
-import * as styles from "@acm/styles";
+import * as styles from "@andrewcharlesmoss/styles";
 
 const parsed = tokens.parseStyleGuidePresets(styleGuideMarkdown);
 const { paragraphTextColourHasPoorContrast } = await loadProductionModule(new URL("../app/content/paragraph-styles.ts", import.meta.url));
@@ -32,7 +32,7 @@ function sandbox(scope, panel) {
   };
   const canonical = { STYLE_GUIDE_MARKDOWN: guide, INTERFACE_STYLE_PRESET: saved, UNIVERSAL_STYLE_PRESET: saved, BUNDLED_STYLE_GUIDE_SOURCE: source, createUniversalStylePreset: () => saved };
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "@acm/styles" ? styles : name.endsWith("style-guide-tokens.mjs") ? tokens : name.endsWith("canonical-style-guide") ? canonical : name.endsWith("style-preset-history") ? websiteHistory : name.endsWith("style-guide-selection") ? selection : name.endsWith("interface-style-history") ? interfaceHistory : name.endsWith("interface-style-inspection") ? { useInterfaceStyleInspection: () => ({ events: {} }) } : name.endsWith("interface-style-settings") ? { interfaceStyleSections: [{ id: "colours" }] } : {};
+  const require = name => name === "react" ? react : name === "react/jsx-runtime" ? { jsx, jsxs: jsx } : name === "@andrewcharlesmoss/styles" ? styles : name.endsWith("style-guide-tokens.mjs") ? tokens : name.endsWith("canonical-style-guide") ? canonical : name.endsWith("style-preset-history") ? websiteHistory : name.endsWith("style-guide-selection") ? selection : name.endsWith("interface-style-history") ? interfaceHistory : name.endsWith("interface-style-inspection") ? { useInterfaceStyleInspection: () => ({ events: {} }) } : name.endsWith("interface-style-settings") ? { interfaceStyleSections: [{ id: "colours" }] } : {};
   const file = interfaceScope ? "interface-style-sandbox.tsx" : "style-guide-sandbox.tsx";
   const code = (readFileSync(new URL(`../app/studio/ui/styles/${file}`, import.meta.url), "utf8"));
   const loaded = createHostModuleEvaluator(["require", "exports"], `${code}\nreturn exports;`)(require, {});

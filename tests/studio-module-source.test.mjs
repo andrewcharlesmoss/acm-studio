@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { readStudioSource } from "./studio-module-source.mjs";
 
-test("source inspection resolves canonical project and sibling package paths", () => {
-  for (const path of ["app/studio/controls/background-selection.tsx", "packages/acm-styles/src/styles.css"]) {
+test("source inspection resolves canonical project paths", () => {
+  for (const path of ["app/studio/controls/background-selection.tsx"]) {
     assert.equal(readStudioSource(path), readFileSync(new URL(`../${path}`, import.meta.url), "utf8"));
   }
 });

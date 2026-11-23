@@ -1,4 +1,4 @@
-import type { UniversalStylePreset } from "@acm/styles";
+import type { UniversalStylePreset } from "@andrewcharlesmoss/styles";
 
 const historyLimit = 60;
 
