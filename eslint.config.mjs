@@ -61,11 +61,6 @@ const eslintConfig = defineConfig([
     // The adapter renders a native track when the author attaches a caption file.
     rules: { "jsx-a11y/media-has-caption": ["error", { track: ["VideoCaptionTrack"] }] },
   },
-  {
-    // These published JavaScript entry points have matching TypeScript declarations.
-    files: ["packages/acm-icons/src/react.js", "packages/acm-icons/src/keyboard-react.js"],
-    rules: { "react/prop-types": "off" },
-  },
 ]);
 
 export default eslintConfig;

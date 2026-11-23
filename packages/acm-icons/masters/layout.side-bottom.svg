@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-<title>Side Bottom</title>
-<desc>Identify bottom box sides for spacing controls</desc>
-<g id="Regular-S" stroke-width="2"><path d="M 6 19.5 L 18 19.5" /></g>
-<g id="Regular-M" stroke-width="1.75"><path d="M 5.5 20 L 18.5 20" /></g>
-<g id="Regular-L" stroke-width="1.5"><path d="M 5 20.5 L 19 20.5" /></g>
-</svg>
