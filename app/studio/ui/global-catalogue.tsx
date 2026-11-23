@@ -6,7 +6,7 @@ import { SearchInput, TextInput } from "../controls/native-fields";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { iconNames, iconMetadata, type IconName } from "@acm/icons";
 import { AcmIcon } from "@acm/icons/react";
-import { PanelCard } from "@acm/panel";
+import { PanelCard } from "@andrewcharlesmoss/panel";
 import { Ribbon, RibbonButton, RibbonControls, RibbonField, RibbonGroup, RibbonPanel, RibbonToggleButton } from "@acm/ribbon";
 import { INTERFACE_STYLE_PRESET, UNIVERSAL_STYLE_PRESET } from "./styles/canonical-style-guide";
 import { blockLibraryEntries } from "../blocks/library-catalogue";
@@ -58,7 +58,7 @@ const entries: Entry[] = [
   { id: "navigation:application", name: "Application section navigation", section: "Navigation", purpose: "Shared pattern for moving between top-level application sections.", owner: "ACM Studio UI Library", consumers: "UI Library catalogue, Navigation, and Workspace specimens", dependencies: "ApplicationSectionNavigation; consumers provide routes and section content.", href: "/studio/ui/navigation", preview: { kind: "navigation" } },
   ...Object.entries(componentDescriptions).map(([name, purpose]) => ({ id: `ribbon:${name}`, name, section: "Ribbon" as const, purpose, owner: "@acm/ribbon", consumers: "Studio Ribbon and Design", dependencies: "Ribbon package components and semantic action definitions.", href: "/studio/ui/ribbon", preview: { kind: "ribbon" as const, key: name } })),
   ...paneExamples.map((entry) => ({ id: `pane:${entry.id}`, name: entry.label, section: "Panes" as const, purpose: entry.description, owner: "ACM Studio Pane components", consumers: entry.sourceComponent, dependencies: `Shared Pane layout, dimensions and interaction contract. ${entry.tabs.length ? `Tabs: ${entry.tabs.join(", ")}.` : ""}`, href: "/studio/ui/panes", preview: { kind: "pane" as const, key: entry.id } })),
-  { id: "panel:card", name: "Panel card", section: "Panels", purpose: "Raised card for related details and actions, with content slots.", owner: "@acm/panel", consumers: "Studio UI Library; future application panels", dependencies: "Shared PanelCard surface and slot contract.", href: "/studio/ui/panels", preview: { kind: "panel" } },
+  { id: "panel:card", name: "Panel card", section: "Panels", purpose: "Raised card for related details and actions, with content slots.", owner: "@andrewcharlesmoss/panel", consumers: "Studio UI Library; future application panels", dependencies: "Shared PanelCard surface and slot contract.", href: "/studio/ui/panels", preview: { kind: "panel" } },
   ...blockEntries,
   ...controlEntries,
   ...iconEntries,

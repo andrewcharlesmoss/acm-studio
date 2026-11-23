@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@acm/icons": "file:./packages/acm-icons",
-    "@acm/panel": "file:./packages/acm-panel",
+    "@andrewcharlesmoss/panel": "0.1.0",
     "@acm/ribbon": "file:./packages/acm-ribbon",
     "@acm/styles": "file:./packages/acm-styles",
     "highlight.js": "^11.11.1",

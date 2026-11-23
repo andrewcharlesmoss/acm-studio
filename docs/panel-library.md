@@ -1,6 +1,6 @@
 # Panel card
 
-The Studio UI Library demonstrates the product-neutral PanelCard from @acm/panel
+The Studio UI Library demonstrates the product-neutral PanelCard from @andrewcharlesmoss/panel
 at /studio/ui/panels. The package owns the raised card surface, labelled
 heading, optional eyebrow and description, header-actions slot, body and
 optional footer. The component contract is v0.1.0.

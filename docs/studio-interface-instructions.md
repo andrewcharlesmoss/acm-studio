@@ -97,7 +97,7 @@ key families; layouts and hardware-dependent legends remain model-specific.
 The Studio preview's default appearance and Reset to Default behaviour are
 defined in `docs/studio-ui-library.md`; keep them separate from the shared
 keyboard renderer's transparent backwards-compatible defaults.
-The Panels section at `/studio/ui/panels` demonstrates the shared `@acm/panel`
+The Panels section at `/studio/ui/panels` demonstrates the shared `@andrewcharlesmoss/panel`
 card component. Product consumers own placement, width, resizing, visibility,
 content and actions. Keep account data and behaviour in ACM Account.
 This catalogue organisation does not replace

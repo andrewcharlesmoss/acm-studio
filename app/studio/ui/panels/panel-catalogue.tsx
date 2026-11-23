@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PanelCard } from "@acm/panel";
+import { PanelCard } from "@andrewcharlesmoss/panel";
 import { AcmStudioIcon } from "../../acm-studio-icons";
 
 export function PanelCatalogue() {

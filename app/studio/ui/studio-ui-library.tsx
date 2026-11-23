@@ -9,7 +9,7 @@ import { createContext, useEffect, useRef, useState, type Dispatch, type SetStat
 import "@acm/ribbon/styles.css";
 import "../ribbon/ribbon-library.css";
 import "../panes/pane-library.css";
-import "@acm/panel/styles.css";
+import "@andrewcharlesmoss/panel/styles.css";
 import "./catalogue-navigation.css";
 import "./blocks/catalogue.css";
 import "./controls/catalogue.css";

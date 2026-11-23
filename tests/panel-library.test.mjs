@@ -14,9 +14,9 @@ test("Panels is a separate Studio UI Library section backed by the shared card",
   const page = read("app/studio/ui/panels/page.tsx");
   assert.match(page, /PanelCatalogue/);
   assert.match(page, /<StudioUiSectionHost section="panels">/);
-  assert.match(shell, /@acm\/panel\/styles\.css/);
+  assert.match(shell, /@andrewcharlesmoss\/panel\/styles\.css/);
   const catalogue = read("app/studio/ui/panels/panel-catalogue.tsx");
-  assert.match(catalogue, /from "@acm\/panel"/);
+  assert.match(catalogue, /from "@andrewcharlesmoss\/panel"/);
   assert.match(catalogue, /<PanelCard/);
   assert.match(catalogue, /setOpen\(false\)/);
   assert.match(catalogue, /local_user@example\.test/);

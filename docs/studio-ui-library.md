@@ -40,7 +40,7 @@ The Catalogue indexes the following sections:
 - **Panes** — shared Pane structure, optional regions, resize/collapse behaviour
   and isolated Studio examples.
 - **Panels** — the shared card surface and header slots, demonstrated with
-  temporary sample data from `@acm/panel`.
+  temporary sample data from `@andrewcharlesmoss/panel`.
 - **Blocks** — block definitions, inspector capabilities, relationships and
   isolated editing specimens. A grouped index covers all 33 typed block types,
   including ACM-specific and compatibility-only entries, plus the template
@@ -121,7 +121,7 @@ selected heading level stays in the block's level control. The Studio-owned
 exports. `workspace-governance/STYLE_GUIDE.md` is the only stored source for
 website and interface style values and remains authoritative for policy. The Ribbon and Pane implementations remain in their
 existing modules and retain their own contracts. The Panels section consumes the
-product-neutral `@acm/panel` package. Its card owns the surface and slots;
+product-neutral `@andrewcharlesmoss/panel` package. Its card owns the surface and slots;
 consumers own position, width, resizing, visibility, data and actions.
 Workspace composes the shared
 components and includes the generic Application Section Navigation specimen;

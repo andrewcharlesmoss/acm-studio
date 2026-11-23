@@ -102,8 +102,9 @@ recorded in [`docs/design-canvas.md`](docs/design-canvas.md).
 
 ## Clean checkout setup
 
-Studio owns the shared packages in `packages/`. Their package names and exports
-remain usable by ACM consumers. The workspace style guide remains in the
+Studio owns Icons, Ribbon, and Styles in `packages/`. The private Panel
+dependency is pinned to its GitHub Packages release. A clean `npm ci` requires
+read access to that registry. The workspace style guide remains in the
 independent `workspace-governance` repository. For a reproducible build, check
 out the verified guide revision alongside Studio. From a new parent directory
 with access to both GitHub repositories, run:
@@ -122,8 +123,7 @@ as the source of the second clone.
 
 The guide revision is a build input; advance it deliberately and verify Studio
 when the guide changes. Local development continues to use the adjacent working
-copy of the guide and its revision-checked editing gateway. Package sources are
-maintained in this repository under `packages/`. Original Git histories are
+copy of the guide and its revision-checked editing gateway. Original Git histories are
 retained locally in `_Recovery/acm-packages-2026-11-22`, alongside `_Projects`.
 These local source revisions were imported without rewriting their histories:
 
