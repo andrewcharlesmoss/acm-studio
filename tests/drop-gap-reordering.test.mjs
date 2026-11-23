@@ -25,14 +25,15 @@ test("no-op, cancellation, foreign owner, stale data, read-only and rejected pol
 test("gap geometry honours borders, non-uniform sizes, horizontal wrapping and zoom",()=>{
  const rows=[box(100,100,200,60),box(100,200,200,120)];const line=geometry.insertionGapLine(rows,1,box(80,80,240,300),2);assert.equal(line.top,49);assert.equal(line.height,2);
  const wrapped=[box(10,20,60,30),box(80,20,50,30),box(10,70,80,40),box(100,70,60,50)];const next=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x");assert.equal(next.top,59);assert.equal(next.height,2);assert.equal(geometry.insertionGapIndex(wrapped,179,49,"x"),2);
- const vertical=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x",2,{before:12,after:12},"boundary","next-item-vertical");assert.deepEqual(vertical,{left:9,top:70,width:2,height:50});
+ const vertical=geometry.insertionGapLine(wrapped,2,box(0,0,180,140),1,"x",2,{before:12,after:12},"boundary","row-edge",75);assert.deepEqual(vertical,{left:9,top:70,width:2,height:50});
 });
-test("a trailing wrapped-row cue uses the preceding row's full height", () => {
+test("a wrapped cue follows the pointer across the row gap and uses each row's full height", () => {
   const rows = [box(10, 20, 60, 30), box(80, 20, 50, 20), box(10, 70, 80, 40)];
-  const line = geometry.insertionGapLine(
-    rows, 2, box(0, 0, 180, 140), 2, "x", 2, { before: 12, after: 12 }, "boundary", "previous-item-vertical",
+  const cueAt = y => geometry.insertionGapLine(
+    rows, 2, box(0, 0, 180, 140), 2, "x", 2, { before: 12, after: 12 }, "boundary", "row-edge", y,
   );
-  assert.deepEqual(line, { left: 64, top: 10, width: 2, height: 15 });
+  for (const y of [25, 50, 59]) assert.deepEqual(cueAt(y), { left: 64, top: 10, width: 2, height: 15 });
+  for (const y of [60, 69, 75]) assert.deepEqual(cueAt(y), { left: 4, top: 35, width: 2, height: 20 });
 });
 
 test("dashboard card bodies select slots while neighbouring card edges share one insertion gap", () => {

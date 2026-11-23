@@ -967,7 +967,7 @@
 
 ### Fixed
 
-- Show the drop line to the right of the last site card in a Control Centre row when inserting at that boundary.
+- Show the Control Centre drop line at the approached row edge, including drops before the first card and after the last card in each row.
 
 - Drop Control Centre cards into the intended slot on the first drag, including across rows and in single-column layouts.
 

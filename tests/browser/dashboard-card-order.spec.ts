@@ -44,7 +44,7 @@ test('dashboard cards reorder independently and retain order', async ({ page }) 
 });
 
 
-test('dashboard card drag feedback stays vertical across wrapped rows', async ({ page }) => {
+test('tool cards show a wrapped drop at the edge being targeted', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto('/');
   const tools = page.locator('.dashboard-tool-grid');
@@ -65,13 +65,13 @@ test('dashboard card drag feedback stays vertical across wrapped rows', async ({
     await new Promise(requestAnimationFrame);
     const line = grid.querySelector<HTMLElement>('.studio-gap-line');
     if (!line) throw new Error('The dashboard did not render a drop indicator.');
-    const measured = { width: line.getBoundingClientRect().width, height: line.getBoundingClientRect().height, left: line.getBoundingClientRect().left, nextLeft: nextRow.getBoundingClientRect().left };
+    const measured = { width: line.getBoundingClientRect().width, height: line.getBoundingClientRect().height, left: line.getBoundingClientRect().left, rowEnd: lastInRow.right };
     handle.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
     return measured;
   });
   expect(marker.width).toBe(2);
   expect(marker.height).toBeGreaterThan(2);
-  expect(marker.left + marker.width / 2).toBeCloseTo(marker.nextLeft, 0);
+  expect(marker.left + marker.width / 2).toBeCloseTo(marker.rowEnd, 0);
   await expect(tools.locator('.studio-gap-line')).toHaveCount(0);
 });
 
@@ -126,56 +126,102 @@ for (const { label, width, from, to, across } of [
   });
 }
 
-test('the wrapped site drop line appears to the right of Habit Tracker', async ({ page }) => {
-  const original = ['acm-account', 'acm-studio', 'test', 'test2', 'lid-angle', 'andrew-moss', 'loquafy', 'habit-tracker', 'loquage'];
-  const preference = 'acm-studio-dashboard-sites-order-v1';
-  await page.addInitScript(({ key, order }) => localStorage.setItem(key, JSON.stringify(order)), { key: preference, order: original });
-  await page.setViewportSize({ width: 1280, height: 1700 });
-  await page.goto('/');
-  const grid = page.locator('.dashboard-site-grid');
-  const cards = grid.locator('.dashboard-card-reorder');
-  const order = () => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
-  await expect.poll(order).toEqual(original);
+for (const side of ['right of Habit Tracker', 'left of Loquage']) {
+  test(`Lid Angle drops ${side} with the line beside the pointer`, async ({ page }) => {
+    const original = ['acm-account', 'acm-studio', 'test', 'test2', 'lid-angle', 'andrew-moss', 'loquafy', 'habit-tracker', 'loquage'];
+    const preference = 'acm-studio-dashboard-sites-order-v1';
+    await page.addInitScript(({ key, order }) => localStorage.setItem(key, JSON.stringify(order)), { key: preference, order: original });
+    await page.setViewportSize({ width: 1280, height: 1700 });
+    await page.goto('/');
+    const grid = page.locator('.dashboard-site-grid');
+    const cards = grid.locator('.dashboard-card-reorder');
+    const order = () => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
+    await expect.poll(order).toEqual(original);
 
-  const habitTracker = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
-  const loquage = (await grid.locator('[data-library-entry-id="loquage"]').boundingBox())!;
-  const grip = (await grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true }).boundingBox())!;
-  const frame = (await grid.boundingBox())!;
-  const right = habitTracker.x + habitTracker.width;
-  expect(loquage.y).toBeGreaterThan(habitTracker.y);
-  expect(frame.x + frame.width).toBeGreaterThan(right);
-  const drop = { x: (right + frame.x + frame.width) / 2, y: habitTracker.y + habitTracker.height / 2 };
-  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(drop.x, drop.y, { steps: 12 });
+    const habitTracker = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
+    const loquage = (await grid.locator('[data-library-entry-id="loquage"]').boundingBox())!;
+    const grip = (await grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true }).boundingBox())!;
+    const frame = (await grid.boundingBox())!;
+    const right = habitTracker.x + habitTracker.width;
+    expect(loquage.y).toBeGreaterThan(habitTracker.y);
+    expect(frame.x + frame.width).toBeGreaterThan(right);
+    const afterHabit = { x: (right + frame.x + frame.width) / 2, y: habitTracker.y + habitTracker.height / 2 };
+    const beforeLoquage = { x: (loquage.x + frame.x) / 2, y: loquage.y + loquage.height / 2 };
+    const drop = side === 'right of Habit Tracker' ? afterHabit : beforeLoquage;
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(afterHabit.x, afterHabit.y, { steps: 12 });
 
-  const line = grid.locator('.studio-gap-line');
-  await expect(line).toHaveCount(1);
-  const markerCentre = () => line.evaluate(el => {
-    const rect = el.getBoundingClientRect();
-    return rect.left + rect.width / 2;
+    const line = grid.locator('.studio-gap-line');
+    await expect(line).toHaveCount(1);
+    const markerCentre = () => line.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.left + rect.width / 2;
+    });
+    await expect.poll(async () => Math.abs(await markerCentre() - right)).toBeLessThan(1);
+    // Both physical edges select the same position in the saved order.
+    await page.mouse.move(beforeLoquage.x, beforeLoquage.y);
+    await expect.poll(async () => Math.abs(await markerCentre() - loquage.x)).toBeLessThan(1);
+    await page.mouse.move(drop.x, drop.y);
+    await page.mouse.up();
+
+    const expected = ['acm-account', 'acm-studio', 'test', 'test2', 'andrew-moss', 'loquafy', 'habit-tracker', 'lid-angle', 'loquage'];
+    await expect.poll(order).toEqual(expected);
+    await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), preference)).toEqual(expected);
+    await expect(line).toHaveCount(0);
+
+    const movedLid = (await grid.locator('[data-library-entry-id="lid-angle"]').boundingBox())!;
+    const movedHabit = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
+    const movedHandle = grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true });
+    await expect(movedHandle).toHaveAttribute('aria-disabled', 'false');
+    const movedGrip = (await movedHandle.boundingBox())!;
+    await page.mouse.move(movedGrip.x + movedGrip.width / 2, movedGrip.y + movedGrip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move((movedHabit.x + movedHabit.width + movedLid.x) / 2, movedHabit.y + movedHabit.height / 2, { steps: 6 });
+    await expect(line).toHaveCount(0);
+    await page.mouse.up();
+    await expect.poll(order).toEqual(expected);
   });
-  await expect.poll(async () => Math.abs(await markerCentre() - right)).toBeLessThan(1);
-  // The gap before Loquage is the same position in the saved order.
-  await page.mouse.move(loquage.x + 2, loquage.y + loquage.height / 2);
-  await expect.poll(async () => Math.abs(await markerCentre() - right)).toBeLessThan(1);
-  await page.mouse.move(drop.x, drop.y);
-  await page.mouse.up();
+}
 
-  const expected = ['acm-account', 'acm-studio', 'test', 'test2', 'andrew-moss', 'loquafy', 'habit-tracker', 'lid-angle', 'loquage'];
-  await expect.poll(order).toEqual(expected);
-  await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), preference)).toEqual(expected);
-  await expect(line).toHaveCount(0);
+for (const { width, columns } of [{ width: 1280, columns: 4 }, { width: 900, columns: 2 }]) {
+  test(`each site row has a blue line at either drop edge with ${columns} columns`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 2600 });
+    await page.goto('/');
+    await expect(page.locator('.dashboard-shell')).toHaveAttribute('data-dashboard-ready', 'true');
+    const grid = page.locator('.dashboard-site-grid');
+    const cards = grid.locator('.dashboard-card-reorder');
+    const handles = grid.getByRole('button', { name: /^Reorder / });
+    const line = grid.locator('.studio-gap-line');
+    const order = () => cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-library-entry-id')));
+    const original = await order();
+    const bounds = await cards.evaluateAll(nodes => nodes.map(node => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, middle: rect.top + rect.height / 2 };
+    }));
 
-  const movedLid = (await grid.locator('[data-library-entry-id="lid-angle"]').boundingBox())!;
-  const movedHabit = (await grid.locator('[data-library-entry-id="habit-tracker"]').boundingBox())!;
-  const movedHandle = grid.getByRole('button', { name: 'Reorder Lid Angle', exact: true });
-  await expect(movedHandle).toHaveAttribute('aria-disabled', 'false');
-  const movedGrip = (await movedHandle.boundingBox())!;
-  await page.mouse.move(movedGrip.x + movedGrip.width / 2, movedGrip.y + movedGrip.height / 2);
-  await page.mouse.down();
-  await page.mouse.move((movedHabit.x + movedHabit.width + movedLid.x) / 2, movedHabit.y + movedHabit.height / 2, { steps: 6 });
-  await expect(line).toHaveCount(0);
-  await page.mouse.up();
-  await expect.poll(order).toEqual(expected);
-});
+    expect(bounds.filter(card => card.top === bounds[0].top)).toHaveLength(columns);
+    for (let start = 0; start < bounds.length; start += columns) {
+      const end = Math.min(start + columns, bounds.length) - 1;
+      for (const { index, side } of [{ index: start, side: 'left' }, { index: end, side: 'right' }] as const) {
+        const destination = bounds[index];
+        const gapIndex = side === 'left' ? index : index + 1;
+        // Pick a source outside the gap so this would be an effective move.
+        const sourceIndex = gapIndex < 2 ? bounds.length - 1 : 0;
+        const grip = (await handles.nth(sourceIndex).boundingBox())!;
+        await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(destination[side] + (side === 'left' ? -4 : 4), destination.middle, { steps: 8 });
+        await expect(line).toHaveCount(1);
+        const marker = (await line.boundingBox())!;
+        expect(marker.width).toBe(2);
+        expect(Math.abs(marker.x + marker.width / 2 - destination[side])).toBeLessThan(1);
+        expect(Math.abs(marker.y - destination.top)).toBeLessThan(1);
+        await page.keyboard.press('Escape');
+        await page.mouse.up();
+        await expect(line).toHaveCount(0);
+      }
+    }
+    await expect.poll(order).toEqual(original);
+  });
+}

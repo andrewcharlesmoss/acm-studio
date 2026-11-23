@@ -23,7 +23,7 @@ export function useGapReordering({ ids, version, writable, axis = "y", edgeAlign
       const { index, axis: dropAxis } = placement;
       const target: LibraryMove = { id, baseline: [...ids], targetId: ids[Math.min(index, ids.length - 1)], edge: index === ids.length ? "after" : "before" };
       if (!movedLibraryIds(ids, target) || !accepts(target)) return null;
-      const line = dropLineInContainer(insertionGapLine(boxes, index, bounds, scale, dropAxis, 2, placementEdgeGaps(container, dropAxis), edgeAlignment, wrappedRowBoundaryCue), bounds, bounds, scale, { scrollLeft: container.scrollLeft, scrollTop: container.scrollTop, borderLeft: container.clientLeft, borderTop: container.clientTop });
+      const line = dropLineInContainer(insertionGapLine(boxes, index, bounds, scale, dropAxis, 2, placementEdgeGaps(container, dropAxis), edgeAlignment, wrappedRowBoundaryCue, y), bounds, bounds, scale, { scrollLeft: container.scrollLeft, scrollTop: container.scrollTop, borderLeft: container.clientLeft, borderTop: container.clientTop });
       return { target, line };
     },
     commit: (_id, move) => onMove(move),

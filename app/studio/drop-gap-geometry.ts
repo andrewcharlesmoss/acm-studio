@@ -4,7 +4,7 @@ export type DropBounds = { left: number; right: number; top: number; bottom: num
 export type DropAxis = "x" | "y";
 export type ReorderLayout = DropAxis | "card-grid";
 export type DropEdgeAlignment = "gap" | "boundary";
-export type WrappedRowBoundaryCue = "full-row" | "next-item" | "next-item-vertical" | "previous-item-vertical";
+export type WrappedRowBoundaryCue = "full-row" | "next-item" | "row-edge";
 export type DropLine = { left: number; top: number; width: number; height: number };
 
 function visualRows(rows: DropBounds[]) {
@@ -44,15 +44,17 @@ export function cardGridInsertion(rows: DropBounds[], sourceIndex: number, x: nu
   return { axis, index: hit > sourceIndex ? hit + 1 : hit };
 }
 
-export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "boundary", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row"): DropLine {
+export function insertionGapLine(rows: DropBounds[], index: number, owner: DropBounds, scale = 1, axis: DropAxis = "y", thickness = 2, outerGaps: PlacementEdgeGaps = { before: OUTER_INSERTION_GAP, after: OUTER_INSERTION_GAP }, edgeAlignment: DropEdgeAlignment = "boundary", wrappedRowBoundaryCue: WrappedRowBoundaryCue = "full-row", pointerY?: number): DropLine {
   const edgeGaps = edgeAlignment === "boundary" ? { before: 0, after: 0 } : outerGaps;
   const before = rows[index - 1]; const after = rows[index];
   const groups = axis === "x" ? visualRows(rows) : [];
   const previousRow = groups.find(group => index - 1 >= group.start && index - 1 <= group.end);
   const followingRow = groups.find(group => index >= group.start && index <= group.end);
   if (wrappedRowBoundaryCue !== "full-row" && before && after && previousRow && followingRow && previousRow !== followingRow) {
-    if (wrappedRowBoundaryCue !== "next-item") {
-      const atRowEnd = wrappedRowBoundaryCue === "previous-item-vertical";
+    const centre = (previousRow.bottom + followingRow.top) / 2;
+    if (wrappedRowBoundaryCue === "row-edge") {
+      // A wrapped gap has two physical approaches, with one saved insertion index.
+      const atRowEnd = (pointerY ?? followingRow.top) < centre;
       const row = atRowEnd ? previousRow : followingRow;
       const edge = atRowEnd ? before.right : after.left;
       return {
@@ -62,7 +64,6 @@ export function insertionGapLine(rows: DropBounds[], index: number, owner: DropB
         height: (row.bottom - row.top) / scale,
       };
     }
-    const centre = (previousRow.bottom + followingRow.top) / 2;
     const markerWidth = Math.min(after.width, 48 * scale);
     const left = (after.left + after.right - markerWidth) / 2;
     return { left: (left - owner.left) / scale, top: (centre - owner.top) / scale - thickness / 2, width: markerWidth / scale, height: thickness };
