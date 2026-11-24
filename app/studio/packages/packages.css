@@ -19,6 +19,13 @@
   vertical-align: top;
 }
 .package-dash-table thead { background: var(--acm-ui-color-subtle-surface); }
+.package-dash-table tr > :first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--acm-color-surface);
+}
+.package-dash-table thead tr > :first-child { background: var(--acm-ui-color-subtle-surface); }
 .package-dash-table tbody tr:last-child > * { border-bottom: 0; }
 .package-dash-table a { text-decoration: underline; text-underline-offset: .18em; }
 .package-dash-detail { display: block; color: var(--muted); font-size: var(--studio-ui-size, .875rem); }

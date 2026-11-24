@@ -48,6 +48,14 @@ test("shows verified version comparisons and keyboard access from the Control Ce
   await scroll.focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => scroll.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
+  const projectHeader = table.getByRole("rowheader", { name: "ACM Studio" });
+  const initialLeft = (await projectHeader.boundingBox())!.x;
+  await scroll.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+  await expect.poll(async () => (await projectHeader.boundingBox())!.x).toBeCloseTo(initialLeft, 0);
+  const scrollBox = (await scroll.boundingBox())!;
+  const projectBox = (await projectHeader.boundingBox())!;
+  expect(projectBox.x).toBeGreaterThanOrEqual(scrollBox.x);
+  expect(projectBox.x + projectBox.width).toBeLessThan(scrollBox.x + scrollBox.width);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   const refresh = page.getByRole("button", { name: "Refresh" });
   await refresh.focus();

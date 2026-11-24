@@ -4,7 +4,7 @@
 
 ### Added
 
-- View local package versions, verified latest releases, and unresolved dependencies by project in the read-only Packages dashboard.
+- View local package versions, verified latest releases, and unresolved dependencies by project in the read-only Packages dashboard, with project names kept visible when scrolling.
 
 - Add timed WebVTT captions to the Video block, with portable caption tracks in preview, publication, and backups.
 
