@@ -1500,7 +1500,8 @@ test("browser publication freezes effective shared presentation and fallback unt
   const fallbackHeader = { version: m.TEMPLATE_VERSION, set: headerSet, partId: headerSet.parts.find(part => part.kind === "header").id };
   const { release } = await env.own();
   const read = () => pub.parseLocallyPublishedArticles(env.storage.getItem(pub.LOCAL_PUBLICATIONS_KEY))[0];
-  repository.publish(doc, { templateSnapshot, fallbackHeader });
+  const publicationWorkspace = { ...plain(env.load("studio/editor-model.ts").initialStudioWorkspace), documents: [doc], activeDocumentId: doc.id };
+  repository.publish(doc, { templateSnapshot, fallbackHeader }, publicationWorkspace);
   assert.equal(read().templateSnapshot.set.identity.name, "Shared artwork");
   assert.equal(read().displayOverrides.title, "hide");
   assert.equal(read().fallbackHeader.set.name, "Header brand");

@@ -32,6 +32,37 @@ including its effective document field visibility and any inherited shared
 Header. Later edits to a shared original appear in draft Preview. An existing
 publication keeps the captured design until its next Update.
 
+## Interrupted publication saves
+
+Browser Publish, Update, and withdrawal save the workspace and publication as
+one recoverable pair. A versioned local journal retains the exact previous
+workspace; the publication envelope carries the matching commit ID. Recovery
+rolls back a transaction that stopped before the publication write, or keeps a
+committed pair and clears its remaining journal. Reader-only workspace loads
+project the corresponding workspace without writing.
+
+The existing lifetime writer lock owns recovery. On acquisition, durable
+full-restore recovery runs first, then publication recovery, then workspace load.
+Ordinary writes settle a leftover journal before proceeding. Failed recovery
+blocks editing and retains the evidence for retry. Complete backups reject a
+pending publication journal, including a committed journal awaiting cleanup;
+read-only export never repairs it. Full restore settles it before capturing its
+own rollback state. Public local views and navigation search withhold captures
+while the full-restore intent marker is present.
+
+The existing template presentation and inherited Header remain frozen in the
+publication. Workspace revision history still uses its normal repository
+validation and retention. No content-envelope version changes are required;
+the publication transaction ID is internal recovery metadata, and the separate
+journal is v1. Readers from before this journal was introduced do not recover it.
+Use the consolidated Studio version when resuming interrupted transactions.
+
+Regression coverage includes storage failures, renderer termination between
+writes, journal-cleanup failure, ownership handover, read-only backup capture,
+and interaction with durable full-restore recovery. Publication renderer-crash
+checks do not establish whole-browser power-loss durability. The separate full
+backup restore retains its existing cold-browser-restart coverage.
+
 ## Manual acceptance
 
 Use a separate example Page, leaving existing content unchanged. Publish its

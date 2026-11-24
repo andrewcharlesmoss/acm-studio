@@ -1,3 +1,4 @@
+import { recoverPendingPublication } from "../content/publication-recovery.ts";
 import { checkRestoreBeforeLoad } from "./restore-journal.ts";
 
 export type OwnershipState = "unavailable" | "waiting" | "loading" | "writable" | "unreadable" | "restoring" | "blocked";
@@ -70,6 +71,9 @@ export class StudioWriteOwnership {
             const authorised = () => !cancelled && !this.disposed && this.owner === token && this.state === "loading";
             const load = () => {
               if (!authorised()) return;
+              try { if (lifecycleWindow?.localStorage) recoverPendingPublication(lifecycleWindow.localStorage, authorised); }
+              catch (error) { block(error); return; }
+              if (!authorised()) return;
               try { onLoad(token!); } catch { this.loaded(token!, false); }
             };
             const block = (error: unknown) => {
@@ -95,7 +99,10 @@ export class StudioWriteOwnership {
   canWrite(token?: symbol | null) { return this.owner !== null && this.state === "writable" && (token === undefined || token === this.owner); }
   assertWritable(token?: symbol | null) {
     if (!this.canWrite(token)) throw new Error("This Studio window is read-only while local saving is unavailable. Try editing here again.");
+    try { if (globalThis.window?.localStorage) recoverPendingPublication(window.localStorage, () => this.canWrite(token)); }
+    catch (error) { this.blockForRecovery(); throw error; }
   }
+  blockForRecovery() { if (this.owner) this.notify("blocked"); }
   captureWriteToken(): symbol {
     this.assertWritable();
     return this.owner!;

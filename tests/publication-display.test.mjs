@@ -237,3 +237,17 @@ test("published Page List parents survive the public document projection", async
     assert.equal(validateTemplatePublicationSnapshot({ version: 57, posts: [legacy] }).posts[0].parentPageId, undefined);
   });
 });
+
+test('local navigation search withholds publications during a full restore without writing', () => {
+  const previous = globalThis.window;
+  const article = publications.toLocallyPublishedArticle(documentFixture());
+  const values = new Map([[publications.LOCAL_PUBLICATIONS_KEY, JSON.stringify({ version: 59, posts: [article] })]]);
+  globalThis.window = { localStorage: { getItem: key => values.get(key) ?? null, setItem() { assert.fail('Search must remain read-only'); } } };
+  try {
+    assert.equal(browserLocalPublicationSearchEntries().some(entry => entry.title === article.title), true);
+    values.set('acm-studio-pending-restore-v1', `preparing:${crypto.randomUUID()}`);
+    assert.deepEqual(browserLocalPublicationSearchEntries(), []);
+    values.delete('acm-studio-pending-restore-v1');
+    assert.equal(browserLocalPublicationSearchEntries().some(entry => entry.title === article.title), true);
+  } finally { globalThis.window = previous; }
+});

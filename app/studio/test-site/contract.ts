@@ -374,12 +374,18 @@ export function retainLocalPublications(next: TestSiteDocument, current: TestSit
   const target = testSiteCollection(next);
   const ids = new Set([...target.documents, ...target.bin.map(item => item.document)].map(document => document.id));
   const publications = current.publications.filter(item => ids.has(item.document.id));
-  const documents = target.documents.map(document => {
-    const live = current.documents.find(item => item.id === document.id);
-    // Undo edits draft content/dates, but cannot undo explicit publication commands.
-    return live ? { ...document, status: live.status, publishedAt: live.publishedAt } : document;
-  });
-  const retained = { ...target, documents, version: current.version, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
+  const currentDocuments = new Map([...current.documents, ...current.bin.map(item => item.document)].map(document => [document.id, document]));
+  function retainStatus(document: StudioDocument): StudioDocument {
+    const live = currentDocuments.get(document.id);
+    // History restores editorial fields and editable dates, never publication decisions.
+    if (live) return { ...document, status: live.status, publishedAt: live.publishedAt };
+    // Redo can restore a document whose creation and publication were already undone.
+    return document.status === "published" || document.status === "scheduled"
+      ? { ...document, status: "draft", publishedAt: undefined } : document;
+  }
+  const documents = target.documents.map(retainStatus);
+  const bin = target.bin.map(item => ({ ...item, document: retainStatus(item.document) }));
+  const retained = { ...target, documents, bin, version: current.version, globalTemplates: target.globalTemplates ?? current.globalTemplates, publications };
   if (current.version >= 12) return { ...retained, version: CURRENT_TEST_SITE_VERSION };
   // Undo must keep legacy capture semantics without attaching newer envelope fields.
   const result: Record<string, unknown> = { ...retained };

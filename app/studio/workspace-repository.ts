@@ -1,3 +1,4 @@
+import { readPublicationWorkspace } from "../content/publication-recovery";
 import { loadTemplates } from "./template-store";
 import { assertBrowserWorkspaceGlobalReferences } from "./template-reference-gate";
 import { savedDocumentRevisions } from "./document-revisions";
@@ -20,16 +21,20 @@ export function withSavedDocumentRevisions(workspace: StudioWorkspace): StudioWo
 
 export const browserWorkspaceRepository: WorkspaceRepository = {
   load() {
-    const serialised = window.localStorage.getItem(LOCAL_WORKSPACE_KEY);
+    const serialised = readPublicationWorkspace(window.localStorage);
     if (serialised === null) return null;
     return validateWorkspacePublicationTemplates(migrateStudioWorkspace(JSON.parse(serialised)));
   },
   save(workspace) {
-    studioWriteOwnership.assertWritable();
-    assertBrowserWorkspaceGlobalReferences(workspace, loadTemplates);
-    const previous = browserWorkspaceRepository.load();
-    const documentRevisions = savedDocumentRevisions(previous, workspace);
-    const saved = validateWorkspacePublicationTemplates(validateStudioWorkspace({ ...workspace, version: WORKSPACE_VERSION, documentRevisions }));
-    window.localStorage.setItem(LOCAL_WORKSPACE_KEY, JSON.stringify(saved));
+    window.localStorage.setItem(LOCAL_WORKSPACE_KEY, serialiseWorkspaceForSave(workspace));
   },
 };
+
+export function serialiseWorkspaceForSave(workspace: StudioWorkspace) {
+  studioWriteOwnership.assertWritable();
+  assertBrowserWorkspaceGlobalReferences(workspace, loadTemplates);
+  const previous = browserWorkspaceRepository.load();
+  const documentRevisions = savedDocumentRevisions(previous, workspace);
+  const saved = validateWorkspacePublicationTemplates(validateStudioWorkspace({ ...workspace, version: WORKSPACE_VERSION, documentRevisions }));
+  return JSON.stringify(saved);
+}

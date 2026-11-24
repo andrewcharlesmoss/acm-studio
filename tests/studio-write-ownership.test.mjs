@@ -81,7 +81,7 @@ test("publish hook preserves document status and save label after corrupt-store 
       const document = { ...f.document, status: action === "publish" ? "draft" : "published" };
       let updates = 0; let labels = 0;
       const hook = f.load("app/studio/use-studio-publishing.ts").useStudioPublishing({
-        activeDocument: document, workspace: { documents: [document] }, reservedSlugs: [],
+        activeDocument: document, workspace: { ...structuredClone(f.load("app/studio/editor-model.ts").initialStudioWorkspace), documents: [document], activeDocumentId: document.id }, reservedSlugs: [],
         updateActiveDocument() { updates++; }, setSaveLabel() { labels++; },
       });
       assert.equal(hook[action](), false);
@@ -1155,3 +1155,50 @@ for (const outcome of ["missing", "not an image", "destination changed", "insert
     h.close();
   });
 }
+
+for (const committed of [false, true]) test(`writer resolves ${committed ? 'committed' : 'incomplete'} publication before loading`, async () => {
+  const id = crypto.randomUUID();
+  const key = 'acm-studio-publication-commit-v1';
+  const values = new Map([
+    [key, JSON.stringify({ version: 1, operationId: id, previousWorkspace: 'original' })],
+    ['acm-studio-workspace-v2', 'next'],
+    ['acm-studio-publications-v1', JSON.stringify({ posts: [], ...(committed ? { publicationCommitId: id } : {}) })],
+  ]);
+  const storage = { getItem: k => values.get(k) ?? null, setItem: (k, v) => values.set(k, v), removeItem: k => values.delete(k) };
+  const coordinator = modules({ window: { localStorage: storage } })('app/studio/write-ownership.ts').studioWriteOwnership;
+  const manager = locks(); let loaded = false;
+  const release = coordinator.acquire(token => {
+    assert.equal(storage.getItem('acm-studio-workspace-v2'), committed ? 'next' : 'original');
+    assert.equal(storage.getItem(key), null);
+    loaded = true; coordinator.loaded(token, true);
+  }, manager);
+  await tick(); assert.equal(loaded, true); assert.equal(coordinator.canWrite(), true);
+  release(); await tick(); assert.equal(manager.held(), false);
+});
+
+for (const reason of ['malformed', 'cleanup']) test(`publication recovery ${reason} failure blocks load and retains ownership`, async () => {
+  const key = 'acm-studio-publication-commit-v1';
+  const raw = reason === 'malformed' ? '{broken' : JSON.stringify({ version: 1, operationId: crypto.randomUUID(), previousWorkspace: null });
+  const values = new Map([[key, raw]]);
+  const storage = { getItem: k => values.get(k) ?? null, setItem: (k, v) => values.set(k, v), removeItem() { throw Error('Cleanup unavailable'); } };
+  const coordinator = modules({ window: { localStorage: storage } })('app/studio/write-ownership.ts').studioWriteOwnership;
+  const manager = locks(); let failures = 0;
+  const release = coordinator.acquire(() => assert.fail('Recovery must precede load'), manager, () => failures++);
+  await tick(); assert.equal(coordinator.getState(), 'blocked'); assert.equal(failures, 1);
+  assert.equal(manager.held(), true); assert.equal(values.get(key), raw);
+  release(); await tick(); assert.equal(manager.held(), false);
+});
+
+test('cancellation during full restore prevents subsequent publication recovery', async () => {
+  let finish, writes = 0;
+  const fullRestore = new Promise(resolve => { finish = resolve; });
+  const raw = JSON.stringify({ version: 1, operationId: crypto.randomUUID(), previousWorkspace: 'original' });
+  const browser = { localStorage: { getItem: key => key === 'acm-studio-publication-commit-v1' ? raw : null,
+    setItem() { writes++; }, removeItem() { writes++; } } };
+  const load = modules({ window: browser }, { './restore-journal.ts': { checkRestoreBeforeLoad: () => fullRestore } });
+  const coordinator = load('app/studio/write-ownership.ts').studioWriteOwnership;
+  const manager = locks();
+  const release = coordinator.acquire(() => assert.fail('Cancelled load'), manager);
+  await tick(); release(); finish(); await tick();
+  assert.equal(writes, 0); assert.equal(coordinator.canWrite(), false); assert.equal(manager.held(), false);
+});

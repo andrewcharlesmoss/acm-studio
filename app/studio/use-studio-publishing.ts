@@ -41,6 +41,10 @@ export function useStudioPublishing({
     return () => window.clearTimeout(timeout);
   }, [publishFeedback, kind]);
 
+  function workspaceWithDocument(next: StudioDocument) {
+    return { ...workspace, documents: workspace.documents.map(document => document.id === next.id ? next : document) };
+  }
+
   function publish() {
     if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }
     if (!presentationReady) { setPublishFeedback("Wait for the document template to finish loading or resolve its error before publishing."); return false; }
@@ -64,14 +68,15 @@ export function useStudioPublishing({
       publishedSlug: slug,
       updatedAt: timestamp,
     };
+    let cleaned;
     try {
-      publishingRepository.publish(resolvedDocument ? { ...publication, author: resolvedDocument.author, category: resolvedDocument.category, tags: resolvedDocument.tags, parentPageId: resolvedDocument.parentPageId, displayOverrides: resolvedDocument.displayOverrides } : publication, presentation);
+      cleaned = publishingRepository.publish(resolvedDocument ? { ...publication, author: resolvedDocument.author, category: resolvedDocument.category, tags: resolvedDocument.tags, parentPageId: resolvedDocument.parentPageId, displayOverrides: resolvedDocument.displayOverrides } : publication, presentation, workspaceWithDocument(publication));
     } catch (error) {
-      setPublishFeedback(error instanceof UnreadablePublicationsError ? error.message : "This browser could not store the published document. Your draft is still safe in Studio.");
+      setPublishFeedback(error instanceof UnreadablePublicationsError || error instanceof AggregateError ? error.message : "This browser could not store the published document. Your draft is still safe in Studio.");
       return false;
     }
     updateActiveDocument(() => publication);
-    setPublishFeedback(scheduled
+    setPublishFeedback(cleaned === false ? "Publication saved. Reload Studio to finish clearing the recovery record." : scheduled
       ? firstPublication ? `Scheduled locally for ${formatPublishDate(documentToPublish.publishAt!)} UTC+0. It will appear at ${destination} on this browser at that time.` : `Scheduled ${kind} updated locally.`
       : firstPublication ? `Published locally. This ${kind} is now visible at ${destination} on this browser.` : `Published ${kind} updated locally.`);
     setSaveLabel(scheduled ? `${kind === "page" ? "Page" : "Post"} scheduled locally` : "Published locally just now");
@@ -80,20 +85,19 @@ export function useStudioPublishing({
 
   function unpublish() {
     if (!publishingWritable) { setPublishFeedback("Publishing is paused while another Studio tab owns local storage."); return false; }
+    const draft: StudioDocument = { ...activeDocument, status: "draft" };
+    delete draft.publishedAt;
+    delete draft.publishedSlug;
+    let cleaned;
     try {
-      publishingRepository.unpublish(activeDocument.id);
+      cleaned = publishingRepository.unpublish(activeDocument.id, workspaceWithDocument(draft));
     } catch (error) {
-      setPublishFeedback(error instanceof UnreadablePublicationsError ? error.message : "This browser could not remove the published document.");
+      setPublishFeedback(error instanceof UnreadablePublicationsError || error instanceof AggregateError ? error.message : "This browser could not remove the published document.");
       return false;
     }
     const cancelledSchedule = activeDocument.status === "scheduled";
-    updateActiveDocument((document) => {
-      const draft = { ...document };
-      delete draft.publishedAt;
-      delete draft.publishedSlug;
-      return { ...draft, status: "draft" };
-    });
-    setPublishFeedback(cancelledSchedule ? `Schedule cancelled and removed from ${destination}.` : `${kind === "page" ? "Page" : "Post"} returned to draft and removed from ${destination}.`);
+    updateActiveDocument(() => draft);
+    setPublishFeedback(cleaned === false ? "Publication withdrawn. Reload Studio to finish clearing the recovery record." : cancelledSchedule ? `Schedule cancelled and removed from ${destination}.` : `${kind === "page" ? "Page" : "Post"} returned to draft and removed from ${destination}.`);
     setSaveLabel("Draft saved locally");
     return true;
   }

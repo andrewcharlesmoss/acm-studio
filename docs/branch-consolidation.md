@@ -150,3 +150,106 @@ the starting Studio instructions are tracked from `26c3e436` with existing local
 updates preserved. Behavioural changes follow Explorer → Builder → independent
 read-only Verifier review. Tests, rendered behaviour, Git integration and hosted
 publication remain distinct evidence.
+
+
+## Main-only consolidation — 24 November 2026
+
+The new baseline is `372deb084dac9ae1fd04232527173e65786f77da`, verified
+against GitHub `origin/main`. Andrew requested consolidation and removal of the
+extra branches. Work stays in the canonical checkout on `main`; no new task
+branch or worktree was created. Sites publication is outside this operation.
+The Explorer → Builder → independent read-only Verifier route applies.
+
+### Disposition of remaining work
+
+| Source | Decision |
+| --- | --- |
+| `codex/concurrent-worktree-policy`, `codex/pullquote-block`, `codex/sticky-icon-inspector` | Already ancestors of main. Retain main's later implementations. |
+| `codex/swiftui-reorder-github` at `543af712` | All native SwiftUI sources, tests, and preview bridge match main. Main's build script additionally uses the published icon package; its web specimen includes later card-shuffle work. |
+| Detached `cd51b99a` (`0d0f`) | All three commits are patch-equivalent to main. |
+| Detached `72e39c8f` (`2510`) | Client navigation and saved navigation ordering exist in the newer production hooks. |
+| Detached `d34f9534` (`e009`) | Icon style selection exists in the current expanded catalogue. |
+| Other clean detached worktrees | Their HEADs are ancestors of main; preserve their histories before removal. |
+| Dirty `cd4a` at `e2173b11` | Its Design changes and circular-swatch fix are integrated. Current preview acknowledgements, retries, Blob URL ownership, and independent Colour-scope visibility supersede the older draft. Both current swatch and equal-inset browser tests pass; the unused scrollbar-gutter workaround remains recoverable. |
+| Four stashes | Group layout and Query Loop drafts are integrated or superseded by current compatibility contracts; icon timestamps and documentation use the current package and labels. All original stash commits and parents remain in the recovery bundle. |
+
+The 32 commits unique by ancestry on `codex/studio-backup-upload-warning`
+(`56fe872f`) were compared by behaviour, not just commit IDs:
+
+- `3ea278c8` supplies the recovered Bin/creation Undo/Redo publication fix.
+  Main's supported-version guard and current format constant are retained.
+- The ordinary-publication portion of `3fe24d52` supplies the recovered
+  publication/workspace journal. It is adapted to current presentation,
+  saved-revision, ownership, and full-backup contracts. Its older full-restore
+  checkpoint implementation is superseded by main's durable restore journal.
+- The nine later editor fixes were already integrated by `a2dd167f`.
+- The old upload warning assumes a total JSON-backup ceiling. Current binary
+  backups supersede it; it is not reinstated.
+- Global-template acknowledgement, Columns-to-Row layout, and large-media
+  backup behaviour have newer implementations on main.
+- Pure extraction alternatives (file-size labels, Design page exports, layout
+  controls, outline labels, and inserter search), old harnesses, measurements,
+  and obsolete assertions remain in the recovery bundle. Their user-facing
+  behaviour is retained by current implementations; they are not copied over
+  newer package imports, format versions, or ownership controls.
+
+### Recovery material
+
+The ignored, private directory `work/consolidation-recovery/2026-11-24/`
+contains `history.bundle`, `manifest.json`, per-worktree patches and file
+archives, branch/stash inventories, and verification logs. The bundle contains
+all 17 recorded checkout HEADs (including the missing temporary checkout), all
+five non-main local branches, remote-tracking refs, and all four stash commits
+with their parent trees. It was unpacked into a separate bare repository and
+all recorded commits were checked; independent connectivity verification found
+no missing or corrupt objects.
+
+The 15 existing extra worktrees have SHA-256-verified archives containing their
+changed, untracked, and ignored files: 1,896 files in total. Dependency
+`node_modules` directories are the only excluded directories. The exact paths,
+file modes, hashes, and excluded dependency paths are recorded in the manifest.
+The original `cd4a` tracked/index patches and untracked test are included.
+These private recovery files are not committed or uploaded.
+
+To inspect recovered source, choose a new empty destination, initialise Git
+there, run `git bundle unbundle` against the absolute `history.bundle` path,
+then `git checkout --detach <recorded-commit>`. For a dirty snapshot, apply its
+`tracked.patch` and extract its `files.tar.gz` into that recovered checkout.
+Keep the canonical checkout intact while inspecting an archive. The manifest
+records the original source paths; this is recovery evidence, not a second
+active development checkout.
+
+### Verification and cleanup
+
+The two fixture regressions failed against the starting implementation. The
+publication interruption regression also reproduced a saved publication with
+an unsaved draft status before integration. Focused checks now exercise the
+production implementations, with isolated fixture data and browser profiles.
+
+Final verification passed the production build, all 3,669 Node tests, ESLint,
+TypeScript, and `git diff --check`. Browser checks passed 41 cases: four fixture
+publication-history cases, nine interrupted-publication cases, two public-reader
+restore cases, 24 backup/recovery cases, and two palette-layout cases. Tests use
+disposable fixtures and profiles. The first history run exceeded its old
+30-second timeout under concurrent suite load; the unchanged assertions passed
+with the normal 60-second scenario budget. Older Node storage doubles and a VM
+binding were updated for the added journal lookup, retaining their validation,
+no-write, and recovery assertions; the full suite was rerun successfully.
+Independent read-only verification approved the final diff and preservation.
+
+After a fresh HEAD/status/archive check, all 15 extra worktrees were removed,
+the missing `/private/tmp/acm-studio-swiftui-reorder` registration was pruned,
+all five non-main local branches were deleted, and the four preserved stashes
+were cleared. The Codex archiver did not recognise the attached legacy worktree;
+Git's worktree removal was used after verification instead. GitHub's sole extra
+branch, `codex/swiftui-reorder-github`, was deleted with a lease matching its
+verified `543af712` tip. Readback shows only `main` locally and on GitHub, one
+canonical worktree, and an empty stash list. GitHub reports no open pull requests,
+Actions workflows, or repository webhooks. The separate `sites` remote remains
+unchanged. The recovered fixes and this record are committed locally; this
+operation does not push the new main commit or publish to Sites.
+
+The review basis is the unversioned workspace instructions supplied for this
+task, Studio `AGENTS.md` at the baseline above, and the unversioned canonical
+`workspace-governance/STYLE_GUIDE.md` read on 24 November 2026. The inspected
+shared-governance commit is `6a7e65ab6e39d1dafd7f8d68a2c32d1c8fa502d5`.

@@ -1,11 +1,13 @@
 "use client";
+import { readPublicationWorkspace } from "../../content/publication-recovery";
+import { RESTORE_PENDING_KEY } from "../../content/local-storage-keys";
 import "../../studio/site-editor/style-reference-fonts.css";
 
 import { useEffect, useRef, useState } from "react";
 import { BlockRenderer } from "../../components/content";
 import { ArticleByline, PageFrame } from "../../components/site-shell";
 import { readingTimeLabel } from "../../content/reading-time";
-import { LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, locallyPublishedDocument, parseLocallyPublishedDocuments, restoreLegacyPublicationCover, type LocallyPublishedArticle } from "../../content/local-publishing";
+import { LOCAL_PUBLICATIONS_KEY, locallyPublishedDocument, parseLocallyPublishedDocuments, restoreLegacyPublicationCover, type LocallyPublishedArticle } from "../../content/local-publishing";
 import { documentFieldVisible } from "../../content/document-metadata";
 import { getMediaAsset } from "../../studio/media-store";
 import { safeImageSource } from "../../content/rich-text";
@@ -35,15 +37,15 @@ export function LocalArticlePage({ slug, kind = "post" }: { slug: string; kind?:
   useEffect(() => {
     let cancelled = false;
     function refresh() {
-      const publications = parseLocallyPublishedDocuments(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
+      const publications = window.localStorage.getItem(RESTORE_PENDING_KEY) !== null ? [] : parseLocallyPublishedDocuments(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
       const localArticle = publications.find((item) => item.slug === slug && (item.kind ?? "post") === kind) ?? null;
-      const restoredArticle = localArticle
-        ? restoreLegacyPublicationCover(localArticle, window.localStorage.getItem(LOCAL_WORKSPACE_KEY))
-        : null;
+      let restoredArticle = null;
+      try { restoredArticle = localArticle ? restoreLegacyPublicationCover(localArticle, readPublicationWorkspace(window.localStorage)) : null; }
+      catch { /* Keep unreadable recovery data intact and withhold its local view. */ }
       queueMicrotask(() => { if (!cancelled) { setArticle(restoredArticle); setPublishedPages(publications.filter(item => item.kind === "page" && !item.passwordProtection)); setPasswordUnlocked(false); } });
     }
     function storageChanged(event: StorageEvent) {
-      if (event.key === LOCAL_PUBLICATIONS_KEY || event.key === null) refresh();
+      if (event.key === RESTORE_PENDING_KEY || event.key === LOCAL_PUBLICATIONS_KEY || event.key === null) refresh();
     }
     refresh();
     window.addEventListener("storage", storageChanged);

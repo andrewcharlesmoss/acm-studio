@@ -1,3 +1,4 @@
+import { RESTORE_PENDING_KEY } from "../content/local-storage-keys";
 import type { StudioDocument } from "./editor-model";
 import type { ParagraphStyle } from "../content/model";
 import { LOCAL_PUBLICATIONS_KEY, localPublicationSearchEntries, parseLocallyPublishedDocuments, searchableContentText } from "../content/local-publishing";
@@ -35,6 +36,7 @@ export function navigationSearchStyleTargets(style: ParagraphStyle | undefined, 
 /** Read only validated browser-local publications when a local publication route asks for Search. */
 export function browserLocalPublicationSearchEntries() {
   try {
+    if (window.localStorage.getItem(RESTORE_PENDING_KEY) !== null) return [];
     return localPublicationSearchEntries(parseLocallyPublishedDocuments(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY)));
   } catch {
     return [];

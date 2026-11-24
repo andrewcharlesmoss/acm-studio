@@ -251,7 +251,7 @@ function readPublicationsForMutation(serialisedPublications: string | null): Loc
   }
 }
 
-export function publishDocumentLocally(document: StudioDocument, template?: TemplateSnapshot | (() => TemplateSnapshot | undefined), fallbackHeader?: PublicationHeader) {
+export function prepareLocalPublication(document: StudioDocument, template?: TemplateSnapshot | (() => TemplateSnapshot | undefined), fallbackHeader?: PublicationHeader) {
   studioWriteOwnership.assertWritable();
   const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
   const article = toLocallyPublishedArticle(document, typeof template === "function" ? template() : template, fallbackHeader);
@@ -261,15 +261,24 @@ export function publishDocumentLocally(document: StudioDocument, template?: Temp
   const posts = [article, ...existing.filter((item) => item.localDocumentId !== article.localDocumentId && ((item.kind ?? "post") !== (article.kind ?? "post") || item.slug !== article.slug))];
   const store: LocalPublicationStore = { version: PUBLICATION_VERSION, posts };
   const canonical = validatePublicationSnapshot(store);
+  return canonical;
+}
+
+export function prepareLocalWithdrawal(documentId: string) {
+  studioWriteOwnership.assertWritable();
+  const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
+  const store: LocalPublicationStore = { version: PUBLICATION_VERSION, posts: existing.filter((item) => item.localDocumentId !== documentId) };
+  return store;
+}
+
+export function publishDocumentLocally(document: StudioDocument, template?: TemplateSnapshot | (() => TemplateSnapshot | undefined), fallbackHeader?: PublicationHeader) {
+  const canonical = prepareLocalPublication(document, template, fallbackHeader);
   window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(canonical));
   return canonical.posts[0];
 }
 
 export function unpublishDocumentLocally(documentId: string) {
-  studioWriteOwnership.assertWritable();
-  const existing = readPublicationsForMutation(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
-  const store: LocalPublicationStore = { version: PUBLICATION_VERSION, posts: existing.filter((item) => item.localDocumentId !== documentId) };
-  window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(store));
+  window.localStorage.setItem(LOCAL_PUBLICATIONS_KEY, JSON.stringify(prepareLocalWithdrawal(documentId)));
 }
 
 export function getLocallyPublishedArticle(documentId: string) {

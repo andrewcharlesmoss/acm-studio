@@ -969,6 +969,9 @@
 
 ### Fixed
 
+- Keep browser-local publications and draft status consistent after interrupted saves, and recover pending publication records before editing or restoring a backup.
+- Preserve explicit local publication decisions through Undo/Redo when documents move through the Bin or their creation is restored.
+
 - Undo restores template padding to its value before a slider drag.
 - Honour a Button’s solid background inside a container with a Button gradient, and show a nested List’s chosen font size in Edit and Preview.
 - Keep Block Styles controls under the pointer when a line-height edit updates the preview, so the first click on Upper case takes effect.

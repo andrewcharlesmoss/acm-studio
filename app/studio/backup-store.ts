@@ -1,3 +1,4 @@
+import { recoverPendingPublication } from "../content/publication-recovery";
 import { containsPublicationPresentation } from "./publication-presentation-contract";
 import { contentMediaIds } from "../content/media-references";
 import { containsGeneralTemplatePart } from "./reference-template-parts-contract";
@@ -11,7 +12,7 @@ import { containsVideoBlock, containsVideoCaptionTrack } from "../content/video-
 import { containsCoreSocialLink } from "../content/social-services";
 import { siteImageNames, parseSiteImageName, SITE_IMAGE_MAX_BYTES } from "../content/site-featured-image.mjs";
 import { validateGlobalTemplateLibrary, type GlobalTemplateLibrary } from "./global-template-contract";
-import { DESIGN_STORAGE_KEY, LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY, TEMPLATE_STORAGE_KEY } from "../content/local-storage-keys";
+import { DESIGN_STORAGE_KEY, LOCAL_PUBLICATIONS_KEY, LOCAL_WORKSPACE_KEY, PUBLICATION_JOURNAL_KEY, RESTORE_PENDING_KEY, RESTORE_RECEIPT_KEY, TEMPLATE_STORAGE_KEY } from "../content/local-storage-keys";
 import { beginRestore, RESTORE_JOURNAL_KEY, restoreAcknowledgement, resumePendingRestore, writeRestoreValues } from "./restore-journal";
 import type { StudioPendingSave } from "./studio-pending-save";
 import { studioWriteOwnership } from "./write-ownership";
@@ -298,8 +299,9 @@ type BackupWorkspace = StudioWorkspace | (() => BackupDraft);
 function captureBrowserRecords(source: BackupWorkspace, metadata: ReadonlyMap<string, unknown>) {
   const requiredReceipt = restoreAcknowledgement(metadata.get(RESTORE_JOURNAL_KEY), metadata.get("generation"));
   const storage = window.localStorage;
-  const keys = [LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY];
+  const keys = [LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY, PUBLICATION_JOURNAL_KEY];
   function checkRestore() {
+    if (storage.getItem(PUBLICATION_JOURNAL_KEY) !== null) throw new Error("A local publication needs recovery. Reload Studio and retry the backup.");
     if (storage.getItem(RESTORE_PENDING_KEY) !== null || storage.getItem(RESTORE_RECEIPT_KEY) !== requiredReceipt) throw new Error("A Studio restore is pending. Finish recovery and retry the backup.");
   }
   checkRestore();
@@ -505,6 +507,7 @@ export async function restoreStudioBackup(backup: StudioBackup | Blob) {
     const token = studioWriteOwnership.captureRestoreToken(permit);
     const guard = { authorised: () => studioWriteOwnership.canRestore(permit, token), subscribeOwnership: studioWriteOwnership.subscribe };
     const storage = window.localStorage;
+    recoverPendingPublication(storage, guard.authorised);
     const id = await beginRestore(storage, guard);
     try {
       const values = {

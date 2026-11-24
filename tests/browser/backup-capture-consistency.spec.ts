@@ -266,3 +266,106 @@ test('a peer requires the durable restore receipt even if a stopped browser lost
   }, restored);
   expect(await exportFromPeer()).toEqual({ title: 'Later legitimate edit', bytes: 'C' });
 });
+
+for (const binary of [false, true]) test(`backup rejects publication recovery records without changing them (binary=${binary})`, async ({ page, context }) => {
+  const adapter = await buildMediaAdapter();
+  await context.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Publication recovery capture</title>' }));
+  const peer = await context.newPage();
+  for (const tab of [page, peer]) {
+    await tab.goto('http://localhost:3011/');
+    await tab.addScriptTag({ content: adapter });
+  }
+  const workspace = await page.evaluate(async () => {
+    const { studioWriteOwnership: owner, mediaStore, createDocument, browserWorkspaceRepository } = window.StudioMediaAdapter;
+    owner.acquire(token => owner.loaded(token, true));
+    while (!owner.canWrite()) await new Promise(resolve => setTimeout(resolve, 5));
+    await mediaStore.replaceMediaLibrary([], []);
+    const document = createDocument('page', 'publication-capture');
+    const workspace = { version: 67 as const, documents: [document], activeDocumentId: document.id, bin: [], categories: [] };
+    browserWorkspaceRepository.save(workspace);
+    return workspace;
+  });
+  for (const committed of [false, true]) {
+    await page.evaluate(committed => {
+      const id = crypto.randomUUID();
+      localStorage.setItem('acm-studio-publication-commit-v1', JSON.stringify({ version: 1, operationId: id, previousWorkspace: localStorage.getItem('acm-studio-workspace-v2') }));
+      localStorage.setItem('acm-studio-publications-v1', JSON.stringify({ version: 59, posts: [], ...(committed ? { publicationCommitId: id } : {}) }));
+    }, committed);
+    for (const tab of [page, peer]) {
+      const result = await tab.evaluate(async ({ workspace, binary }) => {
+        const before = JSON.stringify({ ...localStorage });
+        let error = '';
+        try {
+          if (binary) await window.StudioMediaAdapter.backupStore.createCompleteBackupFile(workspace);
+          else await window.StudioMediaAdapter.backupStore.createStudioBackup(workspace);
+        } catch (failure) { error = (failure as Error).message; }
+        return { error, unchanged: before === JSON.stringify({ ...localStorage }) };
+      }, { workspace, binary });
+      expect(result.error).toMatch(/publication needs recovery/);
+      expect(result.unchanged).toBe(true);
+    }
+    await page.evaluate(() => { localStorage.removeItem('acm-studio-publication-commit-v1'); });
+  }
+  const race = await peer.evaluate(async ({ workspace, binary }) => {
+    const source = () => {
+      localStorage.setItem('acm-studio-publication-commit-v1', JSON.stringify({ version: 1, operationId: crypto.randomUUID(), previousWorkspace: localStorage.getItem('acm-studio-workspace-v2') }));
+      return { workspace, pending: null, conflicted: false };
+    };
+    try {
+      if (binary) await window.StudioMediaAdapter.backupStore.createCompleteBackupFile(source);
+      else await window.StudioMediaAdapter.backupStore.createStudioBackup(source);
+      return '';
+    } catch (error) { return (error as Error).message; }
+  }, { workspace, binary });
+  expect(race).toMatch(/Studio changed during backup|publication needs recovery/);
+  await page.evaluate(() => { localStorage.removeItem('acm-studio-publication-commit-v1'); });
+  await expect(peer.evaluate(async ({ workspace, binary }) => {
+    if (binary) await window.StudioMediaAdapter.backupStore.createCompleteBackupFile(workspace);
+    else await window.StudioMediaAdapter.backupStore.createStudioBackup(workspace);
+    return true;
+  }, { workspace, binary })).resolves.toBe(true);
+  await peer.close();
+});
+
+for (const failure of ['restore write', 'journal cleanup']) test(`full restore settles publication recovery before capturing originals: ${failure}`, async ({ page, context }) => {
+  const adapter = await buildMediaAdapter();
+  await context.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Publication and restore recovery</title>' }));
+  await page.goto('http://localhost:3011/');
+  await page.addScriptTag({ content: adapter });
+  const result = await page.evaluate(async failure => {
+    const { studioWriteOwnership: owner, mediaStore, createDocument, browserWorkspaceRepository, backupStore } = window.StudioMediaAdapter;
+    owner.acquire(token => owner.loaded(token, true));
+    while (!owner.canWrite()) await new Promise(resolve => setTimeout(resolve, 5));
+    await mediaStore.replaceMediaLibrary([], []);
+    const document = createDocument('page', 'original');
+    document.title = 'Original document';
+    const workspace = { version: 67 as const, documents: [document], activeDocumentId: document.id, bin: [], categories: [] };
+    browserWorkspaceRepository.save(workspace);
+    const backup = await backupStore.createStudioBackup(workspace);
+    backup.workspace.documents[0].title = 'Restore target';
+    const key = 'acm-studio-workspace-v2';
+    const original = localStorage.getItem(key);
+    const pending = 'acm-studio-publication-commit-v1';
+    localStorage.setItem(pending, JSON.stringify({ version: 1, operationId: crypto.randomUUID(), previousWorkspace: original }));
+    localStorage.setItem(key, JSON.stringify({ ...workspace, documents: [{ ...document, title: 'Interrupted publication' }] }));
+    const set = Storage.prototype.setItem, remove = Storage.prototype.removeItem;
+    Storage.prototype.setItem = function (name, value) {
+      if (failure === 'restore write' && name === key && value.includes('Restore target')) throw new Error('Injected restore failure');
+      set.call(this, name, value);
+    };
+    Storage.prototype.removeItem = function (name) {
+      if (failure === 'journal cleanup' && name === pending) throw new Error('Injected journal cleanup failure');
+      remove.call(this, name);
+    };
+    let error = '';
+    try { await backupStore.restoreStudioBackup(backup); }
+    catch (caught) { error = (caught as Error).message; }
+    finally { Storage.prototype.setItem = set; Storage.prototype.removeItem = remove; }
+    return { error, originalKept: localStorage.getItem(key) === original, journalKept: localStorage.getItem(pending) !== null,
+      restorePending: localStorage.getItem('acm-studio-pending-restore-v1') };
+  }, failure);
+  expect(result.error).toMatch(/Injected/);
+  expect(result.originalKept).toBe(true);
+  expect(result.journalKept).toBe(failure === 'journal cleanup');
+  expect(result.restorePending).toBe(null);
+});

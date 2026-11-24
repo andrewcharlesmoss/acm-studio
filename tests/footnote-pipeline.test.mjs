@@ -29,6 +29,7 @@ const { parentOfNestedBlock, permitsBlockTreeChanges } = await load("../app/stud
 const { editBlockSiblings } = await load("../app/studio/block-sibling-operations.ts");
 const { copiedBlocksForParent } = await load("../app/studio/block-copy.ts");
 const { toLocallyPublishedArticle, searchableContentText, parseLocallyPublishedArticles, LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY } = await load("../app/content/local-publishing.ts");
+const { recoverPendingPublication } = await load("../app/content/publication-recovery.ts");
 const { browserWorkspaceRepository } = await load("../app/studio/workspace-repository.ts");
 const { loadTemplates } = await load("../app/studio/template-store.ts");
 const { validateStudioBackup } = await load("../app/studio/backup-store.ts");
@@ -66,7 +67,7 @@ test("workspace readers migrate validated active, Bin and publication fields wit
   const previousWindow = globalThis.window;
   let reads = 0;
   try {
-    globalThis.window = { localStorage: { getItem(key) { assert.equal(key, LOCAL_WORKSPACE_KEY); reads++; return serialised; }, setItem() { throw new Error("Reading must not save"); } } };
+    globalThis.window = { localStorage: { getItem(key) { if (key !== LOCAL_WORKSPACE_KEY) return null; reads++; return serialised; }, setItem() { throw new Error("Reading must not save"); } } };
     assert.equal(browserWorkspaceRepository.load().documents[0].blocks[0].text, migratedLegacyText);
   } finally { globalThis.window = previousWindow; }
   assert.equal(reads, 1);
@@ -79,14 +80,14 @@ test("ordinary workspace repositories migrate binned publication template snapsh
   const source = legacyBackup(); const raw = JSON.stringify(source.workspace);
   const previousWindow = globalThis.window;
   try {
-    globalThis.window = { localStorage: { getItem: () => raw, setItem() { throw new Error("Reading must not save"); } } };
+    globalThis.window = { localStorage: { getItem: key => key === LOCAL_WORKSPACE_KEY ? raw : null, setItem() { throw new Error("Reading must not save"); } } };
     const workspace = browserWorkspaceRepository.load();
     const snapshot = workspace.bin[0].publication.templateSnapshot;
     assert.equal(snapshot.version, TEMPLATE_VERSION);
     assert.equal(snapshot.set.parts[0].nodes[0].text, migratedLegacyText);
     const invalid = structuredClone(source.workspace);
     invalid.bin[0].publication.templateSnapshot.set.parts[0].nodes[0].runs = "invalid";
-    globalThis.window.localStorage.getItem = () => JSON.stringify(invalid);
+    globalThis.window.localStorage.getItem = key => key === LOCAL_WORKSPACE_KEY ? JSON.stringify(invalid) : null;
     assert.throws(() => browserWorkspaceRepository.load());
     assert.equal(JSON.stringify(source.workspace), raw);
   } finally { globalThis.window = previousWindow; }
@@ -174,7 +175,7 @@ async function backupConsumer(name, bindings) {
   const code = ts.transpileModule(`${declaration.getText(parsed).replace(/^export /, "")}\nglobalThis.consumer = ${name};`, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
-  const context = { validateStudioBackup, structuredClone, prepareStudioBackupRestore: async backup => ({ backup, assets: [] }), LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY, Blob, ...bindings };
+  const context = { validateStudioBackup, recoverPendingPublication, structuredClone, prepareStudioBackupRestore: async backup => ({ backup, assets: [] }), LOCAL_WORKSPACE_KEY, LOCAL_PUBLICATIONS_KEY, TEMPLATE_STORAGE_KEY, DESIGN_STORAGE_KEY, Blob, ...bindings };
   if (name === "restoreStudioBackup") {
     const window = { ...bindings.window, indexedDB: mediaDatabase().indexedDB };
     const journal = createIsolatedModuleLoader({ globals: { crypto, window } })("app/studio/restore-journal.ts");

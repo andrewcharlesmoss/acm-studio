@@ -35,7 +35,7 @@ function modules(overrides = {}, globals = {}) {
 function storage(initial = null) {
   let raw = initial;
   const writes = [];
-  return { getItem: () => raw, setItem: (_key, value) => { writes.push(value); raw = value; }, writes, raw: () => raw };
+  return { getItem: key => key === "acm-studio-workspace-v2" ? raw : null, setItem: (key, value) => { assert.equal(key, "acm-studio-workspace-v2"); writes.push(value); raw = value; }, writes, raw: () => raw };
 }
 
 // Run the actual hook's effects and dependency changes, with persistence injected.

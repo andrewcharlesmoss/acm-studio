@@ -1,4 +1,5 @@
 "use client";
+import { RESTORE_PENDING_KEY } from "../content/local-storage-keys";
 
 import { useEffect, useState } from "react";
 import { ArticleRow } from "../components/content";
@@ -12,12 +13,12 @@ export function WritingArchiveList({ articles }: { articles: Article[] }) {
   useEffect(() => {
     let cancelled = false;
     const readLocalArticles = () => {
-      const next = parseLocallyPublishedArticles(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
+      const next = window.localStorage.getItem(RESTORE_PENDING_KEY) !== null ? [] : parseLocallyPublishedArticles(window.localStorage.getItem(LOCAL_PUBLICATIONS_KEY));
       if (!cancelled) setLocalArticles(next);
     };
     queueMicrotask(readLocalArticles);
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === LOCAL_PUBLICATIONS_KEY) readLocalArticles();
+      if (event.key === RESTORE_PENDING_KEY || event.key === LOCAL_PUBLICATIONS_KEY || event.key === null) readLocalArticles();
     };
     window.addEventListener("storage", handleStorage);
     const scheduleTimer = window.setInterval(() => setNow(Date.now()), 1000);

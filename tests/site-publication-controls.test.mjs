@@ -105,6 +105,41 @@ test("Undo preserves publication decisions across supported site formats", () =>
 });
 
 
+test("withdrawal survives history across fixture versions and a move into or out of the Bin", () => {
+  const source = fixture("test2", "page");
+  const published = changeLocalSiteStatus(source, "selected", "published", source.templates, now);
+  for (const version of [53, 54, 55, 56, 57, published.version]) {
+    const withdrawn = testSiteVersion(changeLocalSiteStatus(published, "selected", "private", published.templates, now), version);
+    const previous = structuredClone(published);
+    const [page] = previous.documents.splice(1);
+    previous.bin = [{ id: "bin-selected", deletedAt: now, document: page }];
+    const binned = retainLocalPublications(previous, withdrawn);
+    assert.equal(binned.bin[0].document.status, "private");
+    assert.deepEqual(binned.publications, withdrawn.publications);
+    const restored = retainLocalPublications(published, binned);
+    assert.equal(restored.documents[1].status, "private");
+    assert.deepEqual(restored.publications, withdrawn.publications);
+    assert.equal(validTestSiteDocument(restored), true);
+  }
+});
+
+test("redoing document creation restores a draft after its publication snapshot was removed", () => {
+  const source = fixture("test", "post");
+  const published = changeLocalSiteStatus(source, "selected", "published", source.templates, now);
+  const withoutPost = {
+    ...published,
+    documents: published.documents.filter(document => document.id !== "selected"),
+    publications: published.publications.filter(item => item.document.id !== "selected"),
+    activeDocumentId: "home",
+  };
+  const undone = retainLocalPublications(withoutPost, published);
+  const redone = retainLocalPublications(published, undone);
+  assert.equal(redone.documents[1].status, "draft");
+  assert.equal(redone.documents[1].publishedAt, undefined);
+  assert.deepEqual(redone.publications, undone.publications);
+  assert.equal(redone.publications.some(item => item.document.id === "selected"), false);
+});
+
 test("the owning context captures the calendar date, awaits saving, and exposes failures", async () => {
   const { useTestSiteContext } = await load(process.env.SITE_PUBLICATION_CONTEXT_SOURCE ?? "app/studio/test-site/use-test-site-context.ts");
   const { createGlobalTemplateLibrary } = await load("app/studio/global-template-contract.ts");
