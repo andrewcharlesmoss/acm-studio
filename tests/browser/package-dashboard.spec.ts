@@ -32,11 +32,16 @@ test("shows verified version comparisons and keyboard access from the Control Ce
   await expect(page.getByRole("heading", { name: "Packages", exact: true })).toBeVisible();
   await expect(page.getByRole("status")).toContainText("Live registry unavailable");
   const table = page.getByRole("table");
-  await expect(table.getByRole("row", { name: /^Icons / })).toContainText("v0.35.1 (latest)");
-  await expect(table.getByRole("row", { name: /^Icons / })).toContainText("Not used");
-  await expect(table.getByRole("row", { name: /^Panel / })).toContainText("Latest verified v0.1.0");
-  await expect(table.getByRole("row", { name: /^Ribbon / })).toContainText("Broken local link");
-  await expect(table.getByRole("row", { name: /^Styles / })).toContainText("Unidentifiable source");
+  await expect(table.getByRole("columnheader")).toHaveCount(5);
+  await expect(table.getByRole("columnheader", { name: /Panel/ })).toContainText("Latest release v0.1.0");
+  await expect(table.getByRole("columnheader", { name: /Panel/ })).toContainText("Verified 23 Nov 2026");
+  const studio = table.getByRole("row", { name: /^ACM Studio / });
+  await expect(studio.getByRole("cell").nth(0)).toContainText("v0.35.1 (latest)");
+  await expect(studio.getByRole("cell").nth(1)).toContainText("Latest verified v0.1.0");
+  await expect(studio.getByRole("cell").nth(2)).toContainText("Broken local link");
+  await expect(studio.getByRole("cell").nth(3)).toContainText("Unidentifiable source");
+  await expect(table.getByRole("row", { name: /^ACM Account / }).getByRole("cell").nth(0)).toContainText("Not used");
+  await expect(table.getByRole("row", { name: /^Project Ports / }).getByRole("cell").nth(0)).toContainText("Locked · install missing");
   await expect(page.getByText("Hosted versions")).toContainText("Unknown");
 
   const scroll = page.getByRole("region", { name: "Package versions by project" });

@@ -94,19 +94,21 @@ export function PackageDashboard() {
         <table className="package-dash-table" aria-busy={loading}>
           <caption className="visually-hidden">Shared ACM package versions by local project</caption>
           <thead><tr>
-            <th scope="col">Package</th>
-            <th scope="col">Latest release</th>
-            {catalogue.projects.map(project => <th scope="col" key={project.id}>{project.label}</th>)}
-          </tr></thead>
-          <tbody>{catalogue.packages.map(pkg => {
-            const release = snapshot?.releases.find(item => item.id === pkg.id);
-            return <tr key={pkg.id}>
-              <th scope="row"><a href={packageURL + pkg.id}>{pkg.label}</a></th>
-              <td>
-                {release ? <strong>v{release.version}</strong> : "Unavailable"}
+            <th scope="col">Project</th>
+            {catalogue.packages.map(pkg => {
+              const release = snapshot?.releases.find(item => item.id === pkg.id);
+              return <th scope="col" key={pkg.id}>
+                <a href={packageURL + pkg.id}>{pkg.label}</a>
+                <span className="package-dash-detail">Latest release {release ? `v${release.version}` : "unavailable"}</span>
                 {release?.checkedAt ? <span className="package-dash-detail">Verified {checkedDate.format(new Date(release.checkedAt))}</span> : null}
-              </td>
-              {catalogue.projects.map(project => <ConsumerCell key={project.id} release={release}
+              </th>;
+            })}
+          </tr></thead>
+          <tbody>{catalogue.projects.map(project => {
+            return <tr key={project.id}>
+              <th scope="row">{project.label}</th>
+              {catalogue.packages.map(pkg => <ConsumerCell key={pkg.id}
+                release={snapshot?.releases.find(item => item.id === pkg.id)}
                 dependency={snapshot?.projects.find(item => item.id === project.id)?.packages.find(item => item.id === pkg.id)} />)}
             </tr>;
           })}</tbody>
