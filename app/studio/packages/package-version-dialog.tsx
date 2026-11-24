@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StudioButton } from "../controls/button";
 import { SelectControl } from "../controls/native-fields";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 
-type PackageChoice = { id: string; label: string; declared: string };
+export type PackageChoice = { id: string; label: string; declared: string };
 type Review = { reviewId: string; previous: string; version: string; diff: string };
 
 async function requestVersionChange<T>(payload: Record<string, string>, signal?: AbortSignal): Promise<T> {
@@ -22,27 +22,24 @@ async function requestVersionChange<T>(payload: Record<string, string>, signal?:
   return data as T;
 }
 
-export function PackageVersionDialog({ packages, opener, onClose, onApplied }: {
-  packages: PackageChoice[];
-  opener: RefObject<HTMLButtonElement | null>;
+export function PackageVersionDialog({ selected, opener, onClose, onApplied }: {
+  selected: PackageChoice;
+  opener: HTMLButtonElement;
   onClose: () => void;
   onApplied: (message: string) => void;
 }) {
-  const [packageId, setPackageId] = useState("");
   const [versions, setVersions] = useState<string[] | null>(null);
   const [version, setVersion] = useState("");
   const [review, setReview] = useState<Review | null>(null);
   const [busy, setBusy] = useState<"review" | "apply" | null>(null);
   const [error, setError] = useState("");
   const reviewSummary = useRef<HTMLParagraphElement>(null);
-  const selected = packages.find(pkg => pkg.id === packageId);
-  const currentVersion = selected?.declared;
+  const { id: packageId, declared: currentVersion } = selected;
   const hasAlternative = versions?.some(item => item !== currentVersion);
   const canReview = Boolean(version && version !== currentVersion && versions?.includes(version));
   const displayedVersion = version || (!hasAlternative && currentVersion && versions?.includes(currentVersion) ? currentVersion : "");
 
   useEffect(() => {
-    if (!packageId) return;
     const controller = new AbortController();
     void requestVersionChange<{ versions: string[] }>({ action: "versions", packageId }, controller.signal).then(result => {
       if (!controller.signal.aborted) setVersions(result.versions);
@@ -68,7 +65,7 @@ export function PackageVersionDialog({ packages, opener, onClose, onApplied }: {
   }
 
   async function applyChange() {
-    if (!review || !selected) return;
+    if (!review) return;
     setBusy("apply");
     setError("");
     try {
@@ -81,31 +78,20 @@ export function PackageVersionDialog({ packages, opener, onClose, onApplied }: {
     } finally { setBusy(null); }
   }
 
-  return <StudioDialog title="Change Studio package version" className="studio-dialog-wide package-version-dialog" returnFocus={opener}
+  return <StudioDialog title={`Change ${selected.label} version`} className="studio-dialog-wide package-version-dialog" returnFocus={opener}
     onClose={onClose} closeDisabled={busy !== null}>
     <form onSubmit={event => { event.preventDefault(); if (!review && !busy && canReview) void reviewChange(); }}>
-      <div className="package-version-fields">
-        <label>Package<SelectControl value={packageId} disabled={busy !== null || review !== null} onChange={event => {
-          setPackageId(event.target.value);
-          setVersion("");
-          setVersions(null);
-          setError("");
-        }}>
-          <option value="">Choose a package</option>
-          {packages.map(pkg => <option key={pkg.id} value={pkg.id}>{pkg.label}</option>)}
-        </SelectControl></label>
-        <label>Published version<SelectControl value={displayedVersion} disabled={busy !== null || review !== null || !hasAlternative}
-          onChange={event => { setVersion(event.target.value); setError(""); }}>
-          <option value="">Choose a version</option>
-          {versions?.map(item => <option value={item} key={item} disabled={item === currentVersion}>
-            v{item}{item === currentVersion ? " (current)" : ""}
-          </option>)}
-        </SelectControl></label>
-      </div>
-      {packageId && !versions ? <p role="status">Checking published versions…</p> : null}
+      <label className="package-version-field">Published version<SelectControl value={displayedVersion} disabled={busy !== null || review !== null || !hasAlternative}
+        onChange={event => { setVersion(event.target.value); setError(""); }}>
+        <option value="">Choose a version</option>
+        {versions?.map(item => <option value={item} key={item} disabled={item === currentVersion}>
+          v{item}{item === currentVersion ? " (current)" : ""}
+        </option>)}
+      </SelectControl></label>
+      {!versions ? <p role="status">Checking published versions…</p> : null}
       {versions && !hasAlternative && !error ? <p role="status">No other published versions are available for this package.</p> : null}
       {error ? <p role="alert">{error}</p> : null}
-      {review && selected ? <section aria-label="Proposed dependency change">
+      {review ? <section aria-label="Proposed dependency change">
         <p ref={reviewSummary} tabIndex={-1}><strong>{selected.label}</strong> will change from <strong>v{review.previous}</strong> to <strong>v{review.version}</strong> in ACM Studio.</p>
         <p>Apply updates this checkout’s <code>package.json</code> and <code>package-lock.json</code>. Install dependencies and restart Studio to use the selected version.</p>
         <details className="package-version-diff"><summary>Dependency file changes</summary><pre>{review.diff}</pre></details>
