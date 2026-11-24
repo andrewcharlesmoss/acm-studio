@@ -36,7 +36,10 @@ export function PackageVersionDialog({ packages, opener, onClose, onApplied }: {
   const [error, setError] = useState("");
   const reviewSummary = useRef<HTMLParagraphElement>(null);
   const selected = packages.find(pkg => pkg.id === packageId);
-  const available = versions?.filter(item => item !== selected?.declared);
+  const currentVersion = selected?.declared;
+  const hasAlternative = versions?.some(item => item !== currentVersion);
+  const canReview = Boolean(version && version !== currentVersion && versions?.includes(version));
+  const displayedVersion = version || (!hasAlternative && currentVersion && versions?.includes(currentVersion) ? currentVersion : "");
 
   useEffect(() => {
     if (!packageId) return;
@@ -80,7 +83,7 @@ export function PackageVersionDialog({ packages, opener, onClose, onApplied }: {
 
   return <StudioDialog title="Change Studio package version" className="studio-dialog-wide package-version-dialog" returnFocus={opener}
     onClose={onClose} closeDisabled={busy !== null}>
-    <form onSubmit={event => { event.preventDefault(); if (!review && !busy && version) void reviewChange(); }}>
+    <form onSubmit={event => { event.preventDefault(); if (!review && !busy && canReview) void reviewChange(); }}>
       <div className="package-version-fields">
         <label>Package<SelectControl value={packageId} disabled={busy !== null || review !== null} onChange={event => {
           setPackageId(event.target.value);
@@ -89,16 +92,18 @@ export function PackageVersionDialog({ packages, opener, onClose, onApplied }: {
           setError("");
         }}>
           <option value="">Choose a package</option>
-          {packages.map(pkg => <option key={pkg.id} value={pkg.id}>{pkg.label} (v{pkg.declared})</option>)}
+          {packages.map(pkg => <option key={pkg.id} value={pkg.id}>{pkg.label}</option>)}
         </SelectControl></label>
-        <label>Published version<SelectControl value={version} disabled={busy !== null || review !== null || !available?.length}
+        <label>Published version<SelectControl value={displayedVersion} disabled={busy !== null || review !== null || !hasAlternative}
           onChange={event => { setVersion(event.target.value); setError(""); }}>
           <option value="">Choose a version</option>
-          {available?.map(item => <option value={item} key={item}>v{item}</option>)}
+          {versions?.map(item => <option value={item} key={item} disabled={item === currentVersion}>
+            v{item}{item === currentVersion ? " (current)" : ""}
+          </option>)}
         </SelectControl></label>
       </div>
       {packageId && !versions ? <p role="status">Checking published versions…</p> : null}
-      {available?.length === 0 && !error ? <p role="status">No other published versions are available for this package.</p> : null}
+      {versions && !hasAlternative && !error ? <p role="status">No other published versions are available for this package.</p> : null}
       {error ? <p role="alert">{error}</p> : null}
       {review && selected ? <section aria-label="Proposed dependency change">
         <p ref={reviewSummary} tabIndex={-1}><strong>{selected.label}</strong> will change from <strong>v{review.previous}</strong> to <strong>v{review.version}</strong> in ACM Studio.</p>
@@ -108,7 +113,7 @@ export function PackageVersionDialog({ packages, opener, onClose, onApplied }: {
       <StudioDialogActions>
         <StudioButton type="button" variant="secondary" disabled={busy !== null} onClick={review ? () => setReview(null) : onClose}>{review ? "Back" : "Cancel"}</StudioButton>
         {review ? <StudioButton key="apply" type="button" disabled={busy !== null} onClick={() => void applyChange()}>{busy ? "Applying…" : "Apply Version Change"}</StudioButton>
-          : <StudioButton key="review" type="submit" disabled={!version || busy !== null}>{busy ? "Preparing Review…" : "Review Change"}</StudioButton>}
+          : <StudioButton key="review" type="submit" disabled={!canReview || busy !== null}>{busy ? "Preparing Review…" : "Review Change"}</StudioButton>}
       </StudioDialogActions>
     </form>
   </StudioDialog>;

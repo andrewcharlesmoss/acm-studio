@@ -76,13 +76,17 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   const actions: string[] = [];
   await page.route("**/__studio/packages", route => route.fulfill({ json: {
     available: true,
-    projects: [{ id: "acm-studio", packages: [{ id: "icons", state: "installed", declared, version: "0.35.1", comparison: 0 }] }],
+    projects: [{ id: "acm-studio", packages: [
+      { id: "icons", state: "installed", declared, version: "0.35.1", comparison: 0 },
+      { id: "panel", state: "installed", declared: "0.1.0", version: "0.1.0", comparison: 0 },
+    ] }],
     releases: [{ id: "icons", version: "0.35.1", source: "registry" }],
   } }));
   await page.route("**/__studio/package-version", route => {
     const input = route.request().postDataJSON();
     actions.push(input.action);
     if (input.action === "versions") {
+      if (input.packageId === "panel") return route.fulfill({ json: { versions: ["0.1.0"] } });
       expect(input).toEqual({ action: "versions", packageId: "icons" });
       return route.fulfill({ json: { versions: ["0.35.1", "0.34.0"] } });
     }
@@ -106,15 +110,23 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
   await opener.click();
+  await expect(packageChoice.locator("option")).toHaveText(["Choose a package", "Icons", "Panel"]);
+  const versionChoice = dialog.getByRole("combobox", { name: "Published version" });
+  await packageChoice.selectOption("panel");
+  await expect(versionChoice).toHaveValue("0.1.0");
+  await expect(versionChoice.locator("option:checked")).toHaveText("v0.1.0 (current)");
+  await expect(versionChoice).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Review Change" })).toBeDisabled();
   await packageChoice.selectOption("icons");
-  await dialog.getByRole("combobox", { name: "Published version" }).selectOption("0.34.0");
+  await expect(versionChoice.getByRole("option", { name: "v0.35.1 (current)" })).toHaveJSProperty("disabled", true);
+  await versionChoice.selectOption("0.34.0");
   await expect(dialog.getByRole("button", { name: "Apply Version Change" })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Review Change" }).click();
   await expect(dialog.getByText(/will change from/)).toContainText("v0.35.1 to v0.34.0");
   await expect(dialog.getByText(/will change from/)).toBeFocused();
   await dialog.getByText("Dependency file changes").click();
   await expect(dialog.getByText("--- package.json", { exact: false })).toBeVisible();
-  expect(actions).toEqual(["versions", "review"]);
+  expect(actions).toEqual(["versions", "versions", "review"]);
   const box = (await dialog.boundingBox())!;
   expect(box.width + box.x).toBeLessThanOrEqual(390);
   await dialog.getByRole("button", { name: "Apply Version Change" }).press("Enter");
@@ -122,5 +134,5 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await expect(opener).toBeFocused();
   await expect(page.getByText(/Icons v0.34.0 is saved/)).toBeVisible();
   await expect(page.getByRole("table").getByText("Declared 0.34.0")).toBeVisible();
-  expect(actions).toEqual(["versions", "review", "apply"]);
+  expect(actions).toEqual(["versions", "versions", "review", "apply"]);
 });
