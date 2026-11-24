@@ -122,6 +122,28 @@ versions independently in the registry. A separately located workspace can be
 set through `STUDIO_PACKAGES_WORKSPACE`; the Studio column still reads the
 checkout that launched its server.
 
+### Change a Studio package version
+
+In local Studio, choose **Change Studio Version**, select a package and a
+published release, then choose **Review Change**. The review shows the exact
+diff for `package.json` and `package-lock.json`. **Apply Version Change** saves
+those files in the running Studio checkout. Run `npm ci` from that checkout,
+restart Studio, and verify the affected interface before committing the update.
+The pilot leaves installation, Git publication, and deployment as separate
+steps. ACM Account and Project Ports remain read-only.
+
+The pilot requires the server’s `STUDIO_PACKAGES_READ_TOKEN` and an npm version
+that supports `allow-git`, `allow-file`, `allow-directory`, and `allow-remote`.
+npm resolves the proposed lockfile in a temporary directory with lifecycle
+scripts disabled. Reviews expire after ten minutes or a server restart.
+Existing dependency edits must be resolved before preparing a review. If a
+failed or interrupted Apply leaves `studio-package-version.lock` in the
+checkout’s Git directory (`git rev-parse --absolute-git-dir`), stop the server and
+inspect `git diff -- package.json package-lock.json`. The lock’s `review.json`
+records the original commit and the reviewed patch. Use it to identify any
+partially applied change and preserve independent edits before clearing the lock
+and restarting Studio.
+
 ## Clean checkout setup
 
 Studio pins Icons, Panel, Ribbon, and Styles to private GitHub Packages

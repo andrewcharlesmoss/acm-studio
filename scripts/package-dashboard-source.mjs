@@ -69,7 +69,7 @@ async function isWorkspaceLink(root, target) {
   }
 }
 
-function registryArchive(value, name, version) {
+export function registryArchive(value, name, version) {
   try {
     const url = new URL(value);
     return url.origin === registry && !url.username && !url.password && !url.search && !url.hash
@@ -145,21 +145,23 @@ async function readConsumer(root, directory) {
   }));
 }
 
+export async function packageRegistryMetadata(id, token, fetchRelease = fetch) {
+  const response = await fetchRelease(`${registry}/${encodeURIComponent(`${scope}/${id}`)}`, {
+    headers: { accept: "application/vnd.npm.install-v1+json", authorization: `Bearer ${token}` },
+    redirect: "error",
+    signal: AbortSignal.timeout(4000),
+  });
+  return response.ok ? response.json() : null;
+}
+
 async function readRelease({ id, verifiedVersion }, token, fetchRelease) {
   if (token) {
     const name = `${scope}/${id}`;
     try {
-      const response = await fetchRelease(`${registry}/${encodeURIComponent(name)}`, {
-        headers: { accept: "application/vnd.npm.install-v1+json", authorization: `Bearer ${token}` },
-        redirect: "error",
-        signal: AbortSignal.timeout(4000),
-      });
-      if (response.ok) {
-        const metadata = await response.json();
-        const version = metadata["dist-tags"]?.latest;
-        if (parseVersion(version) && registryArchive(metadata.versions?.[version]?.dist?.tarball, name, version)) {
-          return { id, version, source: "registry" };
-        }
+      const metadata = await packageRegistryMetadata(id, token, fetchRelease);
+      const version = metadata?.["dist-tags"]?.latest;
+      if (parseVersion(version) && registryArchive(metadata.versions?.[version]?.dist?.tarball, name, version)) {
+        return { id, version, source: "registry" };
       }
     } catch {
       // The authenticated registry is optional during local development.

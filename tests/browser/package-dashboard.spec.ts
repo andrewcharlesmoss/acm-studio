@@ -69,3 +69,58 @@ test("marks package evidence unavailable when the local bridge is missing", asyn
   await expect(page.getByRole("status")).toContainText("Local package data unavailable");
   await expect(page.getByRole("table").getByText("(latest)", { exact: false })).toHaveCount(0);
 });
+
+test("reviews a published Studio version before applying it from a narrow dashboard", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let declared = "0.35.1";
+  const actions: string[] = [];
+  await page.route("**/__studio/packages", route => route.fulfill({ json: {
+    available: true,
+    projects: [{ id: "acm-studio", packages: [{ id: "icons", state: "installed", declared, version: "0.35.1", comparison: 0 }] }],
+    releases: [{ id: "icons", version: "0.35.1", source: "registry" }],
+  } }));
+  await page.route("**/__studio/package-version", route => {
+    const input = route.request().postDataJSON();
+    actions.push(input.action);
+    if (input.action === "versions") {
+      expect(input).toEqual({ action: "versions", packageId: "icons" });
+      return route.fulfill({ json: { versions: ["0.35.1", "0.34.0"] } });
+    }
+    if (input.action === "review") {
+      expect(input).toEqual({ action: "review", packageId: "icons", version: "0.34.0" });
+      return route.fulfill({ json: { reviewId: "test-review", previous: "0.35.1", version: "0.34.0", diff: "--- package.json\n+ 0.34.0" } });
+    }
+    expect(input).toEqual({ action: "apply", reviewId: "test-review" });
+    declared = "0.34.0";
+    return route.fulfill({ json: { applied: true, version: declared } });
+  });
+
+  await page.goto("/studio/packages");
+  const opener = page.getByRole("button", { name: "Change Studio Version" });
+  await opener.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Change Studio package version" });
+  const packageChoice = dialog.getByRole("combobox", { name: "Package", exact: true });
+  await expect(packageChoice).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await packageChoice.selectOption("icons");
+  await dialog.getByRole("combobox", { name: "Published version" }).selectOption("0.34.0");
+  await expect(dialog.getByRole("button", { name: "Apply Version Change" })).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Review Change" }).click();
+  await expect(dialog.getByText(/will change from/)).toContainText("v0.35.1 to v0.34.0");
+  await expect(dialog.getByText(/will change from/)).toBeFocused();
+  await dialog.getByText("Dependency file changes").click();
+  await expect(dialog.getByText("--- package.json", { exact: false })).toBeVisible();
+  expect(actions).toEqual(["versions", "review"]);
+  const box = (await dialog.boundingBox())!;
+  expect(box.width + box.x).toBeLessThanOrEqual(390);
+  await dialog.getByRole("button", { name: "Apply Version Change" }).press("Enter");
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await expect(page.getByText(/Icons v0.34.0 is saved/)).toBeVisible();
+  await expect(page.getByRole("table").getByText("Declared 0.34.0")).toBeVisible();
+  expect(actions).toEqual(["versions", "review", "apply"]);
+});

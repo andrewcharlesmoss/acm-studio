@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import catalogue from "../package-dashboard-catalogue.json";
 import { StudioAppHeader } from "../studio-app-header";
+import { PackageVersionDialog } from "./package-version-dialog";
 import "./packages.css";
 
 type PackageState = "installed" | "locked" | "local" | "broken" | "unidentified" | "missing" | "unused" | "unavailable";
@@ -42,6 +43,9 @@ export function PackageDashboard() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [phase, setPhase] = useState<"loading" | "complete" | "unavailable">("loading");
   const [request, setRequest] = useState(0);
+  const [versionDialog, setVersionDialog] = useState(false);
+  const [savedChange, setSavedChange] = useState("");
+  const versionOpener = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
@@ -70,6 +74,12 @@ export function PackageDashboard() {
   }, [request]);
 
   const loading = phase === "loading";
+  const studio = snapshot?.projects.find(project => project.id === "acm-studio");
+  const editablePackages = catalogue.packages.flatMap(pkg => {
+    const dependency = studio?.packages.find(item => item.id === pkg.id);
+    const declared = dependency?.declared;
+    return declared && /^\d+\.\d+\.\d+(?:[-+][\w.+-]+)?$/.test(declared) ? [{ ...pkg, declared }] : [];
+  });
   const registryUnavailable = snapshot?.releases.some(release => release.source === "verified");
   const status = loading ? "Checking package versions…" : phase === "unavailable"
     ? "Local package data unavailable. Open this page in local Studio to check installed versions."
@@ -83,12 +93,17 @@ export function PackageDashboard() {
     <main className="dashboard-main package-dash">
       <div className="package-dash-heading">
         <h1>Packages</h1>
-        <button className="button-secondary" type="button" disabled={loading} onClick={() => {
-          setPhase("loading");
-          setRequest(value => value + 1);
-        }}>Refresh</button>
+        <div className="package-dash-actions">
+          {editablePackages.length ? <button className="button-secondary" type="button" ref={versionOpener}
+            onClick={() => setVersionDialog(true)}>Change Studio Version</button> : null}
+          <button className="button-secondary" type="button" disabled={loading} onClick={() => {
+            setPhase("loading");
+            setRequest(value => value + 1);
+          }}>Refresh</button>
+        </div>
       </div>
       <p role="status" className="package-dash-status">{status}</p>
+      {savedChange ? <p role="status">{savedChange}</p> : null}
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Keyboard users need to scroll the table at narrow widths. */}
       <div className="package-dash-scroll" role="region" aria-label="Package versions by project" tabIndex={0}>
         <table className="package-dash-table" aria-busy={loading}>
@@ -115,6 +130,12 @@ export function PackageDashboard() {
         </table>
       </div>
       <p className="package-dash-note">Hosted versions <strong>Unknown</strong>. Project Ports shows the local Icons build dependency.</p>
+      {versionDialog ? <PackageVersionDialog packages={editablePackages} opener={versionOpener} onClose={() => setVersionDialog(false)}
+        onApplied={message => {
+          setVersionDialog(false);
+          setSavedChange(message);
+          setRequest(value => value + 1);
+        }} /> : null}
     </main>
   </div>;
 }

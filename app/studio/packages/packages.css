@@ -1,5 +1,6 @@
 .package-dash { padding-block-start: clamp(24px, 5vw, 56px); }
 .package-dash-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.package-dash-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .package-dash-heading h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; margin: 0; }
 .package-dash-status, .package-dash-note { color: var(--muted); }
 .package-dash-scroll {
@@ -30,3 +31,14 @@
 .package-dash-table a { text-decoration: underline; text-underline-offset: .18em; }
 .package-dash-detail { display: block; color: var(--muted); font-size: var(--studio-ui-size, .875rem); }
 .package-dash-detail + .package-dash-detail { margin-top: 4px; }
+.package-version-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 12px; }
+.package-version-fields label { display: grid; gap: 4px; min-inline-size: 0; }
+.package-version-diff summary { cursor: pointer; }
+.package-version-diff pre {
+  overflow: auto;
+  max-block-size: 40dvh;
+  padding: 12px;
+  background: var(--acm-ui-color-subtle-surface);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -157,7 +157,7 @@ test("serves read-only data only through the exact localhost POST boundary", asy
   assert.equal(bridge.apply, "serve");
   bridge.configureServer({
     config: { root: "/workspace/acm-studio" }, httpServer: { address: () => ({ port: 3010 }) },
-    middlewares: { use(route, middleware) { assert.equal(route, "/__studio/packages"); handler = middleware; } },
+    middlewares: { use(route, middleware) { if (route === "/__studio/packages") handler = middleware; } },
   });
   const valid = {
     method: "POST", socket: { remoteAddress: "::1" }, resume() {},
