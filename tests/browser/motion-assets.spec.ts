@@ -247,6 +247,43 @@ test("Special Effects lists the three Studio fire effects and omits the Shutters
   await expect(effects).toHaveCount(0);
 });
 
+test("Sound Effects plays and downloads the original glass explosion", async ({ page }) => {
+  await page.goto(route, { waitUntil: "commit" });
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
+  const sounds = motion.getByRole("region", { name: "Sound Effects", exact: true });
+  const audio = sounds.locator("audio");
+  await expect(audio).toHaveAccessibleName("Explosion and Glass preview");
+  await setNumber(page, "Width (px)", "1100");
+
+  const search = motion.getByRole("searchbox", { name: "Search motion assets" });
+  await search.fill("shatter");
+  await expect(motion.getByRole("region", { name: "Special Effects" })).toHaveCount(0);
+  await expect(sounds.getByText("Explosion and Glass", { exact: true })).toBeVisible();
+  await audio.press("Space");
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(0);
+  await expect(motion.getByRole("region", { name: "Motion preview" }).getByRole("button", { name: "Play", exact: true })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Icons", exact: true }).click();
+  await page.getByRole("tab", { name: "Motion Assets", exact: true }).click();
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
+  expect(await audio.evaluate((element: HTMLAudioElement) => element.ended)).toBe(false);
+  await expect(motion.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1100");
+
+  const downloadPending = page.waitForEvent("download");
+  await sounds.getByRole("link", { name: "Download WAV for Explosion and Glass" }).click();
+  const download = await downloadPending;
+  expect(download.suggestedFilename()).toBe("explosion-and-glass.wav");
+  const data = await readFile((await download.path())!);
+  expect(data.toString("ascii", 0, 4)).toBe("RIFF");
+  expect(data.toString("ascii", 8, 12)).toBe("WAVE");
+  expect(data.readUInt16LE(22)).toBe(2);
+  expect(data.readUInt32LE(24)).toBe(48_000);
+  expect(data.readUInt16LE(34)).toBe(24);
+  expect(data.readUInt32LE(40) / (48_000 * 6)).toBe(4.1);
+});
+
 test("Volumetric Fireball renders live and saves editable name, size, and duration", async ({ page }) => {
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: "reduce" });

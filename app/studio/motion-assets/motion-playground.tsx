@@ -14,6 +14,7 @@ import { isNativeEditingTarget } from "../workspace-shortcuts.mjs";
 import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
 import { MotionEffectArtwork, motionEffectCatalogue, motionEffectKeywords, motionEffectPoster, motionEffectPreview } from "./motion-effects";
+import { MotionSounds, motionSoundCatalogue } from "./motion-sounds";
 import { MotionPreviewStage } from "./motion-preview-stage";
 import { VolumetricFireballCanvas, volumetricFireballPoster } from "./volumetric-fireball-canvas";
 import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMotionPreviewWorkspace, type MotionDraft } from "./motion-preview-workspace";
@@ -30,10 +31,6 @@ const exportHeaders = { "Content-Type": "application/json", "X-Studio-Client": "
 type MovSupport = { available: boolean; volumetricAvailable?: boolean; error?: string };
 const formatSeconds = (frames: number) => `${(frames / motionFps).toFixed(2)} s`;
 const subscribeToHydration = () => () => {};
-const catalogueGroups: { title: string; presets: readonly MotionClip[] }[] = [
-  { title: "Special Effects", presets: motionEffectCatalogue },
-  { title: "Sketches", presets: motionCatalogue },
-];
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -135,14 +132,16 @@ export function MotionPlayground() {
   const previewAsset = useMemo(() => resizeDraft ? { ...asset, ...resizeDraft } : asset, [asset, resizeDraft]);
   const previewModel = useMemo(() => "effect" in previewAsset ? null
     : previewAsset === asset ? model : motionGeometry(previewAsset), [asset, model, previewAsset]);
-  const visibleGroups = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return catalogueGroups.map(({ title, presets }) => ({ title, entries: presets.flatMap(preset => {
+  const query = search.trim().toLowerCase();
+  const sounds = motionSoundCatalogue.filter(sound => [sound.name, sound.keywords].some(value => value.toLowerCase().includes(query)));
+  const { effects, sketches } = useMemo(() => {
+    const matching = (presets: readonly MotionClip[]) => presets.flatMap(preset => {
       const clip = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
       return [preset.name, clip.name, "effect" in clip ? motionEffectKeywords(clip) : ""]
         .some(name => name.toLowerCase().includes(query)) ? [{ preset, clip }] : [];
-    }) })).filter(group => group.entries.length);
-  }, [draft.preset, parked, previewAsset, search]);
+    });
+    return { effects: matching(motionEffectCatalogue), sketches: matching(motionCatalogue) };
+  }, [draft.preset, parked, previewAsset, query]);
   const duration = "effect" in asset ? asset.durationFrames : asset.drawFrames + asset.holdFrames;
   const volumetric = "effect" in asset && asset.effect === "volumetric-fireball";
   const durationLimit = "effect" in asset ? motionEffectFrameLimit(asset.effect) : 0;
@@ -168,7 +167,7 @@ export function MotionPlayground() {
       || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const target = event.target;
     if (isNativeEditingTarget(target) || document.querySelector("dialog[open]")
-      || (target instanceof Element && target.closest('button, a[href], summary, [role="button"], [role="switch"], [role="tab"], [role="dialog"]'))) return;
+      || (target instanceof Element && target.closest('audio, button, a[href], summary, [role="button"], [role="switch"], [role="tab"], [role="dialog"]'))) return;
     event.preventDefault();
     if (!event.repeat) togglePlayback();
   });
@@ -348,28 +347,35 @@ export function MotionPlayground() {
     }
   }
 
+  function renderAnimationGroup(title: string, entries: typeof effects) {
+    if (!entries.length) return null;
+    return <section className="motion-catalogue-group" aria-label={title}>
+      <h2>{title}</h2>
+      <div className="motion-catalogue-grid">
+        {entries.map(({ preset, clip }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${clip.name}`} aria-pressed={draft.preset === preset.name} onClick={event => {
+          const play = autoplay && (!("effect" in preset) || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+          requestReplacement(makeDraft(preset, { preset: preset.name }), play, event.detail > 0);
+        }}>
+          <MotionThumbnail asset={clip} />
+          <strong>{clip.name}</strong>
+        </button>)}
+      </div>
+    </section>;
+  }
+
   return <>
     <section className="motion-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
       <div className="motion-catalogue-heading">
-        <div><h1 id="motion-catalogue-title">Motion Assets</h1><p>Choose an animation to preview, adjust, and export.</p></div>
+        <div><h1 id="motion-catalogue-title">Motion Assets</h1><p>Preview, edit, and export animations, or download sound effects.</p></div>
         <div className="motion-catalogue-options">
           <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
-          <label className="motion-catalogue-search"><span>Search motion assets</span><SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches and effects…" /></label>
+          <label className="motion-catalogue-search"><span>Search motion assets</span><SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search animations and sounds…" /></label>
         </div>
       </div>
-      {visibleGroups.map(({ title, entries }) => <section key={title} className="motion-catalogue-group" aria-label={title}>
-        <h2>{title}</h2>
-        <div className="motion-catalogue-grid">
-          {entries.map(({ preset, clip }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${clip.name}`} aria-pressed={draft.preset === preset.name} onClick={event => {
-            const play = autoplay && (!("effect" in preset) || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-            requestReplacement(makeDraft(preset, { preset: preset.name }), play, event.detail > 0);
-          }}>
-            <MotionThumbnail asset={clip} />
-            <strong>{clip.name}</strong>
-          </button>)}
-        </div>
-      </section>)}
-      {!visibleGroups.length ? <p>No matching motion assets.</p> : null}
+      {renderAnimationGroup("Special Effects", effects)}
+      {sounds.length ? <MotionSounds sounds={sounds} active={active} /> : null}
+      {renderAnimationGroup("Sketches", sketches)}
+      {!sounds.length && !effects.length && !sketches.length ? <p>No matching motion assets.</p> : null}
     </section>
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
       <section id="motion-preview" ref={preview} tabIndex={-1} className="motion-preview" aria-label="Motion preview">

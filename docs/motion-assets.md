@@ -46,6 +46,12 @@ swiftc -O -module-cache-path "$render_dir/module-cache" scripts/volumetric-fireb
   -movflags +faststart outputs/volumetric-fireball-render.mov
 ```
 
+## Sound effects
+
+Find **Explosion and Glass** under **Sound Effects**. Play it in the catalogue or choose **Download WAV** for a 4.1-second stereo clip at 48 kHz and 24-bit PCM. Search for the name or terms such as “shatter” and “blast”.
+
+The sound is synthesised from seeded noise, oscillators, and short stereo reflections. The Camtasia sound informed the timing and character. The generator uses no recording as input. From the repository root, run `node scripts/synthesise-explosion-glass.mjs` to regenerate the bundled WAV.
+
 ## Choose an export
 
 | Export | Use |
@@ -53,6 +59,7 @@ swiftc -O -module-cache-path "$render_dir/module-cache" scripts/volumetric-fireb
 | SVG | Static final drawing on a transparent canvas. |
 | Lottie JSON | Web animation for a Lottie player. |
 | Transparent MOV | Video overlay in editors that read ProRes 4444 alpha. |
+| WAV | Sound effect for a video editor, website, or app. |
 
 Templates start at 800 × 800 px, with a one-second reveal and two-second hold. Exports use 30 fps. The first release supports up to 1920 × 1080 px in landscape or 1080 × 1920 px in portrait, and up to 10 seconds including the hold. The canvas has a fixed inset so changing the stroke thickness leaves the geometry in place.
 

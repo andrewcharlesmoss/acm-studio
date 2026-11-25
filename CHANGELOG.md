@@ -16,6 +16,7 @@
 - Preview Fire Burst in Motion Assets → Special Effects and export it as a transparent MOV for video intros.
 - Use Fire Shockwave for a full-frame ring of flame that clears to transparency in Motion Assets → Special Effects.
 - Edit Volumetric Fireball’s name, canvas size, and duration, preview the live 3D flame, and export an editable project or a transparent MOV.
+- Preview and download the original Explosion and Glass sound effect in Motion Assets.
 
 - Open a native SwiftUI reordering preview alongside the web example in local Studio.
 
