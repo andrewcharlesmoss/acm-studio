@@ -61,6 +61,7 @@
 ### Changed
 
 - Browse Sound Effects in a compact table with icon actions for downloads and file details.
+- Pause the previous sound when another starts playing in Sound Effects.
 
 - Browse imported visual effects and editable presets together as thumbnail tiles in Special Effects.
 - Use the same Preview workspace and playback controls for imported video effects and editable animations.

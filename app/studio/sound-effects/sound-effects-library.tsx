@@ -77,7 +77,13 @@ export function SoundEffectsLibrary() {
       </> : <p role="alert">{movExport.error}</p>}
     </div> : null}
     {sounds.length || audioFiles.length ? <div className="sound-effects-table-frame">
-      <table className="sound-effects-table" aria-labelledby="sound-effects-title">
+      <table className="sound-effects-table" aria-labelledby="sound-effects-title" onPlayCapture={event => {
+        const playing = event.target;
+        if (!(playing instanceof HTMLAudioElement) || playing.paused) return;
+        for (const other of event.currentTarget.querySelectorAll("audio")) {
+          if (other !== playing && !other.paused) other.pause();
+        }
+      }}>
         <colgroup><col /><col className="sound-effects-action-column" /></colgroup>
         <thead><tr><th scope="col">Sound Effect</th><th scope="col">Actions</th></tr></thead>
         <tbody>

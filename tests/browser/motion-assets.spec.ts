@@ -494,6 +494,13 @@ test("routes Files audio and video to their own tabs and downloads the original 
   await audioDetails.getByRole("button", { name: "Close file details" }).click();
   await sound.press("Space");
   await expect.poll(() => sound.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
+  const builtInSound = builtInRow.locator("audio");
+  await builtInSound.press("Space");
+  await expect.poll(() => builtInSound.evaluate((element: HTMLAudioElement) => !element.paused)).toBe(true);
+  await expect.poll(() => sound.evaluate((element: HTMLAudioElement) => element.paused && !element.ended), { timeout: 1_500 }).toBe(true);
+  await sound.press("Space");
+  await expect.poll(() => sound.evaluate((element: HTMLAudioElement) => !element.paused)).toBe(true);
+  await expect.poll(() => builtInSound.evaluate((element: HTMLAudioElement) => element.paused && !element.ended), { timeout: 1_500 }).toBe(true);
 
   await motionTab.click();
   await setNumber(libraryPage, "Width (px)", "1050");
