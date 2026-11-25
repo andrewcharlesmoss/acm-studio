@@ -28,6 +28,8 @@
 .motion-artboard {
   cursor: grab;
   touch-action: none;
+}
+.motion-artboard, .motion-video-artboard {
   background: var(--studio-transparency-pattern) 0 0 / 24px 24px;
   border: 1px solid var(--acm-ui-color-border, #d1d1d6);
   border-radius: var(--acm-layout-radius, 8px);
@@ -95,6 +97,9 @@
 .motion-catalogue-card img { object-fit: contain; }
 .motion-catalogue-card strong { font-size: var(--studio-ui-size, 13px); overflow-wrap: anywhere; }
 .motion-video-thumbnail { display: grid; place-items: center; min-width: 0; }
-.motion-video-preview { display: grid; gap: 8px; max-width: 42rem; margin-block-start: 16px; }
-.motion-video-preview .media-preview-grid { grid-template-columns: minmax(0, 1fr); }
-.motion-video-toolbar > :last-child { margin-inline-start: auto; }
+.motion-video-artboard {
+  inline-size: min(100%, calc(var(--motion-artboard-max-height) * var(--motion-video-ratio)));
+  aspect-ratio: var(--motion-video-ratio);
+}
+.motion-video-artboard video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.motion-video-file { overflow-wrap: anywhere; }

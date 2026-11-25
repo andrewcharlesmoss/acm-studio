@@ -7,7 +7,24 @@ import { useMediaSession } from "./media-sync";
 import "./media-library-preview.css";
 
 type MediaKind = "audio" | "video";
-type LibraryPreviewFile = { asset: MediaAsset; kind: MediaKind; preview?: MediaAsset };
+export type LibraryPreviewFile = { asset: MediaAsset; kind: MediaKind; preview?: MediaAsset };
+type MediaFileActions = {
+  name: string;
+  source: string;
+  active: boolean;
+  download?: { href: string; name: string };
+  format: string;
+  originalFile?: { blob: Blob; addedAt: string };
+};
+
+export function MediaPreviewActions({ name, source, active, download, format, originalFile }: MediaFileActions) {
+  return <div className="media-preview-actions">
+    <a className="button-secondary" href={download?.href ?? source} download={download?.name ?? true}
+      aria-label={`Download ${format} for ${name}`}>Download {format}</a>
+    {active ? <MediaFileDetailsButton name={download?.name ?? (source.split("/").at(-1) || name)}
+      source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} /> : null}
+  </div>;
+}
 
 export function useLibraryPreviewFiles(kind: MediaKind) {
   const { revision, ready, error } = useMediaSession();
@@ -44,16 +61,10 @@ export function useLibraryPreviewFiles(kind: MediaKind) {
   return library;
 }
 
-export function MediaPreviewCard({ name, source, kind, active, download, description, detail, format, originalFile }: {
-  name: string;
-  source: string;
+export function MediaPreviewCard({ name, source, kind, active, download, description, detail, format, originalFile }: MediaFileActions & {
   kind: MediaKind;
-  active: boolean;
-  download?: { href: string; name: string };
   description?: string;
   detail?: string;
-  format: string;
-  originalFile?: { blob: Blob; addedAt: string };
 }) {
   const player = useRef<HTMLMediaElement | null>(null);
   const descriptionId = useId();
@@ -81,17 +92,12 @@ export function MediaPreviewCard({ name, source, kind, active, download, descrip
     {description ? <span className="sr-only" id={descriptionId}>{description}</span> : null}
     {/* eslint-disable-next-line jsx-a11y/media-has-caption -- This player previews locally selected media. Supplied descriptions are linked above. */}
     {kind === "audio" ? <audio {...playback} /> : <video {...playback} playsInline />}
-    <div className="media-preview-actions">
-      <a className="button-secondary" href={download?.href ?? source} download={download?.name ?? true}
-        aria-label={`Download ${format} for ${name}`}>Download {format}</a>
-      {active ? <MediaFileDetailsButton name={download?.name ?? (source.split("/").at(-1) || name)}
-        source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} /> : null}
-    </div>
+    <MediaPreviewActions name={name} source={source} active={active} download={download} format={format} originalFile={originalFile} />
     {unavailable ? <p role="alert">This preview couldn’t play. Download the file to open it in another app.</p> : null}
   </li>;
 }
 
-export function LibraryFilePreview({ file, active }: { file: LibraryPreviewFile; active: boolean }) {
+export function useLibraryFilePreview(file: LibraryPreviewFile) {
   const { asset, preview, kind } = file;
   const original = asset.blob;
   const playback = preview?.blob ?? original;
@@ -110,8 +116,15 @@ export function LibraryFilePreview({ file, active }: { file: LibraryPreviewFile;
 
   if (urls?.original !== original || urls.playback !== playback) return null;
   const extension = /\.([a-z0-9]{1,8})$/i.exec(asset.name)?.[1]?.toUpperCase();
-  return <MediaPreviewCard key={urls.source} name={asset.name} kind={kind} active={active} source={urls.source}
-    download={{ href: urls.download, name: asset.name }} description={asset.caption || asset.altText}
-    originalFile={{ blob: original, addedAt: asset.createdAt }}
-    detail={extension} format={extension ?? "File"} />;
+  return {
+    name: asset.name, kind, source: urls.source,
+    download: { href: urls.download, name: asset.name },
+    originalFile: { blob: original, addedAt: asset.createdAt },
+    description: asset.caption || asset.altText, detail: extension, format: extension ?? "File",
+  };
+}
+
+export function LibraryFilePreview({ file, active }: { file: LibraryPreviewFile; active: boolean }) {
+  const preview = useLibraryFilePreview(file);
+  return preview ? <MediaPreviewCard key={preview.source} {...preview} active={active} /> : null;
 }

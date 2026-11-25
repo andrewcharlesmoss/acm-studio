@@ -61,6 +61,7 @@
 ### Changed
 
 - Browse imported visual effects and editable presets together as thumbnail tiles in Special Effects.
+- Use the same Preview workspace and playback controls for imported video effects and editable animations.
 
 - Browse Sound Effects in its own top-level Studio UI Library tab. Motion Assets contains Special Effects and Sketches.
 

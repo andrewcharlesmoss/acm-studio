@@ -3,7 +3,9 @@
 import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useEffect, useRef, useState } from "react";
 
-export function VideoCatalogueThumbnail({ source, active }: { source: Blob; active: boolean }) {
+export function VideoCatalogueThumbnail({ id, source, active, onPoster }: {
+  id: string; source: Blob; active: boolean; onPoster: (id: string, source: Blob, image: string) => void;
+}) {
   const artwork = useRef<HTMLSpanElement>(null);
   const [poster, setPoster] = useState<{ source: Blob; image?: string }>();
   const current = poster?.source === source ? poster : undefined;
@@ -31,6 +33,7 @@ export function VideoCatalogueThumbnail({ source, active }: { source: Blob; acti
         if (released) return;
         release();
         setPoster({ source, image });
+        if (image) onPoster(id, source, image);
       }
       const timeout = window.setTimeout(() => finish(), 8000);
       releaseVideo = release;
@@ -65,7 +68,7 @@ export function VideoCatalogueThumbnail({ source, active }: { source: Blob; acti
       observer.disconnect();
       releaseVideo?.();
     };
-  }, [active, current, source]);
+  }, [active, current, id, onPoster, source]);
 
   return <span ref={artwork} className="motion-video-thumbnail" aria-hidden="true">
     {current?.image

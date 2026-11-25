@@ -1,21 +1,21 @@
 "use client";
 
 import { AcmIcon } from "@andrewcharlesmoss/icons/react";
-import { memo, useContext, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type MouseEventHandler, type ReactNode } from "react";
+import { memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type MouseEventHandler, type ReactNode } from "react";
 import { ColourPicker } from "../controls/colour-picker";
 import { SearchInput, TextInput } from "../controls/native-fields";
 import { NumberStepper } from "../controls/number-stepper";
-import { RangeControl } from "../controls/range-control";
 import { ToggleSetting } from "../controls/toggle-setting";
-import { LibraryFilePreview, useLibraryPreviewFiles } from "../media-library-preview";
+import { useLibraryPreviewFiles } from "../media-library-preview";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane, PaneTabPanel, PaneTabs } from "../panes/pane-components";
 import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
-import { isNativeEditingTarget } from "../workspace-shortcuts.mjs";
 import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
 import { MotionEffectArtwork, motionEffectCatalogue, motionEffectKeywords, motionEffectPoster, motionEffectPreview } from "./motion-effects";
 import { MotionPreviewStage } from "./motion-preview-stage";
+import { MotionPlaybackTransport, MotionPreviewPane, useMotionPlaybackShortcut } from "./motion-preview-controls";
+import { MotionVideoWorkspace } from "./motion-video-workspace";
 import { VideoCatalogueThumbnail } from "./video-catalogue-thumbnail";
 import { VolumetricFireballCanvas, volumetricFireballPoster } from "./volumetric-fireball-canvas";
 import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMotionPreviewWorkspace, type MotionDraft } from "./motion-preview-workspace";
@@ -30,13 +30,13 @@ const movEndpoint = "/__studio/motion-export";
 const localOnly = "MOV export is available in local Studio with FFmpeg installed.";
 const exportHeaders = { "Content-Type": "application/json", "X-Studio-Client": "motion-assets" };
 type MovSupport = { available: boolean; volumetricAvailable?: boolean; error?: string };
-const formatSeconds = (frames: number) => `${(frames / motionFps).toFixed(2)} s`;
 const subscribeToHydration = () => () => {};
 const motionAssetTabs = [
   { id: "special-effects", label: "Special Effects" },
   { id: "sketches", label: "Sketches" },
 ] as const;
 type MotionAssetTab = (typeof motionAssetTabs)[number]["id"];
+type VideoSelection = { id: string; poster?: { source: Blob; image: string } };
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -145,7 +145,7 @@ export function MotionPlayground() {
   const { asset } = draft;
   const sketch = "effect" in asset ? null : asset;
   const [assetTab, setAssetTab] = useState<MotionAssetTab>("sketches");
-  const [selectedVideoId, setSelectedVideoId] = useState<string>();
+  const [videoSelection, setVideoSelection] = useState<VideoSelection>();
   const [searches, setSearches] = useState<Record<MotionAssetTab, string>>({ "special-effects": "", sketches: "" });
   const assetTabsId = useId();
   const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
@@ -159,6 +159,8 @@ export function MotionPlayground() {
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = useRef<HTMLElement>(null);
   const videoTile = useRef<HTMLButtonElement | null>(null);
+  const videoReveal = useRef<{ id: string; focus: boolean } | null>(null);
+  const videoPosters = useRef(new WeakMap<Blob, string>());
   const exportRequest = useRef<AbortController | null>(null);
   const inputSequence = useRef(0);
   const currentFileDirty = useRef(false);
@@ -171,8 +173,21 @@ export function MotionPlayground() {
   const videoQuery = videoSearch.trim().toLowerCase();
   const { files, unavailable: filesUnavailable } = useLibraryPreviewFiles("video");
   const videoFiles = files.filter(({ asset }) => asset.name.toLowerCase().includes(videoQuery));
-  const selectedVideo = assetTab === "special-effects" ? videoFiles.find(file => file.asset.id === selectedVideoId) : undefined;
+  const selectedVideo = assetTab === "special-effects" ? videoFiles.find(file => file.asset.id === videoSelection?.id) : undefined;
   const animationActive = active && !selectedVideo;
+  const poster = videoSelection?.poster;
+  const selectedVideoPoster = selectedVideo && poster?.source === (selectedVideo.preview?.blob ?? selectedVideo.asset.blob) ? poster.image : undefined;
+  const rememberVideoPoster = useCallback((id: string, source: Blob, image: string) => {
+    videoPosters.current.set(source, image);
+    setVideoSelection(current => current?.id === id ? { ...current, poster: { source, image } } : current);
+  }, []);
+  const revealVideoPreview = useCallback((id: string, element: HTMLElement) => {
+    const reveal = videoReveal.current;
+    if (reveal?.id !== id) return;
+    videoReveal.current = null;
+    element.scrollIntoView({ block: "start", behavior: "instant" });
+    if (reveal.focus) element.focus({ preventScroll: true });
+  }, []);
   const { effects, sketches } = useMemo(() => {
     const matching = (presets: readonly MotionClip[], search: string) => {
       const query = search.trim().toLowerCase();
@@ -194,7 +209,6 @@ export function MotionPlayground() {
   const signature = useMemo(() => projectKey(asset), [asset]);
   const dirty = signature !== draft.baseline;
   const frame = Math.min(position ?? ("effect" in asset ? motionEffectPoster(asset) : duration), duration);
-  const playbackLabel = playback ? "Pause" : "Play";
   const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || (sketch ? "sketch" : "effect");
   const cancelExport = movExport && "message" in movExport ? movExport.cancel : undefined;
   const feedbackMessage = movExport && "message" in movExport ? movExport.message : message;
@@ -209,22 +223,7 @@ export function MotionPlayground() {
     setPlayback({ startFrame });
   }
 
-  const onPlaybackShortcut = useEffectEvent((event: KeyboardEvent) => {
-    if (event.key !== " " || event.defaultPrevented || event.isComposing
-      || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    const target = event.target;
-    if (isNativeEditingTarget(target) || document.querySelector("dialog[open]")
-      || (target instanceof Element && target.closest('audio, video, button, a[href], summary, [role="button"], [role="switch"], [role="tab"], [role="dialog"]'))) return;
-    event.preventDefault();
-    if (!event.repeat) togglePlayback();
-  });
-
-  useEffect(() => {
-    if (!animationActive || !ready) return;
-    const listener = (event: KeyboardEvent) => onPlaybackShortcut(event);
-    document.addEventListener("keydown", listener);
-    return () => document.removeEventListener("keydown", listener);
-  }, [animationActive, ready]);
+  useMotionPlaybackShortcut(animationActive && ready, togglePlayback);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -275,7 +274,7 @@ export function MotionPlayground() {
     focusedMotionField()?.blur();
     inputSequence.current++;
     setPreviewRevision(current => current + 1);
-    setSelectedVideoId(undefined);
+    setVideoSelection(undefined);
     setPlayback(play ? { startFrame: 0 } : null);
     setPosition(play ? 0 : null);
     setWorkspace(current => {
@@ -433,29 +432,21 @@ export function MotionPlayground() {
         {effects.length || videoFiles.length ? <AnimationCatalogueCards entries={effects}
           selectedPreset={selectedVideo ? undefined : draft.preset} onSelect={selectCataloguePreset}>
           {videoFiles.map(({ asset, preview }) => <MotionCatalogueCard key={asset.id} name={asset.name}
-            label={`Preview ${asset.name}`} pressed={selectedVideoId === asset.id}
+            label={`Preview ${asset.name}`} pressed={videoSelection?.id === asset.id}
             onClick={event => {
               videoTile.current = event.currentTarget;
               setPlayback(null);
-              setSelectedVideoId(previous => previous === asset.id ? undefined : asset.id);
+              const source = preview?.blob ?? asset.blob;
+              const image = videoPosters.current.get(source);
+              const selection = { id: asset.id, poster: image ? { source, image } : undefined };
+              const closing = videoSelection?.id === asset.id;
+              videoReveal.current = closing ? null : { id: asset.id, focus: event.detail > 0 };
+              setVideoSelection(closing ? undefined : selection);
             }}>
-            <VideoCatalogueThumbnail source={preview?.blob ?? asset.blob} active={active && assetTab === "special-effects"} />
+            <VideoCatalogueThumbnail id={asset.id} source={preview?.blob ?? asset.blob} onPoster={rememberVideoPoster}
+              active={active && assetTab === "special-effects"} />
           </MotionCatalogueCard>)}
         </AnimationCatalogueCards> : null}
-        {selectedVideo ? <section className="motion-video-preview" aria-label="Video effect preview">
-          <div className="motion-actions motion-video-toolbar">
-            {movExport && ("message" in movExport ? <p role="status" className="motion-feedback">{movExport.message}</p>
-              : <p role="alert" className="motion-feedback">{movExport.error}</p>)}
-            {cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button> : null}
-            <button type="button" className="button-secondary" onClick={() => {
-              setSelectedVideoId(undefined);
-              videoTile.current?.focus();
-            }}>Close Preview</button>
-          </div>
-          <ul className="media-preview-grid" data-kind="video">
-            <LibraryFilePreview key={selectedVideo.asset.id} file={selectedVideo} active={active} />
-          </ul>
-        </section> : null}
         {filesUnavailable ? <p role="status">The files from your Motion Assets folder couldn’t be loaded.</p> : null}
         {!effects.length && !videoFiles.length ? <p>No matching motion assets.</p> : null}
       </PaneTabPanel>
@@ -464,32 +455,30 @@ export function MotionPlayground() {
           : <p>No matching motion assets.</p>}
       </PaneTabPanel>
     </section>
+    {selectedVideo ? <MotionVideoWorkspace file={selectedVideo} active={active} poster={selectedVideoPoster} onPreviewReady={revealVideoPreview}
+      onClose={() => { setVideoSelection(undefined); videoTile.current?.focus(); }}
+      exportFeedback={movExport ? <div className="motion-actions">
+        {"message" in movExport ? <p role="status" className="motion-feedback">{movExport.message}</p>
+          : <p role="alert" className="motion-feedback">{movExport.error}</p>}
+        {cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button> : null}
+      </div> : undefined} /> : null}
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready} hidden={Boolean(selectedVideo)}>
-      <section id="motion-preview" ref={preview} tabIndex={-1} className="motion-preview" aria-label="Motion preview">
-        <div className="motion-toolbar">
-          <h2>Preview</h2>
-          <div className="motion-actions">
-            <button type="button" className="button-secondary motion-reset-button" onClick={resetPreview}>
-              <AcmIcon name="action.reset" scale="Regular-S" size={18} />Reset Preview
-            </button>
-            <button type="button" className="button-secondary" onClick={() => fileInput.current?.click()}>Open File</button>
-            <button type="button" className="button-primary" onClick={() => downloadSource("project")}>Download Project</button>
-            <input hidden ref={fileInput} type="file" accept=".svg,.json" onChange={openFile} />
-          </div>
-        </div>
+      <MotionPreviewPane id="motion-preview" previewRef={preview} actions={<>
+        <button type="button" className="button-secondary motion-reset-button" onClick={resetPreview}>
+          <AcmIcon name="action.reset" scale="Regular-S" size={18} />Reset Preview
+        </button>
+        <button type="button" className="button-secondary" onClick={() => fileInput.current?.click()}>Open File</button>
+        <button type="button" className="button-primary" onClick={() => downloadSource("project")}>Download Project</button>
+        <input hidden ref={fileInput} type="file" accept=".svg,.json" onChange={openFile} />
+      </>}>
         <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} geometry={previewModel?.preview ?? motionEffectPreview} onResize={changeAsset} onResizeDraft={setResizeDraft}
           renderedFrame={animationActive && "effect" in previewAsset && previewAsset.effect === "volumetric-fireball"
             ? <VolumetricFireballCanvas asset={previewAsset} frame={frame} playing={playback !== null} /> : undefined}
           artwork={"effect" in previewAsset ? <MotionEffectArtwork asset={previewAsset} frame={frame} />
             : <SketchArtwork asset={previewAsset} path={previewModel?.pathAt(frame) ?? ""} />} />
-        <div className="motion-transport">
-          <button type="button" className="button-secondary motion-playback-button" aria-label={playbackLabel} title={`${playbackLabel} (Space)`} aria-keyshortcuts="Space" onClick={togglePlayback}><AcmIcon name={playback ? "media.pause" : "media.play"} scale="Regular-S" size={20} /></button>
-          <RangeControl min={0} max={duration} step={1} value={frame}
-            aria-label="Animation position" aria-valuetext={`${formatSeconds(frame)} of ${formatSeconds(duration)}`}
-            tooltipPlacement="above" tooltipText={formatSeconds(frame)} onChange={event => { setPlayback(null); setPosition(event.target.valueAsNumber); }} />
-          <span className="motion-time" aria-hidden="true">{formatSeconds(frame)} / {formatSeconds(duration)}</span>
-        </div>
-      </section>
+        <MotionPlaybackTransport playing={playback !== null} position={frame} duration={duration} label="Animation position"
+          unitsPerSecond={motionFps} step={1} onToggle={togglePlayback} onSeek={value => { setPlayback(null); setPosition(value); }} />
+      </MotionPreviewPane>
       <Pane label="Motion settings" side="right" width={312} collapsed={false} onCollapsedChange={() => {}} collapseIcon={null} collapsible={false} inspectorPopoverOwner
         trackClassName="motion-inspector" header={<h2>Settings</h2>}>
         <div className="motion-settings">
