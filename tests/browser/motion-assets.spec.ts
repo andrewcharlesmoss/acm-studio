@@ -133,7 +133,8 @@ test("browsing presets preserves edits, supports reset and respects autoplay", a
 
 test("Space toggles playback from the preview and preserves native control shortcuts", async ({ page }) => {
   await page.goto(route);
-  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
   const preview = page.getByRole("region", { name: "Motion preview" });
   const play = page.getByRole("button", { name: "Play", exact: true });
   const pause = page.getByRole("button", { name: "Pause", exact: true });
@@ -290,6 +291,62 @@ test("Sound Effects plays and downloads the original glass explosion", async ({ 
   expect(data.readUInt32LE(24)).toBe(48_000);
   expect(data.readUInt16LE(34)).toBe(24);
   expect(data.readUInt32LE(40) / (48_000 * 6)).toBe(4.1);
+});
+
+test("shows Files audio and video in Motion Assets and downloads the original MOV", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await page.goto("/studio?mode=files");
+  const files = page.getByRole("region", { name: "File manager", exact: true });
+  const upload = files.locator('input[type="file"]');
+  const audioBytes = await readFile("public/motion-assets/explosion-and-glass.wav");
+  const audio = { name: "library-explosion.wav", mimeType: "audio/wav", buffer: audioBytes };
+  const original = { name: "library-fireball.mov", mimeType: "video/quicktime", buffer: Buffer.from("original MOV bytes") };
+  const preview = { name: "library-fireball.mp4", mimeType: "video/mp4", buffer: Buffer.from("replacement preview bytes") };
+  async function openNewFolder(name: string) {
+    await files.getByRole("button", { name: "Folder", exact: true }).click();
+    const field = files.getByRole("textbox", { name: "Name", exact: true });
+    await expect(field).toHaveValue("Untitled folder");
+    await field.fill(name);
+    await field.press("Enter");
+    await files.getByRole("button", { name, exact: true }).press("Enter");
+    await expect(files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name, exact: true })).toBeVisible();
+  }
+
+  await expect(upload).toBeEnabled({ timeout: 30_000 });
+  await upload.setInputFiles({ ...audio, name: "unrelated.wav" });
+  await expect(files.getByText("unrelated.wav", { exact: true })).toBeVisible();
+  await openNewFolder("Motion Assets");
+  await upload.setInputFiles([audio, original]);
+  await expect(files.getByText(original.name, { exact: true })).toBeVisible();
+  await openNewFolder("Previews");
+  await upload.setInputFiles(preview);
+  await expect(files.getByText(preview.name, { exact: true })).toBeVisible();
+
+  const libraryPage = await context.newPage();
+  await libraryPage.goto(route);
+  const effects = libraryPage.getByRole("region", { name: "Special Effects", exact: true });
+  const sounds = libraryPage.getByRole("region", { name: "Sound Effects", exact: true });
+  const video = effects.locator("video");
+  const sound = sounds.locator('audio[aria-label="library-explosion.wav preview"]');
+  await expect(video).toHaveAccessibleName("library-fireball.mov preview");
+  await expect(sound).toBeVisible();
+  await expect(sounds.getByText("unrelated.wav", { exact: true })).toHaveCount(0);
+  await expect(effects.getByText(preview.name, { exact: true })).toHaveCount(0);
+  expect(await video.evaluate(element => fetch((element as HTMLVideoElement).src).then(response => response.text()))).toBe(preview.buffer.toString());
+  await sound.press("Space");
+  await expect.poll(() => sound.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
+
+  const pending = libraryPage.waitForEvent("download");
+  await effects.getByRole("link", { name: "Download MOV for library-fireball.mov" }).click();
+  const download = await pending;
+  expect(download.suggestedFilename()).toBe(original.name);
+  expect(await readFile((await download.path())!)).toEqual(original.buffer);
+
+  await files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name: "Motion Assets", exact: true }).click();
+  await files.getByRole("button", { name: /^library-fireball\.mov/ }).click();
+  await files.getByRole("combobox", { name: "Folder", exact: true }).selectOption({ label: "All files" });
+  await expect(video).toHaveCount(0);
+  await expect(sound).toBeVisible();
 });
 
 test("Volumetric Fireball renders live and saves editable name, size, and duration", async ({ page }) => {

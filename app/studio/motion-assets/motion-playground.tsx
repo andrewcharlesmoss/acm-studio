@@ -14,7 +14,7 @@ import { isNativeEditingTarget } from "../workspace-shortcuts.mjs";
 import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
 import { MotionEffectArtwork, motionEffectCatalogue, motionEffectKeywords, motionEffectPoster, motionEffectPreview } from "./motion-effects";
-import { MotionSounds, motionSoundCatalogue } from "./motion-sounds";
+import { MotionFilePreview, MotionMediaPreview, motionSoundCatalogue, useMotionLibraryFiles } from "./motion-media";
 import { MotionPreviewStage } from "./motion-preview-stage";
 import { VolumetricFireballCanvas, volumetricFireballPoster } from "./volumetric-fireball-canvas";
 import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMotionPreviewWorkspace, type MotionDraft } from "./motion-preview-workspace";
@@ -107,6 +107,21 @@ const MotionThumbnail = memo(function MotionThumbnail({ asset }: { asset: Motion
   </svg>;
 });
 
+function AnimationCatalogueCards({ entries, selectedPreset, onSelect }: {
+  entries: { preset: MotionClip; clip: MotionClip }[];
+  selectedPreset?: string;
+  onSelect: (preset: MotionClip, focusPreview: boolean) => void;
+}) {
+  return <div className="motion-catalogue-grid">
+    {entries.map(({ preset, clip }) => <button key={preset.name} type="button" className="motion-catalogue-card"
+      aria-label={`Use ${clip.name}`} aria-pressed={selectedPreset === preset.name}
+      onClick={event => onSelect(preset, event.detail > 0)}>
+      <MotionThumbnail asset={clip} />
+      <strong>{clip.name}</strong>
+    </button>)}
+  </div>;
+}
+
 export function MotionPlayground() {
   const active = useContext(StudioUiActiveSectionContext) === "motion-assets";
   const ready = useSyncExternalStore(subscribeToHydration, () => true, () => false);
@@ -134,14 +149,19 @@ export function MotionPlayground() {
     : previewAsset === asset ? model : motionGeometry(previewAsset), [asset, model, previewAsset]);
   const query = search.trim().toLowerCase();
   const sounds = motionSoundCatalogue.filter(sound => [sound.name, sound.keywords].some(value => value.toLowerCase().includes(query)));
+  const { files, unavailable: filesUnavailable } = useMotionLibraryFiles();
+  const matchingFiles = files.filter(({ asset }) => asset.name.toLowerCase().includes(query));
+  const audioFiles = matchingFiles.filter(file => file.kind === "audio");
+  const videoFiles = matchingFiles.filter(file => file.kind === "video");
   const { effects, sketches } = useMemo(() => {
+    const query = search.trim().toLowerCase();
     const matching = (presets: readonly MotionClip[]) => presets.flatMap(preset => {
       const clip = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
       return [preset.name, clip.name, "effect" in clip ? motionEffectKeywords(clip) : ""]
         .some(name => name.toLowerCase().includes(query)) ? [{ preset, clip }] : [];
     });
     return { effects: matching(motionEffectCatalogue), sketches: matching(motionCatalogue) };
-  }, [draft.preset, parked, previewAsset, query]);
+  }, [draft.preset, parked, previewAsset, search]);
   const duration = "effect" in asset ? asset.durationFrames : asset.drawFrames + asset.holdFrames;
   const volumetric = "effect" in asset && asset.effect === "volumetric-fireball";
   const durationLimit = "effect" in asset ? motionEffectFrameLimit(asset.effect) : 0;
@@ -167,7 +187,7 @@ export function MotionPlayground() {
       || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const target = event.target;
     if (isNativeEditingTarget(target) || document.querySelector("dialog[open]")
-      || (target instanceof Element && target.closest('audio, button, a[href], summary, [role="button"], [role="switch"], [role="tab"], [role="dialog"]'))) return;
+      || (target instanceof Element && target.closest('audio, video, button, a[href], summary, [role="button"], [role="switch"], [role="tab"], [role="dialog"]'))) return;
     event.preventDefault();
     if (!event.repeat) togglePlayback();
   });
@@ -347,20 +367,9 @@ export function MotionPlayground() {
     }
   }
 
-  function renderAnimationGroup(title: string, entries: typeof effects) {
-    if (!entries.length) return null;
-    return <section className="motion-catalogue-group" aria-label={title}>
-      <h2>{title}</h2>
-      <div className="motion-catalogue-grid">
-        {entries.map(({ preset, clip }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${clip.name}`} aria-pressed={draft.preset === preset.name} onClick={event => {
-          const play = autoplay && (!("effect" in preset) || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-          requestReplacement(makeDraft(preset, { preset: preset.name }), play, event.detail > 0);
-        }}>
-          <MotionThumbnail asset={clip} />
-          <strong>{clip.name}</strong>
-        </button>)}
-      </div>
-    </section>;
+  function selectCataloguePreset(preset: MotionClip, focusPreview: boolean) {
+    const play = autoplay && (!("effect" in preset) || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    requestReplacement(makeDraft(preset, { preset: preset.name }), play, focusPreview);
   }
 
   return <>
@@ -372,10 +381,27 @@ export function MotionPlayground() {
           <label className="motion-catalogue-search"><span>Search motion assets</span><SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search animations and sounds…" /></label>
         </div>
       </div>
-      {renderAnimationGroup("Special Effects", effects)}
-      {sounds.length ? <MotionSounds sounds={sounds} active={active} /> : null}
-      {renderAnimationGroup("Sketches", sketches)}
-      {!sounds.length && !effects.length && !sketches.length ? <p>No matching motion assets.</p> : null}
+      {effects.length || videoFiles.length ? <section className="motion-catalogue-group" aria-label="Special Effects">
+        <h2>Special Effects</h2>
+        {effects.length ? <AnimationCatalogueCards entries={effects} selectedPreset={draft.preset} onSelect={selectCataloguePreset} /> : null}
+        {videoFiles.length ? <ul className="motion-media-list">
+          {videoFiles.map(file => <MotionFilePreview key={file.asset.id} file={file} active={active} />)}
+        </ul> : null}
+      </section> : null}
+      {sounds.length || audioFiles.length ? <section className="motion-catalogue-group" aria-label="Sound Effects">
+        <h2>Sound Effects</h2>
+        <ul className="motion-media-list">
+          {sounds.map(sound => <MotionMediaPreview key={sound.src} name={sound.name} source={sound.src} detail={sound.duration}
+            description={sound.description} kind="audio" format="WAV" active={active} />)}
+          {audioFiles.map(file => <MotionFilePreview key={file.asset.id} file={file} active={active} />)}
+        </ul>
+      </section> : null}
+      {sketches.length ? <section className="motion-catalogue-group" aria-label="Sketches">
+        <h2>Sketches</h2>
+        <AnimationCatalogueCards entries={sketches} selectedPreset={draft.preset} onSelect={selectCataloguePreset} />
+      </section> : null}
+      {filesUnavailable ? <p role="status">The files from your Motion Assets folder couldn’t be loaded.</p> : null}
+      {!sounds.length && !effects.length && !sketches.length && !matchingFiles.length ? <p>No matching motion assets.</p> : null}
     </section>
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
       <section id="motion-preview" ref={preview} tabIndex={-1} className="motion-preview" aria-label="Motion preview">

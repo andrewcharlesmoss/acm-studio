@@ -48,6 +48,12 @@ Find **Explosion and Glass** under **Sound Effects**. Play it in the catalogue o
 
 The sound is synthesised from seeded noise, oscillators, and short stereo reflections. The Camtasia sound informed the timing and character. The generator uses no recording as input. From the repository root, run `node scripts/synthesise-explosion-glass.mjs` to regenerate the bundled WAV.
 
+## Files from your media library
+
+Put audio and video in a top-level **Motion Assets** folder under **Files**. Audio appears under **Sound Effects**, and video appears under **Special Effects**. The catalogue plays the files in this browser, and the download returns the original file. Manage their names and contents in **Files**.
+
+If a MOV needs a browser-compatible preview, put a matching MP4 in a **Previews** subfolder inside **Motion Assets**. For example, `impact.mov` uses `Previews/impact.mp4` for playback and still downloads as `impact.mov`.
+
 ## Choose an export
 
 | Export | Use |
