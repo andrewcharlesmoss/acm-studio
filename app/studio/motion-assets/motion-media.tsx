@@ -84,15 +84,17 @@ export function MotionMediaPreview({ name, source, kind, active, download, descr
     onError: () => setUnavailable(true),
     onCanPlay: () => setUnavailable(false),
   };
-  return <li className="motion-media-card" data-kind={kind}>
+  return <li className="motion-media-card">
     <div className="motion-media-name"><strong>{name}</strong>{detail ? <span>{detail}</span> : null}</div>
     {description ? <span className="sr-only" id={descriptionId}>{description}</span> : null}
     {/* eslint-disable-next-line jsx-a11y/media-has-caption -- This player previews locally selected media. Supplied descriptions are linked above. */}
     {kind === "audio" ? <audio {...playback} /> : <video {...playback} playsInline />}
-    <a className="button-secondary" href={download?.href ?? source} download={download?.name ?? true}
-      aria-label={`Download ${format} for ${name}`}>Download {format}</a>
-    {active ? <MediaFileDetailsButton name={download?.name ?? (source.split("/").at(-1) || name)}
-      source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} /> : null}
+    <div className="motion-media-actions">
+      <a className="button-secondary" href={download?.href ?? source} download={download?.name ?? true}
+        aria-label={`Download ${format} for ${name}`}>Download {format}</a>
+      {active ? <MediaFileDetailsButton name={download?.name ?? (source.split("/").at(-1) || name)}
+        source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} /> : null}
+    </div>
     {unavailable ? <p role="alert">This preview couldn’t play. Download the file to open it in another app.</p> : null}
   </li>;
 }

@@ -384,7 +384,7 @@ export function MotionPlayground() {
       {effects.length || videoFiles.length ? <section className="motion-catalogue-group" aria-label="Special Effects">
         <h2>Special Effects</h2>
         {effects.length ? <AnimationCatalogueCards entries={effects} selectedPreset={draft.preset} onSelect={selectCataloguePreset} /> : null}
-        {videoFiles.length ? <ul className="motion-media-list">
+        {videoFiles.length ? <ul className="motion-media-list" data-kind="video">
           {videoFiles.map(file => <MotionFilePreview key={file.asset.id} file={file} active={active} />)}
         </ul> : null}
       </section> : null}

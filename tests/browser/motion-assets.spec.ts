@@ -326,6 +326,7 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   audioBytes.writeUInt32LE(audioBytes.length - 8, 4);
   const audio = { name: "library-explosion.wav", mimeType: "audio/wav", buffer: audioBytes };
   const original = { name: "library-fireball.mov", mimeType: "video/quicktime", buffer: Buffer.from("original MOV bytes") };
+  const otherVideo = { ...original, name: "second-fireball.mov" };
   const preview = { name: "library-fireball.mp4", mimeType: "video/mp4", buffer: Buffer.from("replacement preview bytes") };
   async function openNewFolder(name: string) {
     await files.getByRole("button", { name: "Folder", exact: true }).click();
@@ -352,7 +353,7 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await upload.setInputFiles({ ...audio, name: "unrelated.wav" });
   await expect(files.getByText("unrelated.wav", { exact: true })).toBeVisible();
   await openNewFolder("Motion Assets");
-  await upload.setInputFiles([audio, original]);
+  await upload.setInputFiles([audio, original, otherVideo]);
   await expect(files.getByText(original.name, { exact: true })).toBeVisible();
   await files.getByRole("button", { name: /^library-explosion\.wav/ }).click();
   await expectAudioFileDetails(page, files.getByRole("button", { name: "File Details for library-explosion.wav" }));
@@ -364,15 +365,35 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await libraryPage.goto(route);
   const effects = libraryPage.getByRole("region", { name: "Special Effects", exact: true });
   const sounds = libraryPage.getByRole("region", { name: "Sound Effects", exact: true });
-  const video = effects.locator("video");
+  const video = effects.locator('video[aria-label="library-fireball.mov preview"]');
   const sound = sounds.locator('audio[aria-label="library-explosion.wav preview"]');
   await expect(video).toHaveAccessibleName("library-fireball.mov preview");
   await expect(sound).toBeVisible();
   await expect(sounds.getByText("unrelated.wav", { exact: true })).toHaveCount(0);
   await expect(effects.getByText(preview.name, { exact: true })).toHaveCount(0);
   const audioDetailsTrigger = sounds.getByRole("button", { name: "File Details for library-explosion.wav" });
-  await expectAudioFileDetails(libraryPage, audioDetailsTrigger);
+  const cardPairs = [
+    [sounds.getByRole("listitem").filter({ hasText: "Explosion and Glass" }), sounds.getByRole("listitem").filter({ hasText: audio.name })],
+    [effects.getByRole("listitem").filter({ hasText: original.name }), effects.getByRole("listitem").filter({ hasText: otherVideo.name })],
+  ];
   const desktop = libraryPage.viewportSize()!;
+  for (const width of [desktop.width, 820, 320]) {
+    await libraryPage.setViewportSize({ width, height: desktop.height });
+    for (const [firstCard, secondCard] of cardPairs) {
+      const first = (await firstCard.boundingBox())!;
+      const second = (await secondCard.boundingBox())!;
+      if (width === 320) {
+        expect(second.x).toBe(first.x);
+        expect(second.y).toBeGreaterThan(first.y);
+      } else {
+        expect(second.x).toBeGreaterThan(first.x);
+        expect(second.y).toBe(first.y);
+      }
+      expect(second.x + second.width).toBeLessThanOrEqual(width);
+    }
+  }
+  await libraryPage.setViewportSize(desktop);
+  await expectAudioFileDetails(libraryPage, audioDetailsTrigger);
   await audioDetailsTrigger.click();
   const audioDetails = libraryPage.getByRole("dialog", { name: "File Details", exact: true });
   await expect(audioDetails.getByText("Synthetic effect for project previews", { exact: true })).toBeVisible();
