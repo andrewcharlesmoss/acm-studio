@@ -57,12 +57,12 @@ function ConsumerCell({ dependency, release, action, actionNote }: {
   return <td>
     {action ? <div className="package-dash-cell-action">{action}</div> : null}
     {dependency.version && !versionInPicker ? action
-      ? <span className="package-dash-detail">{versionLabel} v{dependency.version}{compare === 0 ? " (latest)" : ""}</span>
-      : <strong>v{dependency.version}{compare === 0 ? " (latest)" : ""}</strong>
+      ? <span className="package-dash-detail">{versionLabel} v{dependency.version}</span>
+      : <strong>v{dependency.version}</strong>
       : null}
     {compare === -1 && release ? <span className="package-dash-detail">Latest{release.source === "verified" ? " verified" : ""} v{release.version}</span> : null}
     {compare === 1 ? <span className="package-dash-detail">Ahead of latest {release?.source === "verified" ? "verified release" : "release"}</span> : null}
-    <span className={dependency.version || action ? "package-dash-detail" : undefined}>{label}{versionInPicker && compare === 0 ? " · latest" : ""}</span>
+    <span className={dependency.version || action ? "package-dash-detail" : undefined}>{label}</span>
     {dependency.declared && !action ? <span className="package-dash-detail">Declared {dependency.declared}</span> : null}
     {dependency.state === "unidentified" && dependency.locked ? <span className="package-dash-detail">
       {action && dependency.locked === dependency.declared ? "Locked to selected version" : `Locked v${dependency.locked}`}

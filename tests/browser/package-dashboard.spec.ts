@@ -38,13 +38,16 @@ test("shows verified version comparisons and keyboard access from the Control Ce
   const studio = table.getByRole("row", { name: /^ACM Studio / });
   const iconsCell = studio.getByRole("cell").nth(0);
   await expect(iconsCell.getByRole("combobox", { name: "Icons version" })).toHaveValue("0.35.1");
-  await expect(iconsCell.getByText("Installed · latest", { exact: true })).toBeVisible();
-  await expect(iconsCell.getByText("v0.35.1 (latest)", { exact: true })).toHaveCount(0);
+  await expect(iconsCell.getByText("Installed", { exact: true })).toBeVisible();
+  await expect(iconsCell).not.toContainText(/latest/i);
   await expect(studio.getByRole("cell").nth(1)).toContainText("Latest verified v0.1.0");
   await expect(studio.getByRole("cell").nth(2)).toContainText("Broken local link");
   await expect(studio.getByRole("cell").nth(3)).toContainText("Unidentifiable source");
   await expect(table.getByRole("row", { name: /^ACM Account / }).getByRole("cell").nth(0)).toContainText("Not used");
-  await expect(table.getByRole("row", { name: /^Project Ports / }).getByRole("cell").nth(0)).toContainText("Locked · install missing");
+  const projectPortsIcons = table.getByRole("row", { name: /^Project Ports / }).getByRole("cell").nth(0);
+  await expect(projectPortsIcons.getByText("v0.35.1", { exact: true })).toBeVisible();
+  await expect(projectPortsIcons).toContainText("Locked · install missing");
+  await expect(projectPortsIcons).not.toContainText(/latest/i);
   await expect(page.getByText("Hosted versions")).toContainText("Unknown");
 
   const scroll = page.getByRole("region", { name: "Package versions by project" });
@@ -70,7 +73,9 @@ test("marks package evidence unavailable when the local bridge is missing", asyn
   await page.route("**/__studio/packages", route => route.fulfill({ status: 503 }));
   await page.goto("/studio/packages");
   await expect(page.getByRole("status")).toContainText("Local package data unavailable");
-  await expect(page.getByRole("table").getByText("(latest)", { exact: false })).toHaveCount(0);
+  const table = page.getByRole("table");
+  await expect(table.getByRole("combobox")).toHaveCount(0);
+  await expect(table.getByRole("cell", { name: "Unknown", exact: true })).toHaveCount(12);
 });
 
 test("reviews a published Studio version before applying it from a narrow dashboard", async ({ page }) => {
