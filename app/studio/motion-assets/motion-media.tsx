@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { MediaFileDetailsButton } from "../media-file-details";
 import { listMediaLibrary, type MediaAsset } from "../media-store";
 import { useMediaSession } from "../media-sync";
 
@@ -51,7 +52,7 @@ export function useMotionLibraryFiles() {
   return library;
 }
 
-export function MotionMediaPreview({ name, source, kind, active, download, description, detail, format }: {
+export function MotionMediaPreview({ name, source, kind, active, download, description, detail, format, originalFile }: {
   name: string;
   source: string;
   kind: MediaKind;
@@ -60,6 +61,7 @@ export function MotionMediaPreview({ name, source, kind, active, download, descr
   description?: string;
   detail?: string;
   format: string;
+  originalFile?: { blob: Blob; addedAt: string };
 }) {
   const player = useRef<HTMLMediaElement | null>(null);
   const descriptionId = useId();
@@ -89,6 +91,8 @@ export function MotionMediaPreview({ name, source, kind, active, download, descr
     {kind === "audio" ? <audio {...playback} /> : <video {...playback} playsInline />}
     <a className="button-secondary" href={download?.href ?? source} download={download?.name ?? true}
       aria-label={`Download ${format} for ${name}`}>Download {format}</a>
+    {active ? <MediaFileDetailsButton name={download?.name ?? (source.split("/").at(-1) || name)}
+      source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} /> : null}
     {unavailable ? <p role="alert">This preview couldn’t play. Download the file to open it in another app.</p> : null}
   </li>;
 }
@@ -114,5 +118,6 @@ export function MotionFilePreview({ file, active }: { file: LibraryMotionFile; a
   const extension = /\.([a-z0-9]{1,8})$/i.exec(asset.name)?.[1]?.toUpperCase();
   return <MotionMediaPreview key={urls.source} name={asset.name} kind={kind} active={active} source={urls.source}
     download={{ href: urls.download, name: asset.name }} description={asset.caption || asset.altText}
+    originalFile={{ blob: original, addedAt: asset.createdAt }}
     detail={extension} format={extension ?? "File"} />;
 }

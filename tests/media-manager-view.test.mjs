@@ -23,6 +23,7 @@ function harness({ onInsertImage = () => true, list = async () => ({assets:[asse
   const dependencies={
     react,'react/jsx-runtime':{jsx,jsxs:jsx},
     './controls/native-fields':{SearchInput:'search',SelectControl:'select',TextArea:'textarea',TextInput:'input'},
+    './media-file-details':{MediaFileDetailsButton:'file-details'},
     './overlays/dialog':{StudioDialog:'dialog',StudioDialogActions:'actions'},'./controls/use-blob-urls':{useBlobUrls:()=>({one:'blob:one'})},
     './overlays/anchored-menu':{StudioAnchoredMenu:'menu'},'./controls/button':{StudioButton:'button'},'./studio-icons':{StudioIcon:'icon'},
     './media-store':{listMediaLibrary:forbidden,getMediaAsset:forbidden,prepareMediaFolderMove:forbidden},

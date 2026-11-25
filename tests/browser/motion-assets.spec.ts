@@ -280,6 +280,14 @@ test("Sound Effects plays and downloads the original glass explosion", async ({ 
   expect(await audio.evaluate((element: HTMLAudioElement) => element.ended)).toBe(false);
   await expect(motion.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1100");
 
+  const detailsTrigger = sounds.getByRole("button", { name: "File Details for explosion-and-glass.wav" });
+  await detailsTrigger.press("Enter");
+  const details = page.getByRole("dialog", { name: "File Details", exact: true });
+  await expect(details.getByText("48 kHz", { exact: true })).toBeVisible();
+  await expect(details.getByText("24 bit", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(detailsTrigger).toBeFocused();
+
   const downloadPending = page.waitForEvent("download");
   await sounds.getByRole("link", { name: "Download WAV for Explosion and Glass" }).click();
   const download = await downloadPending;
@@ -298,7 +306,24 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await page.goto("/studio?mode=files");
   const files = page.getByRole("region", { name: "File manager", exact: true });
   const upload = files.locator('input[type="file"]');
-  const audioBytes = await readFile("public/motion-assets/explosion-and-glass.wav");
+  const wav = await readFile("public/motion-assets/explosion-and-glass.wav");
+  const tags = Buffer.concat([Buffer.from("INFO"), ...[
+    ["INAM", "Library impact"],
+    ["IART", "ACM Audio"],
+    ["ICMT", "Synthetic effect for project previews"],
+  ].map(([id, text]) => {
+    const value = Buffer.from(text + "\0");
+    const chunk = Buffer.alloc(8 + value.length + value.length % 2);
+    chunk.write(id);
+    chunk.writeUInt32LE(value.length, 4);
+    value.copy(chunk, 8);
+    return chunk;
+  })]);
+  const listHeader = Buffer.alloc(8);
+  listHeader.write("LIST");
+  listHeader.writeUInt32LE(tags.length, 4);
+  const audioBytes = Buffer.concat([wav, listHeader, tags]);
+  audioBytes.writeUInt32LE(audioBytes.length - 8, 4);
   const audio = { name: "library-explosion.wav", mimeType: "audio/wav", buffer: audioBytes };
   const original = { name: "library-fireball.mov", mimeType: "video/quicktime", buffer: Buffer.from("original MOV bytes") };
   const preview = { name: "library-fireball.mp4", mimeType: "video/mp4", buffer: Buffer.from("replacement preview bytes") };
@@ -310,6 +335,17 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
     await field.press("Enter");
     await files.getByRole("button", { name, exact: true }).press("Enter");
     await expect(files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name, exact: true })).toBeVisible();
+    await expect(upload).toBeEnabled();
+  }
+  async function expectAudioFileDetails(view: Page, trigger: Locator) {
+    await trigger.press("Enter");
+    const dialog = view.getByRole("dialog", { name: "File Details", exact: true });
+    for (const field of ["Library impact", "ACM Audio", "Synthetic effect for project previews", "48 kHz", "Stereo (2)", "4.1 s"]) {
+      await expect(dialog.getByText(field, { exact: true })).toBeVisible();
+    }
+    await view.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
   }
 
   await expect(upload).toBeEnabled({ timeout: 30_000 });
@@ -318,6 +354,8 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await openNewFolder("Motion Assets");
   await upload.setInputFiles([audio, original]);
   await expect(files.getByText(original.name, { exact: true })).toBeVisible();
+  await files.getByRole("button", { name: /^library-explosion\.wav/ }).click();
+  await expectAudioFileDetails(page, files.getByRole("button", { name: "File Details for library-explosion.wav" }));
   await openNewFolder("Previews");
   await upload.setInputFiles(preview);
   await expect(files.getByText(preview.name, { exact: true })).toBeVisible();
@@ -332,7 +370,25 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await expect(sound).toBeVisible();
   await expect(sounds.getByText("unrelated.wav", { exact: true })).toHaveCount(0);
   await expect(effects.getByText(preview.name, { exact: true })).toHaveCount(0);
+  const audioDetailsTrigger = sounds.getByRole("button", { name: "File Details for library-explosion.wav" });
+  await expectAudioFileDetails(libraryPage, audioDetailsTrigger);
+  const desktop = libraryPage.viewportSize()!;
+  await audioDetailsTrigger.click();
+  const audioDetails = libraryPage.getByRole("dialog", { name: "File Details", exact: true });
+  await expect(audioDetails.getByText("Synthetic effect for project previews", { exact: true })).toBeVisible();
+  for (const width of [820, 320]) {
+    await libraryPage.setViewportSize({ width, height: desktop.height });
+    expect(await audioDetails.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  }
+  await libraryPage.setViewportSize(desktop);
+  await audioDetails.getByRole("button", { name: "Close file details" }).click();
   expect(await video.evaluate(element => fetch((element as HTMLVideoElement).src).then(response => response.text()))).toBe(preview.buffer.toString());
+  await effects.getByRole("button", { name: "File Details for library-fireball.mov" }).click();
+  const videoDetails = libraryPage.getByRole("dialog", { name: "File Details", exact: true });
+  await expect(videoDetails.getByText("video/quicktime", { exact: true })).toBeVisible();
+  await expect(videoDetails.getByText(`${original.buffer.length} bytes`, { exact: true })).toBeVisible();
+  await expect(videoDetails.getByRole("status")).toHaveText("Media metadata couldn’t be read from this file.");
+  await videoDetails.getByRole("button", { name: "Close file details" }).click();
   await sound.press("Space");
   await expect.poll(() => sound.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
 

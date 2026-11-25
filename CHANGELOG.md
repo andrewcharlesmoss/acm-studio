@@ -16,6 +16,7 @@
 - Edit Volumetric Fireball’s name, canvas size, and duration, preview the live 3D flame, and export an editable project or a transparent MOV.
 - Preview and download the original Explosion and Glass sound effect in Motion Assets.
 - Play and download audio and video from the Files library in Motion Assets.
+- View audio and video properties and embedded tags in the File Details panel in Motion Assets and Files.
 
 - Open a native SwiftUI reordering preview alongside the web example in local Studio.
 

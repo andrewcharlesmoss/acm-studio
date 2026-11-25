@@ -54,6 +54,8 @@ Put audio and video in a top-level **Motion Assets** folder under **Files**. Aud
 
 If a MOV needs a browser-compatible preview, put a matching MP4 in a **Previews** subfolder inside **Motion Assets**. For example, `impact.mov` uses `Previews/impact.mp4` for playback and still downloads as `impact.mov`.
 
+Choose **File Details** to see the original audio or video file's size, duration, technical properties, and available embedded tags. Files also offers this panel when an audio or video file is selected. Finder's download history and other macOS-only attributes do not come across when a file is imported into the browser.
+
 ## Choose an export
 
 | Export | Use |

@@ -1,0 +1,16 @@
+.media-file-details { display: grid; gap: 16px; }
+.media-file-details-name { font-weight: 600; overflow-wrap: anywhere; }
+.media-file-details :is(p, h3, dl, dd) { margin: 0; }
+.media-file-details h3 { margin-block-end: 6px; font-size: 1em; }
+.media-file-details-rows > div {
+  display: grid;
+  grid-template-columns: minmax(0, 115px) minmax(0, 1fr);
+  gap: 12px;
+  padding-block: 7px;
+  border-block-start: 1px solid var(--acm-ui-color-border, #d1d1d6);
+}
+.media-file-details-rows dt { font-weight: 500; overflow-wrap: anywhere; }
+.media-file-details-rows dd { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 420px) {
+  .media-file-details-rows > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
