@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { beginCanvasMove, canvasMoveDelta, canvasMoveKeyDelta, moveCanvasPlacement, type CanvasMove } from "../canvas-move";
 import { PageResizeHandles } from "../controls/page-resize-handles";
 import { commitPageResizePlacement, pageResizeLayout, type PageResizePlacement } from "../design-page-frame";
@@ -8,7 +8,7 @@ import type { ResizeHandle } from "../design-transform";
 import { resizePageFromKey } from "../page-resize";
 import { beginResizeDrag, updateResizeDrag, type ResizeDrag } from "../resize-drag";
 import { shouldCommitResizeGesture, type ResizeGestureEnd } from "../resize-gesture-policy";
-import type { MotionAsset, MotionPreviewGeometry } from "./motion-asset";
+import type { MotionClip, MotionPreviewGeometry } from "./motion-asset";
 import { resizeMotion, type MotionSize } from "./motion-resize";
 
 type MotionPlacement = PageResizePlacement & { scaleFactor: number };
@@ -29,9 +29,10 @@ type MoveGesture = {
   previous: MotionPlacement | null;
 };
 
-export function MotionPreviewStage({ asset, path, geometry, onResize, onResizeDraft }: {
-  asset: MotionAsset;
-  path: string;
+export function MotionPreviewStage({ asset, artwork, renderedFrame, geometry, onResize, onResizeDraft }: {
+  asset: MotionClip;
+  artwork: ReactNode;
+  renderedFrame?: ReactNode;
   geometry: MotionPreviewGeometry;
   onResize: (size: MotionSize) => void;
   onResizeDraft: (size: MotionSize | null) => void;
@@ -45,6 +46,7 @@ export function MotionPreviewStage({ asset, path, geometry, onResize, onResizeDr
   const [liveResize, setLiveResize] = useState<Gesture | null>(null);
   const [placement, setPlacement] = useState<MotionPlacement | null>(null);
   const [moving, setMoving] = useState(false);
+  const subject = "effect" in asset ? "effect" : "sketch";
 
   useLayoutEffect(() => {
     const element = footprint.current;
@@ -169,7 +171,7 @@ export function MotionPreviewStage({ asset, path, geometry, onResize, onResizeDr
       width: `min(100%, ${original.width}px, calc(var(--motion-artboard-max-height) * ${original.width / original.height}))`,
     }}>
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- The focused preview supports keyboard positioning as an alternative to dragging. */}
-      <div className="motion-artboard" style={layout} data-moving={moving || undefined} role="group" aria-label="Move sketch with the arrow keys" tabIndex={0}
+      <div className="motion-artboard" style={layout} data-moving={moving || undefined} role="group" aria-label={`Move ${subject} with the arrow keys`} tabIndex={0}
         onPointerDown={event => {
           if (event.button !== 0 || !scale || gesture.current || moveGesture.current) return;
           event.preventDefault();
@@ -207,16 +209,16 @@ export function MotionPreviewStage({ asset, path, geometry, onResize, onResizeDr
           event.preventDefault();
           moveSketch(displayedPlacement(), delta);
         }}>
-        <svg width={asset.width} height={asset.height} viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`} role="img" aria-label={`${asset.name} animation preview`}>
-          {path ? <path d={path} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" /> : null}
-        </svg>
+        {renderedFrame ?? <svg width={asset.width} height={asset.height} viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`} role="img" aria-label={`${asset.name} animation preview`}>
+          {artwork}
+        </svg>}
       </div>
-      {displayWidth > 0 ? <svg ref={overlay} className="motion-resize-overlay" style={layout} role="group" aria-label="Sketch resize handles"
+      {displayWidth > 0 ? <svg ref={overlay} className="motion-resize-overlay" style={layout} role="group" aria-label={subject === "sketch" ? "Sketch resize handles" : "Effect resize handles"}
         viewBox={`0 0 ${displayWidth} ${displayHeight}`}
         onPointerMove={move} onPointerUp={event => finish("pointer-up", event.pointerId)}
         onPointerCancel={event => finish("pointer-cancel", event.pointerId)}
         onLostPointerCapture={event => finish("capture-loss", event.pointerId)}>
-        <PageResizeHandles page={{ width: displayWidth, height: displayHeight }} controlScale={1} labelSubject="sketch"
+        <PageResizeHandles page={{ width: displayWidth, height: displayHeight }} controlScale={1} labelSubject={subject}
           availableHandles={availableHandles}
           activeHandle={liveResize?.handle} onPointerDown={begin} onKeyDown={(event, handle) => {
             if (gesture.current) {

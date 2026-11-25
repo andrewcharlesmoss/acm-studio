@@ -1,19 +1,19 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { motionPreset, motionProject, type MotionAsset } from "./motion-asset";
+import { motionPreset, motionProject, type MotionClip } from "./motion-asset";
 
 export const wave = motionPreset("wave");
-export const projectKey = (asset: MotionAsset) => JSON.stringify(motionProject(asset));
+export const projectKey = (asset: MotionClip) => JSON.stringify(motionProject(asset));
 
 export type MotionDraft = {
-  asset: MotionAsset;
-  original: MotionAsset;
+  asset: MotionClip;
+  original: MotionClip;
   baseline: string;
   preset?: string;
 };
 
-export function makeDraft(asset: MotionAsset, { preset, unsaved = false }: { preset?: string; unsaved?: boolean } = {}): MotionDraft {
+export function makeDraft(asset: MotionClip, { preset, unsaved = false }: { preset?: string; unsaved?: boolean } = {}): MotionDraft {
   return { asset, original: asset, baseline: unsaved ? "" : projectKey(asset), preset };
 }
 

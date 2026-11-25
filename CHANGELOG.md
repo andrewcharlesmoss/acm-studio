@@ -12,6 +12,9 @@
 - Play sketches automatically on selection and browse a wider collection of arrows, shapes and marks, including sketches with multiple strokes.
 - Move sketches around the Motion Assets preview by dragging or using the arrow keys.
 - Use Space to play and pause the Motion Assets preview.
+- Preview Fire Burst in Motion Assets → Special Effects and export it as a transparent MOV for video intros.
+- Use Fire Shockwave for a full-frame ring of flame that clears to transparency in Motion Assets → Special Effects.
+- Edit Volumetric Fireball’s name, canvas size, and duration, preview the live 3D flame, and export an editable project or a transparent MOV.
 
 - Open a native SwiftUI reordering preview alongside the web example in local Studio.
 
