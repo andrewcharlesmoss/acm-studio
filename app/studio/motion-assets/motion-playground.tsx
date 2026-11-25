@@ -7,6 +7,7 @@ import { SearchInput, TextInput } from "../controls/native-fields";
 import { NumberStepper } from "../controls/number-stepper";
 import { RangeControl } from "../controls/range-control";
 import { ToggleSetting } from "../controls/toggle-setting";
+import { LibraryFilePreview, useLibraryPreviewFiles } from "../media-library-preview";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane, PaneTabPanel, PaneTabs } from "../panes/pane-components";
 import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
@@ -14,7 +15,6 @@ import { isNativeEditingTarget } from "../workspace-shortcuts.mjs";
 import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
 import { MotionEffectArtwork, motionEffectCatalogue, motionEffectKeywords, motionEffectPoster, motionEffectPreview } from "./motion-effects";
-import { MotionFilePreview, MotionMediaPreview, motionSoundCatalogue, useMotionLibraryFiles } from "./motion-media";
 import { MotionPreviewStage } from "./motion-preview-stage";
 import { VolumetricFireballCanvas, volumetricFireballPoster } from "./volumetric-fireball-canvas";
 import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMotionPreviewWorkspace, type MotionDraft } from "./motion-preview-workspace";
@@ -33,7 +33,6 @@ const formatSeconds = (frames: number) => `${(frames / motionFps).toFixed(2)} s`
 const subscribeToHydration = () => () => {};
 const motionAssetTabs = [
   { id: "special-effects", label: "Special Effects" },
-  { id: "sound-effects", label: "Sound Effects" },
   { id: "sketches", label: "Sketches" },
 ] as const;
 type MotionAssetTab = (typeof motionAssetTabs)[number]["id"];
@@ -131,14 +130,12 @@ function AnimationCatalogueCards({ entries, selectedPreset, onSelect }: {
 export function MotionPlayground() {
   const active = useContext(StudioUiActiveSectionContext) === "motion-assets";
   const ready = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const { workspace: { draft, parked }, setWorkspace, autoplay, setAutoplay } = useMotionPreviewWorkspace();
+  const { workspace: { draft, parked }, setWorkspace, autoplay, setAutoplay, movExport, setMovExport } = useMotionPreviewWorkspace();
   const { asset } = draft;
   const sketch = "effect" in asset ? null : asset;
   const [assetTab, setAssetTab] = useState<MotionAssetTab>("sketches");
-  const [searches, setSearches] = useState<Record<MotionAssetTab, string>>({ "special-effects": "", "sound-effects": "", sketches: "" });
+  const [searches, setSearches] = useState<Record<MotionAssetTab, string>>({ "special-effects": "", sketches: "" });
   const assetTabsId = useId();
-  const showWorkspace = assetTab !== "sound-effects";
-  const workspaceActive = active && showWorkspace;
   const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
   const [position, setPosition] = useState<number | null>(null);
   const [previewRevision, setPreviewRevision] = useState(0);
@@ -147,8 +144,6 @@ export function MotionPlayground() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [movSupport, setMovSupport] = useState<MovSupport>();
-  const [exporting, setExporting] = useState(false);
-  const [showSoundExport, setShowSoundExport] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = useRef<HTMLElement>(null);
   const exportRequest = useRef<AbortController | null>(null);
@@ -158,14 +153,11 @@ export function MotionPlayground() {
   const previewAsset = useMemo(() => resizeDraft ? { ...asset, ...resizeDraft } : asset, [asset, resizeDraft]);
   const previewModel = useMemo(() => "effect" in previewAsset ? null
     : previewAsset === asset ? model : motionGeometry(previewAsset), [asset, model, previewAsset]);
-  const audioQuery = searches["sound-effects"].trim().toLowerCase();
   const videoSearch = searches["special-effects"];
   const sketchSearch = searches.sketches;
   const videoQuery = videoSearch.trim().toLowerCase();
-  const sounds = motionSoundCatalogue.filter(sound => [sound.name, sound.keywords].some(value => value.toLowerCase().includes(audioQuery)));
-  const { files, unavailable: filesUnavailable } = useMotionLibraryFiles();
-  const audioFiles = files.filter(({ asset, kind }) => kind === "audio" && asset.name.toLowerCase().includes(audioQuery));
-  const videoFiles = files.filter(({ asset, kind }) => kind === "video" && asset.name.toLowerCase().includes(videoQuery));
+  const { files, unavailable: filesUnavailable } = useLibraryPreviewFiles("video");
+  const videoFiles = files.filter(({ asset }) => asset.name.toLowerCase().includes(videoQuery));
   const { effects, sketches } = useMemo(() => {
     const matching = (presets: readonly MotionClip[], search: string) => {
       const query = search.trim().toLowerCase();
@@ -189,6 +181,11 @@ export function MotionPlayground() {
   const frame = Math.min(position ?? ("effect" in asset ? motionEffectPoster(asset) : duration), duration);
   const playbackLabel = playback ? "Pause" : "Play";
   const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || (sketch ? "sketch" : "effect");
+  const cancelExport = movExport && "message" in movExport ? movExport.cancel : undefined;
+  const feedbackMessage = movExport && "message" in movExport ? movExport.message : message;
+  const feedbackError = movExport && "error" in movExport ? movExport.error : error;
+
+  if (!active && playback) setPlayback(null);
 
   function togglePlayback() {
     if (playback) { setPlayback(null); return; }
@@ -208,11 +205,11 @@ export function MotionPlayground() {
   });
 
   useEffect(() => {
-    if (!workspaceActive || !ready) return;
+    if (!active || !ready) return;
     const listener = (event: KeyboardEvent) => onPlaybackShortcut(event);
     document.addEventListener("keydown", listener);
     return () => document.removeEventListener("keydown", listener);
-  }, [workspaceActive, ready]);
+  }, [active, ready]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -253,6 +250,12 @@ export function MotionPlayground() {
     return () => cancelAnimationFrame(request);
   }, [playback]);
 
+  function clearFeedback() {
+    setMessage("");
+    setError("");
+    setMovExport(current => current && "message" in current && current.cancel ? current : undefined);
+  }
+
   function applyReplacement(next: MotionDraft, play: boolean) {
     focusedMotionField()?.blur();
     inputSequence.current++;
@@ -267,8 +270,7 @@ export function MotionPlayground() {
       return { draft: restored, parked: nextParked };
     });
     setReplacement(undefined);
-    setError("");
-    setMessage("");
+    clearFeedback();
     document.getElementById("motion-preview")?.scrollIntoView({ block: "start", behavior: "instant" });
   }
 
@@ -293,13 +295,11 @@ export function MotionPlayground() {
     });
     setPlayback(null);
     setPosition(null);
-    setMessage("");
-    setError("");
+    clearFeedback();
   }
 
   function changeAsset(changes: Partial<Omit<MotionAsset, "path" | "viewBox"> & Pick<MotionEffect, "durationFrames">>) {
-    setMessage("");
-    setError("");
+    clearFeedback();
     setWorkspace(current => {
       const asset = current.draft.asset;
       if (Object.entries(changes).every(([key, value]) => asset[key as keyof MotionClip] === value)) return current;
@@ -332,7 +332,7 @@ export function MotionPlayground() {
       requestReplacement(makeDraft(imported, { unsaved: svg }));
     } catch (failure) {
       if (inputSequence.current !== sequence) return;
-      setMessage("");
+      clearFeedback();
       setError(failure instanceof SyntaxError ? "Choose a valid ACM Motion project file." : (failure as Error).message);
     }
   }
@@ -349,7 +349,7 @@ export function MotionPlayground() {
     if (format === "project") {
       setWorkspace(current => ({ ...current, draft: { ...current.draft, baseline: signature } }));
     }
-    setError("");
+    clearFeedback();
     setMessage({ project: "Editable project download started.", svg: "SVG download started.", lottie: "Lottie download started." }[format]);
   }
 
@@ -357,9 +357,8 @@ export function MotionPlayground() {
     if (exportRequest.current || !canExportMov) return;
     const request = new AbortController();
     exportRequest.current = request;
-    setExporting(true);
-    setMessage("Rendering and encoding MOV…");
-    setError("");
+    clearFeedback();
+    setMovExport({ message: "Rendering and encoding MOV…", cancel: () => request.abort() });
     try {
       const response = await fetch(movEndpoint, {
         method: "POST", headers: exportHeaders, signal: request.signal, body: signature,
@@ -370,15 +369,13 @@ export function MotionPlayground() {
       }
       if (!response.headers.get("content-type")?.startsWith("video/quicktime")) throw new Error(localOnly);
       const file = await response.blob();
-      if (request.signal.aborted) return;
+      request.signal.throwIfAborted();
       download(file, `${stem}.mov`);
-      setMessage("Transparent MOV download started.");
+      setMovExport({ message: "Transparent MOV download started." });
     } catch (failure) {
-      setMessage(request.signal.aborted ? "MOV export cancelled." : "");
-      if (!request.signal.aborted) setError((failure as Error).message);
+      setMovExport(request.signal.aborted ? { message: "MOV export cancelled." } : { error: (failure as Error).message });
     } finally {
       if (exportRequest.current === request) exportRequest.current = null;
-      setExporting(false);
     }
   }
 
@@ -391,59 +388,40 @@ export function MotionPlayground() {
     const tab = motionAssetTabs.find(tab => tab.id === id);
     if (!tab) return;
     setAssetTab(tab.id);
-    if (tab.id === "sound-effects" && showWorkspace) {
-      setPlayback(null);
-      setShowSoundExport(exporting);
-    }
   }
 
-  const cancelExport = <button type="button" className="button-secondary" onClick={() => exportRequest.current?.abort()}>Cancel Export</button>;
-  const feedback = <><p role="status" className="motion-feedback">{message}</p>
-    {error ? <p role="alert" className="motion-feedback">{error}</p> : null}</>;
-
   return <>
-    <section className="motion-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
-      <div className="motion-catalogue-heading">
+    <section className="media-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
+      <div className="media-catalogue-heading motion-catalogue-heading">
         <h1 id="motion-catalogue-title">Motion Assets</h1>
-        <p>Preview, edit, and export animations, or download sound effects.</p>
+        <p>Preview, edit, and export sketch animations and visual effects.</p>
       </div>
-      <div className="motion-catalogue-toolbar">
+      <div className="media-catalogue-toolbar">
         <PaneTabs id={assetTabsId} label="Motion asset categories" className="motion-category-tabs"
           tabs={motionAssetTabs} active={assetTab} onChange={selectAssetTab} />
         <div className="motion-catalogue-options">
-          <label className="motion-catalogue-search"><span>Search motion assets</span>
+          <label className="media-catalogue-search"><span>Search motion assets</span>
             <SearchInput value={searches[assetTab]} onChange={event => {
               const value = event.target.value;
               setSearches(previous => ({ ...previous, [assetTab]: value }));
             }} placeholder="Search this tab…" /></label>
-          {showWorkspace ? <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} /> : null}
+          <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
         </div>
       </div>
       <PaneTabPanel id={assetTabsId} tab="special-effects" active={assetTab}>
         {effects.length ? <AnimationCatalogueCards entries={effects} selectedPreset={draft.preset} onSelect={selectCataloguePreset} /> : null}
-        {videoFiles.length ? <ul className="motion-media-list" data-kind="video">
-          {videoFiles.map(file => <MotionFilePreview key={file.asset.id} file={file} active={active && assetTab === "special-effects"} />)}
+        {videoFiles.length ? <ul className="media-preview-grid" data-kind="video">
+          {videoFiles.map(file => <LibraryFilePreview key={file.asset.id} file={file} active={active && assetTab === "special-effects"} />)}
         </ul> : null}
         {filesUnavailable ? <p role="status">The files from your Motion Assets folder couldn’t be loaded.</p> : null}
         {!effects.length && !videoFiles.length ? <p>No matching motion assets.</p> : null}
-      </PaneTabPanel>
-      <PaneTabPanel id={assetTabsId} tab="sound-effects" active={assetTab}>
-        {!showWorkspace && showSoundExport ? <div className="motion-actions motion-export-status">
-          {feedback}{exporting ? cancelExport : null}
-        </div> : null}
-        {sounds.length || audioFiles.length ? <ul className="motion-media-list">
-          {sounds.map(sound => <MotionMediaPreview key={sound.src} name={sound.name} source={sound.src} detail={sound.duration}
-            description={sound.description} kind="audio" format="WAV" active={active && assetTab === "sound-effects"} />)}
-          {audioFiles.map(file => <MotionFilePreview key={file.asset.id} file={file} active={active && assetTab === "sound-effects"} />)}
-        </ul> : <p>No matching motion assets.</p>}
-        {filesUnavailable ? <p role="status">The files from your Motion Assets folder couldn’t be loaded.</p> : null}
       </PaneTabPanel>
       <PaneTabPanel id={assetTabsId} tab="sketches" active={assetTab}>
         {sketches.length ? <AnimationCatalogueCards entries={sketches} selectedPreset={draft.preset} onSelect={selectCataloguePreset} />
           : <p>No matching motion assets.</p>}
       </PaneTabPanel>
     </section>
-    <div className="motion-workspace" data-motion-ready={ready} inert={!ready} hidden={!showWorkspace}>
+    <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
       <section id="motion-preview" ref={preview} tabIndex={-1} className="motion-preview" aria-label="Motion preview">
         <div className="motion-toolbar">
           <h2>Preview</h2>
@@ -457,7 +435,7 @@ export function MotionPlayground() {
           </div>
         </div>
         <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} geometry={previewModel?.preview ?? motionEffectPreview} onResize={changeAsset} onResizeDraft={setResizeDraft}
-          renderedFrame={workspaceActive && "effect" in previewAsset && previewAsset.effect === "volumetric-fireball"
+          renderedFrame={active && "effect" in previewAsset && previewAsset.effect === "volumetric-fireball"
             ? <VolumetricFireballCanvas asset={previewAsset} frame={frame} playing={playback !== null} /> : undefined}
           artwork={"effect" in previewAsset ? <MotionEffectArtwork asset={previewAsset} frame={frame} />
             : <SketchArtwork asset={previewAsset} path={previewModel?.pathAt(frame) ?? ""} />} />
@@ -480,7 +458,7 @@ export function MotionPlayground() {
             </div>
           </div>
           {sketch ? <><div className="motion-setting-group" role="group" aria-label="Stroke">
-            {workspaceActive ? <div className="motion-colour"><ColourPicker label="Stroke colour" value={sketch.colour}
+            {active ? <div className="motion-colour"><ColourPicker label="Stroke colour" value={sketch.colour}
               onChange={colour => { if (colour && /^#[a-f0-9]{6}$/i.test(colour)) changeAsset({ colour }); }} enableAlpha={false} allowClear={false} livePointerChanges liveHexChanges /></div> : null}
             <NumberSetting label="Thickness (px)" value={sketch.thickness} min={1} max={64} onCommit={thickness => changeAsset({ thickness })} />
           </div>
@@ -498,16 +476,17 @@ export function MotionPlayground() {
             <div className="motion-actions">
               {sketch ? <><button type="button" className="button-secondary" onClick={() => downloadSource("svg")}>SVG</button>
                 <button type="button" className="button-secondary" onClick={() => downloadSource("lottie")}>Lottie JSON</button></> : null}
-              {exporting ? showWorkspace && cancelExport
+              {cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button>
                 : <button type="button" className="button-secondary" disabled={!canExportMov} onClick={() => void exportMov()}>Transparent MOV</button>}
             </div>
             {!canExportMov ? <p className="motion-explanation">{exportExplanation}</p> : null}
-            {showWorkspace ? feedback : null}
+            <p role="status" className="motion-feedback">{feedbackMessage}</p>
+            {feedbackError ? <p role="alert" className="motion-feedback">{feedbackError}</p> : null}
           </div>
         </div>
       </Pane>
     </div>
-    {workspaceActive && replacement ? <StudioDialog title="Replace this project?" onClose={() => setReplacement(undefined)}>
+    {active && replacement ? <StudioDialog title="Replace this project?" onClose={() => setReplacement(undefined)}>
       <p>Download the editable project first if you want to keep your changes.</p>
       <StudioDialogActions>
         <button type="button" className="button-secondary" onClick={() => setReplacement(undefined)}>Keep Editing</button>

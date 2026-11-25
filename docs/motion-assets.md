@@ -1,6 +1,6 @@
 # Motion Assets
 
-Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Choose **Special Effects**, **Sound Effects**, or **Sketches** to browse and search that collection. **Sketches** opens by default and includes arrows, shapes, lines, and other marks. Switching tabs keeps each search, your animation draft, and your autoplay setting. Audio and video players pause when you leave their tab.
+Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Choose **Special Effects** or **Sketches** to browse and search that collection. **Sketches** opens by default and includes arrows, shapes, lines, and other marks. Switching Library tabs keeps your animation draft and autoplay setting.
 
 With **Autoplay on selection** on by default, each sketch plays from the start when you choose it. Use the switch to turn autoplay off. Valid settings update the preview as you edit, including while dragging in the colour spectrum. A built-in sketch’s thumbnail shows its current name, proportions, colour and stroke thickness. You can also preview with **Play** or the position slider.
 
@@ -46,13 +46,13 @@ swiftc -O -module-cache-path "$render_dir/module-cache" scripts/volumetric-fireb
 
 ## Sound effects
 
-Find **Explosion and Glass** under **Sound Effects**. Play it in the catalogue or choose **Download WAV** for a 4.1-second stereo clip at 48 kHz and 24-bit PCM. Search for the name or terms such as “shatter” and “blast”.
+Open **Studio UI Library → Sound Effects** at `/studio/ui/sound-effects`. Find **Explosion and Glass**, play it in the catalogue, or choose **Download WAV** for a 4.1-second stereo clip at 48 kHz and 24-bit PCM. Search for the name or terms such as “shatter” and “blast”. Switching Library tabs keeps your search and pauses audio playback.
 
 The sound is synthesised from seeded noise, oscillators, and short stereo reflections. The Camtasia sound informed the timing and character. The generator uses no recording as input. From the repository root, run `node scripts/synthesise-explosion-glass.mjs` to regenerate the bundled WAV.
 
 ## Files from your media library
 
-Put audio and video in a top-level **Motion Assets** folder under **Files**. Audio appears under **Sound Effects**, and video appears under **Special Effects**. The catalogue plays the files in this browser, and the download returns the original file. Manage their names and contents in **Files**.
+Put audio in a top-level **Sound Effects** folder under **Files**. Audio already in the top-level **Motion Assets** folder also appears in Sound Effects. Put video in **Files → Motion Assets** to browse it under **Special Effects**. Both tools play the files in this browser and download the originals. Manage their names and contents in **Files**.
 
 If a MOV needs a browser-compatible preview, put a matching MP4 in a **Previews** subfolder inside **Motion Assets**. For example, `impact.mov` uses `Previews/impact.mp4` for playback and still downloads as `impact.mov`.
 

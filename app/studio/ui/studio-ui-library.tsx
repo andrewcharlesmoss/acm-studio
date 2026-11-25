@@ -18,7 +18,7 @@ import "./keyboard-catalogue.css";
 import "./global-catalogue.css";
 import "./studio-ui-library.css";
 
-export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "motion-assets" | "styles" | "interface-styles";
+export type StudioUiSection = "catalogue" | "workspace" | "navigation" | "ribbon" | "panes" | "panels" | "blocks" | "controls" | "icons" | "motion-assets" | "sound-effects" | "styles" | "interface-styles";
 
 export const StudioUiHeaderActionsContext = createContext<Dispatch<SetStateAction<ReactNode>> | null>(null);
 export const StudioUiActiveSectionContext = createContext<StudioUiSection | null>(null);
@@ -34,6 +34,7 @@ const sections: { id: StudioUiSection; label: string; icon: IconName }[] = [
   { id: "controls", label: "Controls", icon: "action.adjust" },
   { id: "icons", label: "Icons", icon: "insert.shapes" },
   { id: "motion-assets", label: "Motion Assets", icon: studioToolIcons.motionAssets },
+  { id: "sound-effects", label: "Sound Effects", icon: "insert.audio" },
   { id: "styles", label: "Styles", icon: "text.heading" },
   { id: "interface-styles", label: "Interface Styles", icon: "action.adjust" },
 ];

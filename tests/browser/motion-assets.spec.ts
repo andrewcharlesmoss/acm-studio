@@ -8,6 +8,7 @@ import { fireShockwave } from "../../app/studio/motion-assets/fire-shockwave";
 
 const require = createRequire(import.meta.url);
 const route = "/studio/ui/motion-assets";
+const soundRoute = "/studio/ui/sound-effects";
 
 async function save(page: Page, label: string) {
   const pending = page.waitForEvent("download");
@@ -78,7 +79,7 @@ test("opens Motion Assets from Icons, preserves the draft across tabs, and redir
   await expect(page.getByRole("heading", { name: "Motion Assets", level: 1 })).toBeVisible();
 });
 
-test("finds Motion Assets in the Library Catalogue", async ({ page }) => {
+test("finds Motion Assets and Sound Effects in the Library Catalogue", async ({ page }) => {
   await page.goto("/studio/ui");
   const search = page.getByRole("searchbox", { name: "Search the Studio UI Library" });
   const entry = page.getByRole("link", { name: "Motion Assets", exact: true });
@@ -89,6 +90,11 @@ test("finds Motion Assets in the Library Catalogue", async ({ page }) => {
   await entry.click();
   await expect(page).toHaveURL(route);
   await expect(page.getByRole("tab", { name: "Motion Assets" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Catalogue", exact: true }).click();
+  await search.fill("WAV");
+  await page.getByRole("link", { name: "Sound Effects", exact: true }).click();
+  await expect(page).toHaveURL(soundRoute);
+  await expect(page.getByRole("tab", { name: "Sound Effects", exact: true })).toHaveAttribute("aria-selected", "true");
 });
 
 test("browsing presets preserves edits, supports reset and respects autoplay", async ({ page }) => {
@@ -260,14 +266,18 @@ test("Special Effects lists Volumetric Fireball and omits retired effects and th
   }
 });
 
-test("Sound Effects has its own search, pauses on tab changes, and downloads the original", async ({ page }) => {
+test("the top-level Sound Effects tab has its own search, pauses playback, and downloads the original", async ({ page }) => {
   await page.goto(route, { waitUntil: "commit" });
   const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
-  const soundsTab = motion.getByRole("tab", { name: "Sound Effects", exact: true });
+  const libraryTabs = page.getByRole("tablist", { name: "Studio UI Library Sections" });
+  const motionTab = libraryTabs.getByRole("tab", { name: "Motion Assets", exact: true });
+  const soundsTab = libraryTabs.getByRole("tab", { name: "Sound Effects", exact: true });
   const sketchesTab = motion.getByRole("tab", { name: "Sketches", exact: true });
   const preview = motion.getByRole("region", { name: "Motion preview" });
   await expect(sketchesTab).toHaveAttribute("aria-selected", "true");
+  await expect(motion.getByRole("tab", { name: "Sound Effects", exact: true })).toHaveCount(0);
+  await expect(motion.locator("audio")).toHaveCount(0);
   await setNumber(page, "Width (px)", "1100");
   const position = preview.getByRole("slider", { name: "Animation position" });
   await preview.getByRole("button", { name: "Play", exact: true }).click();
@@ -275,41 +285,47 @@ test("Sound Effects has its own search, pauses on tab changes, and downloads the
   await expect.poll(async () => Number(await position.inputValue())).toBeGreaterThan(0);
   const playingFrame = Number(await position.inputValue());
 
-  await sketchesTab.press("ArrowLeft");
+  await motionTab.press("ArrowRight");
   await expect(soundsTab).toBeFocused();
   await expect(soundsTab).toHaveAttribute("aria-selected", "true");
-  const sounds = motion.getByRole("tabpanel", { name: "Sound Effects", exact: true });
-  const audio = motion.locator('audio[aria-label="Explosion and Glass preview"]');
+  await expect(page).toHaveURL(soundRoute);
+  const sounds = page.getByRole("tabpanel", { name: "Sound Effects", exact: true });
+  const audio = page.locator('audio[aria-label="Explosion and Glass preview"]');
   await expect(audio).toBeVisible();
   await expect(preview).toBeHidden();
-  const search = motion.getByRole("searchbox", { name: "Search motion assets" });
+  const search = sounds.getByRole("searchbox", { name: "Search sound effects" });
   await search.fill("shatter");
   await expect(sounds.getByText("Explosion and Glass", { exact: true })).toBeVisible();
   await audio.press("Space");
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(0);
 
-  await soundsTab.press("End");
-  await expect(sketchesTab).toBeFocused();
+  await soundsTab.press("ArrowLeft");
+  await expect(motionTab).toBeFocused();
+  await expect(page).toHaveURL(route);
   await expect(sounds).toBeHidden();
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
-  await expect(search).toHaveValue("");
+  const motionSearch = motion.getByRole("searchbox", { name: "Search motion assets" });
+  await expect(motionSearch).toHaveValue("");
   await expect(preview.getByRole("button", { name: "Play", exact: true })).toBeVisible();
   const pausedFrame = Number(await position.inputValue());
   expect(pausedFrame).toBeGreaterThanOrEqual(playingFrame);
   expect(pausedFrame).toBeLessThan(90);
   await expect(motion.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1100");
-  await search.fill("wave");
+  await motionSearch.fill("wave");
   await expect(motion.getByRole("button", { name: "Use Wave", exact: true })).toBeVisible();
 
   await soundsTab.click();
   await expect(search).toHaveValue("shatter");
   await audio.press("Space");
-  await page.getByRole("tab", { name: "Icons", exact: true }).click();
-  await page.getByRole("tab", { name: "Motion Assets", exact: true }).click();
+  await page.goBack();
+  await expect(page).toHaveURL(route);
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
   expect(await audio.evaluate((element: HTMLAudioElement) => element.ended)).toBe(false);
+  await page.goForward();
+  await expect(page).toHaveURL(soundRoute);
   await expect(soundsTab).toHaveAttribute("aria-selected", "true");
+  await expect(search).toHaveValue("shatter");
 
   const detailsTrigger = sounds.getByRole("button", { name: "File Details for explosion-and-glass.wav" });
   await detailsTrigger.press("Enter");
@@ -332,7 +348,7 @@ test("Sound Effects has its own search, pauses on tab changes, and downloads the
   expect(data.readUInt32LE(40) / (48_000 * 6)).toBe(4.1);
 });
 
-test("shows Files audio and video in Motion Assets and downloads the original MOV", async ({ page, context }) => {
+test("routes Files audio and video to their own tabs and downloads the original MOV", async ({ page, context }) => {
   test.setTimeout(60_000);
   await page.goto("/studio?mode=files");
   const files = page.getByRole("region", { name: "File manager", exact: true });
@@ -391,9 +407,14 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await openNewFolder("Previews");
   await upload.setInputFiles(preview);
   await expect(files.getByText(preview.name, { exact: true })).toBeVisible();
+  await files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name: "All files", exact: true }).click();
+  await openNewFolder("Sound Effects");
+  await upload.setInputFiles([{ ...audio, name: "new-sound.wav" }, { ...original, name: "misfiled-video.mov" }]);
+  await expect(files.getByText("new-sound.wav", { exact: true })).toBeVisible();
 
   const libraryPage = await context.newPage();
-  await libraryPage.goto(route);
+  await libraryPage.goto(soundRoute);
+  const motionTab = libraryPage.getByRole("tab", { name: "Motion Assets", exact: true });
   const effectsTab = libraryPage.getByRole("tab", { name: "Special Effects", exact: true });
   const soundsTab = libraryPage.getByRole("tab", { name: "Sound Effects", exact: true });
   const effects = libraryPage.getByRole("tabpanel", { name: "Special Effects", exact: true });
@@ -401,13 +422,10 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   const video = effects.locator('video[aria-label="library-fireball.mov preview"]');
   const sound = sounds.locator('audio[aria-label="library-explosion.wav preview"]');
   const audioDetailsTrigger = sounds.getByRole("button", { name: "File Details for library-explosion.wav" });
-  const cardPairs = [
-    [soundsTab, sounds.getByRole("listitem").filter({ hasText: "Explosion and Glass" }), sounds.getByRole("listitem").filter({ hasText: audio.name })],
-    [effectsTab, effects.getByRole("listitem").filter({ hasText: original.name }), effects.getByRole("listitem").filter({ hasText: otherVideo.name })],
-  ] as const;
+  await expect(sounds.getByText("new-sound.wav", { exact: true })).toBeVisible();
+  await expect(sounds.getByText("misfiled-video.mov", { exact: true })).toHaveCount(0);
   const desktop = libraryPage.viewportSize()!;
-  for (const [tab, firstCard, secondCard] of cardPairs) {
-    await tab.click();
+  async function expectResponsiveCards(firstCard: Locator, secondCard: Locator) {
     for (const width of [desktop.width, 820, 320]) {
       await libraryPage.setViewportSize({ width, height: desktop.height });
       const first = (await firstCard.boundingBox())!;
@@ -421,9 +439,10 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
       }
       expect(second.x + second.width).toBeLessThanOrEqual(width);
     }
+    await libraryPage.setViewportSize(desktop);
   }
-  await libraryPage.setViewportSize(desktop);
-  await soundsTab.click();
+  await expectResponsiveCards(sounds.getByRole("listitem").filter({ hasText: "Explosion and Glass" }),
+    sounds.getByRole("listitem").filter({ hasText: audio.name }));
   await expect(sound).toBeVisible();
   await expect(sounds.getByText("unrelated.wav", { exact: true })).toHaveCount(0);
   await expectAudioFileDetails(libraryPage, audioDetailsTrigger);
@@ -439,9 +458,13 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await sound.press("Space");
   await expect.poll(() => sound.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
 
+  await motionTab.click();
   await effectsTab.click();
   await expect(video).toHaveAccessibleName("library-fireball.mov preview");
   await expect(effects.getByText(preview.name, { exact: true })).toHaveCount(0);
+  await expect(effects.getByText("misfiled-video.mov", { exact: true })).toHaveCount(0);
+  await expectResponsiveCards(effects.getByRole("listitem").filter({ hasText: original.name }),
+    effects.getByRole("listitem").filter({ hasText: otherVideo.name }));
   expect(await video.evaluate(element => fetch((element as HTMLVideoElement).src).then(response => response.text()))).toBe(preview.buffer.toString());
   await effects.getByRole("button", { name: "File Details for library-fireball.mov" }).click();
   const videoDetails = libraryPage.getByRole("dialog", { name: "File Details", exact: true });
@@ -456,7 +479,8 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   expect(download.suggestedFilename()).toBe(original.name);
   expect(await readFile((await download.path())!)).toEqual(original.buffer);
 
-  await files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name: "Motion Assets", exact: true }).click();
+  await files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name: "All files", exact: true }).click();
+  await files.getByRole("button", { name: "Motion Assets", exact: true }).press("Enter");
   await files.getByRole("button", { name: /^library-fireball\.mov/ }).click();
   await files.getByRole("combobox", { name: "Folder", exact: true }).selectOption({ label: "All files" });
   await expect(video).toHaveCount(0);
@@ -527,7 +551,7 @@ test("Volumetric Fireball accepts cancellation and exports edited dimensions and
   await page.getByRole("tab", { name: "Sound Effects", exact: true }).click();
   await page.getByRole("button", { name: "Cancel Export" }).click();
   await expect(page.getByRole("status").filter({ hasText: "MOV export cancelled." })).toBeVisible();
-  await page.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  await page.getByRole("tab", { name: "Motion Assets", exact: true }).click();
   await setNumber(page, "Width (px)", "320");
   await setNumber(page, "Height (px)", "180");
   await setNumber(page, "Duration (s)", "1.2");

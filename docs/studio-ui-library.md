@@ -57,10 +57,12 @@ The Catalogue indexes the following sections:
 - **Icons** — original shared ACM symbols, metadata, provenance and optical
   specimens at 16, 24 and 32px, with a Block Library collection that shows the
   exact symbols used by each insertable block and the template Content tile.
-- **Motion Assets** — [sketch animations, special effects, and sound effects](motion-assets.md) at
+- **Motion Assets** — [sketch animations and visual effects](motion-assets.md) at
   `/studio/ui/motion-assets`, with editable projects and local transparent MOV export.
-  Sketches also export as SVG and Lottie JSON. Sound effects have an audio preview
-  and WAV download. Switching Library tabs keeps the current animation draft open.
+  Sketches also export as SVG and Lottie JSON. Switching Library tabs keeps the
+  current animation draft open.
+- **Sound Effects** — [built-in and imported audio](motion-assets.md#sound-effects)
+  at `/studio/ui/sound-effects`, with search, playback, downloads, and File Details.
 - **Styles** — website values parsed from the canonical Markdown guide, editable
   in a local preview editor with a live specimen and source view. Save Website
   Styles writes only the website token rows in the guide during local development.

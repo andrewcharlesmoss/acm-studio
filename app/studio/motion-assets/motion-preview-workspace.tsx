@@ -12,6 +12,7 @@ export type MotionDraft = {
   baseline: string;
   preset?: string;
 };
+type MotionMovExport = { message: string; cancel?: () => void } | { error: string };
 
 export function makeDraft(asset: MotionClip, { preset, unsaved = false }: { preset?: string; unsaved?: boolean } = {}): MotionDraft {
   return { asset, original: asset, baseline: unsaved ? "" : projectKey(asset), preset };
@@ -33,7 +34,8 @@ function useWorkspaceState() {
     parked: new Map<string, MotionDraft>(),
   }));
   const [autoplay, setAutoplay] = useState(true);
-  return useMemo(() => ({ workspace, setWorkspace, autoplay, setAutoplay }), [workspace, autoplay]);
+  const [movExport, setMovExport] = useState<MotionMovExport>();
+  return useMemo(() => ({ workspace, setWorkspace, autoplay, setAutoplay, movExport, setMovExport }), [workspace, autoplay, movExport]);
 }
 
 const MotionPreviewWorkspace = createContext<ReturnType<typeof useWorkspaceState> | null>(null);

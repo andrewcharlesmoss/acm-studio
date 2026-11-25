@@ -14,9 +14,9 @@
 - Move sketches around the Motion Assets preview by dragging or using the arrow keys.
 - Use Space to play and pause the Motion Assets preview.
 - Edit Volumetric Fireball’s name, canvas size, and duration, preview the live 3D flame, and export an editable project or a transparent MOV.
-- Preview and download the original Explosion and Glass sound effect in Motion Assets.
-- Play and download audio and video from the Files library in Motion Assets.
-- View audio and video properties and embedded tags in the File Details panel in Motion Assets and Files.
+- Preview and download the original Explosion and Glass sound effect in Sound Effects.
+- Play and download audio in Sound Effects and video in Motion Assets from the Files library.
+- View audio and video properties and embedded tags in File Details.
 
 - Open a native SwiftUI reordering preview alongside the web example in local Studio.
 
@@ -60,9 +60,9 @@
 
 ### Changed
 
-- Browse Special Effects, Sound Effects, and Sketches in separate Motion Assets tabs, each with its own search.
+- Browse Sound Effects in its own top-level Studio UI Library tab. Motion Assets contains Special Effects and Sketches.
 
-- Browse sound and video files in responsive grids in Motion Assets, with playback, download, and File Details on each card.
+- Browse sound and video files in responsive grids, with playback, download, and File Details on each card.
 
 - Dashboard cards now shuffle into their prospective slots while dragging and settle smoothly on release. The same interaction is available in the UI Library under Drag to position.
 
