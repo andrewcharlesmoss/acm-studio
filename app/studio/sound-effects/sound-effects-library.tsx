@@ -81,7 +81,9 @@ export function SoundEffectsLibrary() {
         const playing = event.target;
         if (!(playing instanceof HTMLAudioElement) || playing.paused) return;
         for (const other of event.currentTarget.querySelectorAll("audio")) {
-          if (other !== playing && !other.paused) other.pause();
+          if (other === playing || other.paused) continue;
+          other.pause();
+          other.currentTime = 0;
         }
       }}>
         <colgroup><col /><col className="sound-effects-action-column" /></colgroup>
