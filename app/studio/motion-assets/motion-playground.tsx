@@ -13,20 +13,27 @@ import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
 import { isNativeEditingTarget } from "../workspace-shortcuts.mjs";
 import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
+import { MotionEffectArtwork, motionEffectCatalogue, motionEffectKeywords, motionEffectPoster, motionEffectPreview } from "./motion-effects";
 import { MotionPreviewStage } from "./motion-preview-stage";
+import { VolumetricFireballCanvas, volumetricFireballPoster } from "./volumetric-fireball-canvas";
 import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMotionPreviewWorkspace, type MotionDraft } from "./motion-preview-workspace";
 import type { MotionSize } from "./motion-resize";
 import {
-  motionDimensionLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionProject,
-  motionSvg, readMotionProject, type MotionAsset,
+  motionDimensionLimit, motionEffectDuration, motionEffectFrameLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionProject,
+  motionSvg, readMotionProject, volumetricExportRequirement, type MotionAsset, type MotionClip, type MotionEffect,
 } from "./motion-asset";
 import "./motion-assets.css";
 
 const movEndpoint = "/__studio/motion-export";
 const localOnly = "MOV export is available in local Studio with FFmpeg installed.";
 const exportHeaders = { "Content-Type": "application/json", "X-Studio-Client": "motion-assets" };
+type MovSupport = { available: boolean; volumetricAvailable?: boolean; error?: string };
 const formatSeconds = (frames: number) => `${(frames / motionFps).toFixed(2)} s`;
 const subscribeToHydration = () => () => {};
+const catalogueGroups: { title: string; presets: readonly MotionClip[] }[] = [
+  { title: "Special Effects", presets: motionEffectCatalogue },
+  { title: "Sketches", presets: motionCatalogue },
+];
 
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -88,10 +95,18 @@ function NameSetting({ name, onChange }: { name: string; onChange: (value: strin
     onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></Field>;
 }
 
-const MotionThumbnail = memo(function MotionThumbnail({ asset }: { asset: MotionAsset }) {
-  const path = motionGeometry(asset).pathAt(asset.drawFrames);
+function SketchArtwork({ asset, path }: { asset: MotionAsset; path: string }) {
+  return path ? <path d={path} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" /> : null;
+}
+
+const MotionThumbnail = memo(function MotionThumbnail({ asset }: { asset: MotionClip }) {
+  if ("effect" in asset && asset.effect === "volumetric-fireball") {
+    // eslint-disable-next-line @next/next/no-img-element -- The renderer's bundled poster is already sized for the catalogue.
+    return <img src={volumetricFireballPoster} width={320} height={180} alt="" />;
+  }
   return <svg viewBox={`0 0 ${asset.width} ${asset.height}`} aria-hidden="true">
-    <path d={path} fill="none" stroke={asset.colour} strokeWidth={asset.thickness} strokeLinecap="round" strokeLinejoin="round" />
+    {"effect" in asset ? <MotionEffectArtwork asset={asset} frame={motionEffectPoster(asset)} />
+      : <SketchArtwork asset={asset} path={motionGeometry(asset).pathAt(asset.drawFrames)} />}
   </svg>;
 });
 
@@ -100,6 +115,7 @@ export function MotionPlayground() {
   const ready = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const { workspace: { draft, parked }, setWorkspace, autoplay, setAutoplay } = useMotionPreviewWorkspace();
   const { asset } = draft;
+  const sketch = "effect" in asset ? null : asset;
   const [search, setSearch] = useState("");
   const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
   const [position, setPosition] = useState<number | null>(null);
@@ -108,33 +124,41 @@ export function MotionPlayground() {
   const [replacement, setReplacement] = useState<{ draft: MotionDraft; play: boolean; focusPreview: boolean }>();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [movSupport, setMovSupport] = useState<{ available: boolean; error?: string }>();
+  const [movSupport, setMovSupport] = useState<MovSupport>();
   const [exporting, setExporting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = useRef<HTMLElement>(null);
   const exportRequest = useRef<AbortController | null>(null);
   const inputSequence = useRef(0);
   const currentFileDirty = useRef(false);
-  const model = useMemo(() => motionGeometry(asset), [asset]);
+  const model = useMemo(() => sketch ? motionGeometry(sketch) : null, [sketch]);
   const previewAsset = useMemo(() => resizeDraft ? { ...asset, ...resizeDraft } : asset, [asset, resizeDraft]);
-  const previewModel = useMemo(() => previewAsset === asset ? model : motionGeometry(previewAsset), [asset, model, previewAsset]);
-  const visibleSketches = useMemo(() => {
+  const previewModel = useMemo(() => "effect" in previewAsset ? null
+    : previewAsset === asset ? model : motionGeometry(previewAsset), [asset, model, previewAsset]);
+  const visibleGroups = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return motionCatalogue.flatMap(preset => {
-      const sketch = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
-      return [preset.name, sketch.name].some(name => name.toLowerCase().includes(query)) ? [{ preset, sketch }] : [];
-    });
+    return catalogueGroups.map(({ title, presets }) => ({ title, entries: presets.flatMap(preset => {
+      const clip = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
+      return [preset.name, clip.name, "effect" in clip ? motionEffectKeywords(clip) : ""]
+        .some(name => name.toLowerCase().includes(query)) ? [{ preset, clip }] : [];
+    }) })).filter(group => group.entries.length);
   }, [draft.preset, parked, previewAsset, search]);
-  const frameCount = useRef(model.frameCount);
+  const duration = "effect" in asset ? asset.durationFrames : asset.drawFrames + asset.holdFrames;
+  const volumetric = "effect" in asset && asset.effect === "volumetric-fireball";
+  const durationLimit = "effect" in asset ? motionEffectFrameLimit(asset.effect) : 0;
+  const canExportMov = movSupport?.available && (!volumetric || movSupport.volumetricAvailable);
+  const exportExplanation = !movSupport ? "Checking local MOV export…"
+    : !movSupport.available ? movSupport.error ?? localOnly : volumetricExportRequirement;
+  const frameCount = useRef(duration);
   const signature = useMemo(() => projectKey(asset), [asset]);
   const dirty = signature !== draft.baseline;
-  const frame = Math.min(position ?? model.frameCount, model.frameCount);
+  const frame = Math.min(position ?? ("effect" in asset ? motionEffectPoster(asset) : duration), duration);
   const playbackLabel = playback ? "Pause" : "Play";
-  const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "sketch";
+  const stem = asset.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || (sketch ? "sketch" : "effect");
 
   function togglePlayback() {
     if (playback) { setPlayback(null); return; }
-    const startFrame = frame === model.frameCount ? 0 : frame;
+    const startFrame = position === null || frame === duration ? 0 : frame;
     setPosition(startFrame);
     setPlayback({ startFrame });
   }
@@ -164,7 +188,7 @@ export function MotionPlayground() {
         method: "POST", headers: exportHeaders, body: "{}", signal: controller.signal,
       });
       if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) throw new Error();
-      return response.json() as Promise<{ available: boolean; error?: string }>;
+      return response.json() as Promise<MovSupport>;
     }
     void checkEncoder().then(support => {
       if (!controller.signal.aborted) setMovSupport(support);
@@ -175,7 +199,7 @@ export function MotionPlayground() {
   }, []);
 
   useLayoutEffect(() => { currentFileDirty.current = !draft.preset && dirty; }, [draft.preset, dirty]);
-  useLayoutEffect(() => { frameCount.current = model.frameCount; }, [model.frameCount]);
+  useLayoutEffect(() => { frameCount.current = duration; }, [duration]);
 
   useEffect(() => () => exportRequest.current?.abort(), []);
 
@@ -239,20 +263,25 @@ export function MotionPlayground() {
     setError("");
   }
 
-  function changeAsset(changes: Partial<MotionAsset>) {
+  function changeAsset(changes: Partial<Omit<MotionAsset, "path" | "viewBox"> & Pick<MotionEffect, "durationFrames">>) {
     setMessage("");
     setError("");
     setWorkspace(current => {
       const asset = current.draft.asset;
-      if (Object.entries(changes).every(([key, value]) => asset[key as keyof MotionAsset] === value)) return current;
+      if (Object.entries(changes).every(([key, value]) => asset[key as keyof MotionClip] === value)) return current;
       return { ...current, draft: { ...current.draft, asset: { ...asset, ...changes } } };
     });
   }
 
   function changeTiming(drawFrames: number, holdFrames: number) {
-    if (drawFrames === asset.drawFrames && holdFrames === asset.holdFrames) return;
+    if (drawFrames === sketch?.drawFrames && holdFrames === sketch.holdFrames) return;
     changeAsset({ drawFrames, holdFrames });
     setPosition(current => current === null ? null : Math.min(current, drawFrames + holdFrames));
+  }
+
+  function changeEffectDuration(durationFrames: number) {
+    changeAsset({ durationFrames });
+    setPosition(current => current === null ? null : Math.min(current, durationFrames));
   }
 
   async function openFile(event: ChangeEvent<HTMLInputElement>) {
@@ -275,8 +304,12 @@ export function MotionPlayground() {
   }
 
   function downloadSource(format: "project" | "svg" | "lottie") {
-    const source = format === "svg" ? motionSvg(asset, model.pathAt(asset.drawFrames))
-      : JSON.stringify(format === "project" ? motionProject(asset) : motionLottie(asset), null, 2) + "\n";
+    let source;
+    if (format === "project") source = JSON.stringify(motionProject(asset), null, 2) + "\n";
+    else {
+      if (!sketch || !model) return;
+      source = format === "svg" ? motionSvg(sketch, model.pathAt(sketch.drawFrames)) : JSON.stringify(motionLottie(sketch), null, 2) + "\n";
+    }
     const extension = { project: "acm-motion.json", svg: "svg", lottie: "lottie.json" };
     download(new Blob([source], { type: format === "svg" ? "image/svg+xml" : "application/json" }), `${stem}.${extension[format]}`);
     if (format === "project") {
@@ -287,7 +320,7 @@ export function MotionPlayground() {
   }
 
   async function exportMov() {
-    if (exportRequest.current || !movSupport?.available) return;
+    if (exportRequest.current || !canExportMov) return;
     const request = new AbortController();
     exportRequest.current = request;
     setExporting(true);
@@ -318,19 +351,25 @@ export function MotionPlayground() {
   return <>
     <section className="motion-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
       <div className="motion-catalogue-heading">
-        <div><h1 id="motion-catalogue-title">Motion Assets</h1><p>Choose a sketch to preview, adjust and export.</p></div>
+        <div><h1 id="motion-catalogue-title">Motion Assets</h1><p>Choose an animation to preview, adjust, and export.</p></div>
         <div className="motion-catalogue-options">
           <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
-          <label className="motion-catalogue-search"><span>Search motion assets</span><SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches…" /></label>
+          <label className="motion-catalogue-search"><span>Search motion assets</span><SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search sketches and effects…" /></label>
         </div>
       </div>
-      <div className="motion-catalogue-grid">
-        {visibleSketches.map(({ preset, sketch }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${sketch.name}`} aria-pressed={draft.preset === preset.name} onClick={event => requestReplacement(makeDraft(preset, { preset: preset.name }), autoplay, event.detail > 0)}>
-          <MotionThumbnail asset={sketch} />
-          <strong>{sketch.name}</strong>
-        </button>)}
-      </div>
-      {!visibleSketches.length ? <p>No matching sketches.</p> : null}
+      {visibleGroups.map(({ title, entries }) => <section key={title} className="motion-catalogue-group" aria-label={title}>
+        <h2>{title}</h2>
+        <div className="motion-catalogue-grid">
+          {entries.map(({ preset, clip }) => <button key={preset.name} type="button" className="motion-catalogue-card" aria-label={`Use ${clip.name}`} aria-pressed={draft.preset === preset.name} onClick={event => {
+            const play = autoplay && (!("effect" in preset) || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+            requestReplacement(makeDraft(preset, { preset: preset.name }), play, event.detail > 0);
+          }}>
+            <MotionThumbnail asset={clip} />
+            <strong>{clip.name}</strong>
+          </button>)}
+        </div>
+      </section>)}
+      {!visibleGroups.length ? <p>No matching motion assets.</p> : null}
     </section>
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready}>
       <section id="motion-preview" ref={preview} tabIndex={-1} className="motion-preview" aria-label="Motion preview">
@@ -345,13 +384,17 @@ export function MotionPlayground() {
             <input hidden ref={fileInput} type="file" accept=".svg,.json" onChange={openFile} />
           </div>
         </div>
-        <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} path={previewModel.pathAt(frame)} geometry={previewModel.preview} onResize={changeAsset} onResizeDraft={setResizeDraft} />
+        <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} geometry={previewModel?.preview ?? motionEffectPreview} onResize={changeAsset} onResizeDraft={setResizeDraft}
+          renderedFrame={active && "effect" in previewAsset && previewAsset.effect === "volumetric-fireball"
+            ? <VolumetricFireballCanvas asset={previewAsset} frame={frame} playing={playback !== null} /> : undefined}
+          artwork={"effect" in previewAsset ? <MotionEffectArtwork asset={previewAsset} frame={frame} />
+            : <SketchArtwork asset={previewAsset} path={previewModel?.pathAt(frame) ?? ""} />} />
         <div className="motion-transport">
           <button type="button" className="button-secondary motion-playback-button" aria-label={playbackLabel} title={`${playbackLabel} (Space)`} aria-keyshortcuts="Space" onClick={togglePlayback}><AcmIcon name={playback ? "media.pause" : "media.play"} scale="Regular-S" size={20} /></button>
-          <RangeControl min={0} max={model.frameCount} step={1} value={frame}
-            aria-label="Animation position" aria-valuetext={`${formatSeconds(frame)} of ${formatSeconds(model.frameCount)}`}
+          <RangeControl min={0} max={duration} step={1} value={frame}
+            aria-label="Animation position" aria-valuetext={`${formatSeconds(frame)} of ${formatSeconds(duration)}`}
             tooltipPlacement="above" tooltipText={formatSeconds(frame)} onChange={event => { setPlayback(null); setPosition(event.target.valueAsNumber); }} />
-          <span className="motion-time" aria-hidden="true">{formatSeconds(frame)} / {formatSeconds(model.frameCount)}</span>
+          <span className="motion-time" aria-hidden="true">{formatSeconds(frame)} / {formatSeconds(duration)}</span>
         </div>
       </section>
       <Pane label="Motion settings" side="right" width={312} collapsed={false} onCollapsedChange={() => {}} collapseIcon={null} collapsible={false} inspectorPopoverOwner
@@ -364,26 +407,29 @@ export function MotionPlayground() {
               <NumberSetting label="Height (px)" min={128} max={motionDimensionLimit(asset.width)} value={previewAsset.height} readOnly={resizeDraft !== null} onCommit={height => changeAsset({ height })} />
             </div>
           </div>
-          <div className="motion-setting-group" role="group" aria-label="Stroke">
-            {active ? <div className="motion-colour"><ColourPicker label="Stroke colour" value={asset.colour}
+          {sketch ? <><div className="motion-setting-group" role="group" aria-label="Stroke">
+            {active ? <div className="motion-colour"><ColourPicker label="Stroke colour" value={sketch.colour}
               onChange={colour => { if (colour && /^#[a-f0-9]{6}$/i.test(colour)) changeAsset({ colour }); }} enableAlpha={false} allowClear={false} livePointerChanges liveHexChanges /></div> : null}
-            <NumberSetting label="Thickness (px)" value={asset.thickness} min={1} max={64} onCommit={thickness => changeAsset({ thickness })} />
+            <NumberSetting label="Thickness (px)" value={sketch.thickness} min={1} max={64} onCommit={thickness => changeAsset({ thickness })} />
           </div>
           <div className="motion-setting-group motion-field-grid" role="group" aria-label="Timing">
-            <NumberSetting label="Draw time (s)" value={asset.drawFrames / motionFps} min={0.1} max={(300 - asset.holdFrames) / motionFps} step={0.1}
-              onCommit={value => changeTiming(Math.round(value * motionFps), asset.holdFrames)} />
-            <NumberSetting label="Hold time (s)" value={asset.holdFrames / motionFps} min={0.1} max={(300 - asset.drawFrames) / motionFps} step={0.1}
-              onCommit={value => changeTiming(asset.drawFrames, Math.round(value * motionFps))} />
-          </div>
+            <NumberSetting label="Draw time (s)" value={sketch.drawFrames / motionFps} min={0.1} max={(300 - sketch.holdFrames) / motionFps} step={0.1}
+              onCommit={value => changeTiming(Math.round(value * motionFps), sketch.holdFrames)} />
+            <NumberSetting label="Hold time (s)" value={sketch.holdFrames / motionFps} min={0.1} max={(300 - sketch.drawFrames) / motionFps} step={0.1}
+              onCommit={value => changeTiming(sketch.drawFrames, Math.round(value * motionFps))} />
+          </div></> : <div className="motion-setting-group" role="group" aria-label="Timing">
+            <NumberSetting label="Duration (s)" value={duration / motionFps} min={motionEffectDuration.min / motionFps} max={durationLimit / motionFps} step={0.1}
+              onCommit={value => changeEffectDuration(Math.round(value * motionFps))} />
+          </div>}
           <div className="motion-setting-group">
             <h3>Export</h3>
             <div className="motion-actions">
-              <button type="button" className="button-secondary" onClick={() => downloadSource("svg")}>SVG</button>
-              <button type="button" className="button-secondary" onClick={() => downloadSource("lottie")}>Lottie JSON</button>
+              {sketch ? <><button type="button" className="button-secondary" onClick={() => downloadSource("svg")}>SVG</button>
+                <button type="button" className="button-secondary" onClick={() => downloadSource("lottie")}>Lottie JSON</button></> : null}
               {exporting ? <button type="button" className="button-secondary" onClick={() => exportRequest.current?.abort()}>Cancel Export</button>
-                : <button type="button" className="button-secondary" disabled={!movSupport?.available} onClick={() => void exportMov()}>Transparent MOV</button>}
+                : <button type="button" className="button-secondary" disabled={!canExportMov} onClick={() => void exportMov()}>Transparent MOV</button>}
             </div>
-            {!movSupport?.available ? <p className="motion-explanation">{movSupport?.error ?? "Checking local MOV export…"} </p> : null}
+            {!canExportMov ? <p className="motion-explanation">{exportExplanation}</p> : null}
             <p role="status" className="motion-feedback">{message}</p>
             {error ? <p role="alert" className="motion-feedback">{error}</p> : null}
           </div>

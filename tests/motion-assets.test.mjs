@@ -4,6 +4,9 @@ import { orderedSiteIds } from "../app/studio/site-order-repository.mjs";
 import { dashboardToolIds } from "../app/studio/dashboard-order-contract.mjs";
 import { readStudioNavigationHiddenTools, studioNavigationVisibilityKey } from "../app/studio/studio-navigation-visibility-contract.mjs";
 import { motionPreset, motionGeometry, motionLottie, motionProject, motionSvg, readMotionProject } from "../app/studio/motion-assets/motion-asset.ts";
+import { fireBurst } from "../app/studio/motion-assets/fire-burst.ts";
+import { fireShockwave } from "../app/studio/motion-assets/fire-shockwave.ts";
+import { volumetricFireball } from "../app/studio/motion-assets/motion-effects.ts";
 import { motionCatalogue } from "../app/studio/motion-assets/motion-catalogue.ts";
 import { resizeMotion } from "../app/studio/motion-assets/motion-resize.ts";
 
@@ -81,6 +84,39 @@ test("wave and oval projects round-trip the editable geometry and settings", () 
     assert.equal(trim.e.k[1].t, 45);
     assert.equal(lottie.op, 117);
   }
+});
+
+test("special effects round-trip as bounded, versioned projects", () => {
+  const asset = { ...fireBurst, name: "Intro", width: 1280, height: 720, durationFrames: 45 };
+  const saved = motionProject(asset);
+  assert.equal(saved.version, "0.3.0");
+  assert.deepEqual(readMotionProject(JSON.parse(JSON.stringify(saved))), asset);
+  assert.throws(() => readMotionProject({ ...saved, version: "0.2.0" }));
+  for (const changes of [{ effect: "missing" }, { durationFrames: 17 }, { durationFrames: 19 },
+    { durationFrames: 93 }, { width: 1920, height: 1920 }, { name: " " }]) {
+    assert.throws(() => readMotionProject({ ...saved, asset: { ...asset, ...changes } }));
+  }
+});
+
+test("Fire Shockwave has its own project identity and preserves the Fire Burst format", () => {
+  const variant = { ...fireShockwave, name: "Opening Shockwave", width: 1080, height: 1920, durationFrames: 45 };
+  const project = motionProject(variant);
+  assert.equal(project.version, "0.4.0");
+  assert.deepEqual(readMotionProject(JSON.parse(JSON.stringify(project))), variant);
+  assert.throws(() => readMotionProject({ ...project, version: "0.3.0" }), /v0\.4\.0/);
+  const original = motionProject(fireBurst);
+  assert.equal(original.version, "0.3.0");
+  assert.deepEqual(readMotionProject(original), fireBurst);
+});
+
+test("Volumetric Fireball round-trips its authored size and longer duration independently of vector effects", () => {
+  const asset = { ...volumetricFireball, name: "Cinematic intro", width: 720, height: 1280, durationFrames: 450 };
+  const project = motionProject(asset);
+  assert.equal(project.version, "0.5.0");
+  assert.deepEqual(readMotionProject(JSON.parse(JSON.stringify(project))), asset);
+  assert.throws(() => readMotionProject({ ...project, version: "0.4.0" }), /v0\.5\.0/);
+  assert.throws(() => motionProject({ ...asset, durationFrames: 453 }), /15 s/);
+  assert.throws(() => motionProject({ ...fireBurst, durationFrames: 93 }), /3 s/);
 });
 
 test("unsafe or unusable projects are rejected before render", () => {

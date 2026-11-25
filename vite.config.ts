@@ -67,7 +67,7 @@ export default defineConfig(async () => {
       // The Studio UI is same-origin; do not grant other localhost apps CORS access to Vite's file route.
       cors: false,
       // The canonical guide is imported by the Studio UI; CORS above prevents other origins reading allowed files.
-      fs: { allow: [process.cwd(), governanceRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**"] },
+      fs: { allow: [process.cwd(), governanceRoot], deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/work/**", "**/outputs/**"] },
     },
     plugins: [
       sharedStylesBridge(),

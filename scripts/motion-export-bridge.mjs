@@ -3,11 +3,14 @@ import { createReadStream } from "node:fs";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { isLocalStudioRequest } from "./codex-history-bridge.mjs";
-import { motionFileLimit, motionFps, readMotionProject, motionGeometry, motionSvg } from "../app/studio/motion-assets/motion-asset.ts";
+import { MotionEffectArtwork } from "../app/studio/motion-assets/motion-effects.ts";
+import { motionFileLimit, motionFps, readMotionProject, motionGeometry, motionSvg, volumetricExportRequirement } from "../app/studio/motion-assets/motion-asset.ts";
 
 const endpoint = "/__studio/motion-export";
 const require = createRequire(import.meta.url);
@@ -15,6 +18,63 @@ const runFile = promisify(execFile);
 const ffmpegMissing = "Install FFmpeg with the ProRes 4444 encoder to export MOV in local Studio.";
 // Vite reloads this bridge with its config while Node retains the WASM module.
 const rasteriserKey = Symbol.for("acm-studio.motion-rasteriser");
+
+function framesFor(asset) {
+  if ("effect" in asset) {
+    const { width, height, durationFrames } = asset;
+    return {
+      count: durationFrames,
+      lastChangingFrame: durationFrames - 1,
+      svgAt: frame => renderToStaticMarkup(createElement("svg", {
+        xmlns: "http://www.w3.org/2000/svg", width, height, viewBox: `0 0 ${width} ${height}`,
+      }, createElement(MotionEffectArtwork, { asset, frame }))),
+    };
+  }
+  const geometry = motionGeometry(asset);
+  return {
+    count: geometry.frameCount,
+    lastChangingFrame: asset.drawFrames,
+    svgAt: frame => motionSvg(asset, geometry.pathAt(frame)),
+  };
+}
+
+function straightRgba(image) {
+  // Resvg returns premultiplied RGBA. MOV expects straight alpha for clean compositing.
+  const pixels = Buffer.from(image.pixels);
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    const alpha = pixels[offset + 3];
+    if (alpha === 0 || alpha === 255) continue;
+    const scale = 255 / alpha;
+    pixels[offset] = Math.round(pixels[offset] * scale);
+    pixels[offset + 1] = Math.round(pixels[offset + 1] * scale);
+    pixels[offset + 2] = Math.round(pixels[offset + 2] * scale);
+  }
+  return pixels;
+}
+
+const rawInput = ({ width, height }) => ["-f", "rawvideo", "-pixel_format", "rgba", "-video_size", `${width}x${height}`];
+const processOptions = signal => ({ shell: false, signal, killSignal: "SIGKILL" });
+
+function startEncoder(input, output, signal, native = false) {
+  const colour = native ? ["-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le",
+    "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-movflags", "+faststart"] : [];
+  const process = spawn("ffmpeg", [
+    "-hide_banner", "-loglevel", "error", "-n", ...input, "-framerate", String(motionFps),
+    "-i", "pipe:0", "-an", "-c:v", "prores_ks", "-profile:v", "4", ...colour,
+    "-pix_fmt", "yuva444p10le", "-alpha_bits", native ? "8" : "16", "-threads", native ? "4" : "2", output,
+  ], { ...processOptions(signal), stdio: ["pipe", "ignore", "ignore"] });
+  process.stdin.on("error", () => {});
+  return process;
+}
+
+function stopped(process) {
+  process.on("error", () => {});
+  return new Promise(resolve => process.once("close", resolve));
+}
+
+function stopProcess(process) {
+  if (process.exitCode === null && process.signalCode === null) process.kill("SIGKILL");
+}
 
 async function renderMov(asset, output, signal) {
   globalThis[rasteriserKey] ??= (async () => {
@@ -24,34 +84,65 @@ async function renderMov(asset, output, signal) {
   })().catch(error => { delete globalThis[rasteriserKey]; throw error; });
   const Resvg = await globalThis[rasteriserKey];
   signal.throwIfAborted();
-  const child = spawn("ffmpeg", [
-    "-hide_banner", "-loglevel", "error", "-n", "-f", "image2pipe", "-framerate", String(motionFps),
-    "-vcodec", "png", "-i", "pipe:0", "-an", "-c:v", "prores_ks", "-profile:v", "4",
-    "-pix_fmt", "yuva444p10le", "-alpha_bits", "16", "-threads", "2", output,
-  ], { shell: false, stdio: ["pipe", "ignore", "ignore"], signal, killSignal: "SIGKILL" });
-  child.stdin.on("error", () => {});
-  child.on("error", () => {});
-  const stopped = new Promise(resolve => child.once("close", resolve));
+  // Effects change on every frame. Pipe raw pixels to avoid a PNG encode/decode cycle.
+  const effect = "effect" in asset;
+  const input = effect ? rawInput(asset) : ["-f", "image2pipe", "-vcodec", "png"];
+  const child = startEncoder(input, output, signal);
+  const encoded = stopped(child);
   try {
-    const geometry = motionGeometry(asset);
-    let png;
-    for (let frame = 0; frame < geometry.frameCount; frame++) {
+    const frames = framesFor(asset);
+    let pixels;
+    for (let frame = 0; frame < frames.count; frame++) {
       signal.throwIfAborted();
-      if (frame <= asset.drawFrames) {
-        const renderer = new Resvg(motionSvg(asset, geometry.pathAt(frame)));
+      if (frame <= frames.lastChangingFrame) {
+        const renderer = new Resvg(frames.svgAt(frame));
         try {
           const image = renderer.render();
-          try { png = Buffer.from(image.asPng()); } finally { image.free(); }
+          try { pixels = effect ? straightRgba(image) : Buffer.from(image.asPng()); } finally { image.free(); }
         } finally { renderer.free(); }
       }
-      await new Promise((resolve, reject) => child.stdin.write(png, error => error ? reject(error) : resolve()));
+      await new Promise((resolve, reject) => child.stdin.write(pixels, error => error ? reject(error) : resolve()));
     }
     child.stdin.end();
-    if (await stopped !== 0) throw new Error("FFmpeg failed.");
+    if (await encoded !== 0) throw new Error("FFmpeg failed.");
   } finally {
-    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
-    await stopped;
+    stopProcess(child);
+    await encoded;
   }
+}
+
+async function renderVolumetricMov(asset, output, signal, root) {
+  const directory = dirname(output);
+  const renderer = join(directory, "render-fireball");
+  const shader = join(root, "app/studio/motion-assets/volumetric-fireball.glsl");
+  await runFile("swiftc", ["-O", "-module-cache-path", join(directory, "module-cache"),
+    join(root, "scripts/volumetric-fireball/render.swift"), "-o", renderer], { signal, timeout: 30_000 });
+  signal.throwIfAborted();
+  const encoder = startEncoder(rawInput(asset), output, signal, true);
+  const encoded = stopped(encoder);
+  try {
+    const source = spawn(renderer, [shader, String(asset.width), String(asset.height), String(asset.durationFrames)],
+      { ...processOptions(signal), stdio: ["ignore", "pipe", "ignore"] });
+    const rendered = stopped(source);
+    try {
+      await pipeline(source.stdout, encoder.stdin, { signal });
+      if ((await Promise.all([rendered, encoded])).some(code => code !== 0)) throw new Error("Volumetric render failed.");
+    } finally {
+      stopProcess(source);
+      await rendered;
+    }
+  } finally {
+    stopProcess(encoder);
+    await encoded;
+  }
+}
+
+async function probeVolumetric() {
+  if (process.platform !== "darwin") return false;
+  try {
+    await runFile("xcrun", ["--find", "swiftc"], { timeout: 3000 });
+    return true;
+  } catch { return false; }
 }
 
 async function probeEncoder() {
@@ -78,7 +169,7 @@ async function readRequest(request) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-export function motionExportBridge({ encode = renderMov, probe = probeEncoder, timeoutMs = 60000 } = {}) {
+export function motionExportBridge({ encode = renderMov, probe = probeEncoder, timeoutMs = 60000, volumetricTimeoutMs = 180000 } = {}) {
   let busy = false;
   let probing;
   const isAvailable = () => probing ??= Promise.resolve().then(probe)
@@ -105,25 +196,29 @@ export function motionExportBridge({ encode = renderMov, probe = probeEncoder, t
       }
       if (route.endsWith("/status")) {
         const available = await isAvailable();
-        respond(response, 200, { available, ...(available ? {} : { error: ffmpegMissing }) }); return;
+        respond(response, 200, { available, volumetricAvailable: available && await probeVolumetric(),
+          ...(available ? {} : { error: ffmpegMissing }) }); return;
       }
       let asset;
       try { asset = readMotionProject(body); }
       catch (error) { respond(response, 400, { error: error.message }); return; }
       if (busy) { respond(response, 409, { error: "Another MOV export is running. Try again when it finishes." }); return; }
+      const volumetric = asset.effect === "volumetric-fireball";
       busy = true;
       let directory;
       const cancellation = new AbortController();
       const onClose = () => { if (!response.writableFinished) cancellation.abort(); };
       response.on("close", onClose);
       if (response.destroyed) onClose();
-      const timer = setTimeout(() => cancellation.abort(), timeoutMs);
+      const timer = setTimeout(() => cancellation.abort(), volumetric ? volumetricTimeoutMs : timeoutMs);
       try {
         if (!await isAvailable()) { respond(response, 503, { error: ffmpegMissing }); return; }
+        if (volumetric && !await probeVolumetric()) { respond(response, 503, { error: volumetricExportRequirement }); return; }
         cancellation.signal.throwIfAborted();
         directory = await mkdtemp(join(tmpdir(), "studio-motion-"));
         const output = join(directory, "motion.mov");
-        await encode(asset, output, cancellation.signal);
+        if (volumetric) await renderVolumetricMov(asset, output, cancellation.signal, server.config.root);
+        else await encode(asset, output, cancellation.signal);
         cancellation.signal.throwIfAborted();
         const { size } = await stat(output);
         response.writeHead(200, { "Content-Type": "video/quicktime", "Content-Length": size });
@@ -131,7 +226,9 @@ export function motionExportBridge({ encode = renderMov, probe = probeEncoder, t
       } catch {
         if (!response.headersSent) {
           respond(response, cancellation.signal.aborted ? 504 : 500, {
-            error: cancellation.signal.aborted ? "The MOV export timed out. Try a shorter or smaller animation." : "The MOV export failed. Check FFmpeg and available disk space, then try again.",
+            error: cancellation.signal.aborted ? "The MOV export timed out. Try a shorter or smaller animation."
+              : volumetric ? "Volumetric Fireball couldn’t render. Check that Metal, Swift, and FFmpeg are available, then try again."
+                : "The MOV export failed. Check FFmpeg and available disk space, then try again.",
           });
         } else if (!response.destroyed) response.destroy();
       } finally {

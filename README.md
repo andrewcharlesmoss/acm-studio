@@ -95,7 +95,7 @@ ordinary content once. See [Storage formats](docs/storage-formats.md) for the cu
 The architecture and next decision gate are recorded in
 [`docs/FOUNDATION.md`](docs/FOUNDATION.md).
 
-[Motion Assets](docs/motion-assets.md) covers sketch animation projects and SVG, Lottie, and local transparent MOV export.
+[Motion Assets](docs/motion-assets.md) covers sketch animations, special effects, editable projects, and local transparent MOV export.
 
 The design canvas architecture and supported first-release behaviour are
 recorded in [`docs/design-canvas.md`](docs/design-canvas.md).

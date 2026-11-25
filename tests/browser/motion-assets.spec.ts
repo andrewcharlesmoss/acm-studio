@@ -155,6 +155,180 @@ test("Space toggles playback from the preview and preserves native control short
   await expect(play).toBeVisible();
 });
 
+test("finds Fire Burst, previews it with the keyboard, and reopens its editable settings", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const search = page.getByRole("searchbox", { name: "Search motion assets" });
+  const effects = page.getByRole("region", { name: "Special Effects" });
+  const burst = effects.getByRole("button", { name: "Use Fire Burst" });
+  const slider = page.getByRole("slider", { name: "Animation position" });
+  await search.fill("explosion");
+  await expect(page.getByRole("region", { name: "Sketches" })).toHaveCount(0);
+  await burst.press("Enter");
+  const preview = page.getByRole("img", { name: "Fire Burst animation preview" });
+  await expectPreviewSize(preview, 1920, 1080);
+  await expect(slider).toHaveValue("13");
+  await expect(preview.locator("path").first()).toBeVisible();
+  await slider.press("Home");
+  await expect(preview.locator("path")).toHaveCount(0);
+  const play = page.getByRole("button", { name: "Play", exact: true });
+  await play.press("Space");
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(slider).toHaveValue("60");
+  await expect(preview.locator("path")).toHaveCount(0);
+  await setNumber(page, "Width (px)", "1280");
+  await setNumber(page, "Height (px)", "720");
+  await setNumber(page, "Duration (s)", "1.5");
+  const project = await save(page, "Download Project");
+  expect(project.name).toBe("fire-burst.acm-motion.json");
+  await search.fill("wave");
+  await page.getByRole("button", { name: "Use Wave" }).click();
+  await expect(page.getByRole("button", { name: "Lottie JSON" })).toBeVisible();
+  await page.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
+  await expectPreviewSize(preview, 1280, 720);
+  await expect(page.getByRole("spinbutton", { name: "Duration (s)" })).toHaveValue("1.5");
+  await expect(page.getByRole("button", { name: "Lottie JSON" })).toHaveCount(0);
+});
+
+test("Fire Shockwave keeps its own catalogue draft and reopens alongside Fire Burst", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(route);
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const effects = motion.getByRole("region", { name: "Special Effects" });
+  const original = effects.getByRole("button", { name: "Use Fire Burst", exact: true });
+  const variant = effects.getByRole("button", { name: "Use Fire Shockwave", exact: true });
+  const duration = page.getByRole("spinbutton", { name: "Duration (s)" });
+  const search = page.getByRole("searchbox", { name: "Search motion assets" });
+
+  await original.click();
+  await setNumber(page, "Duration (s)", "1");
+  await search.fill("shockwave");
+  await expect(original).toHaveCount(0);
+  await variant.press("Enter");
+  await expect(page.getByRole("img", { name: "Fire Shockwave animation preview" })).toBeVisible();
+  await expect(duration).toHaveValue("2");
+  await setNumber(page, "Duration (s)", "1.6");
+  const project = await save(page, "Download Project");
+  expect(project.name).toBe("fire-shockwave.acm-motion.json");
+  expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.4.0", asset: { effect: "fire-shockwave", durationFrames: 48 } });
+
+  await search.fill("");
+  await original.click();
+  await expect(duration).toHaveValue("1");
+  await variant.click();
+  await expect(duration).toHaveValue("1.6");
+  await original.click();
+  await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
+  await expect(page.getByRole("img", { name: "Fire Shockwave animation preview" })).toBeVisible();
+  await expect(duration).toHaveValue("1.6");
+  await original.click();
+  await expect(duration).toHaveValue("1");
+});
+
+test("Special Effects lists the three Studio fire effects and omits the Shutterstock reference", async ({ page, baseURL }) => {
+  const referenceRequests: string[] = [];
+  page.on("request", request => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/__studio/motion-source/")) referenceRequests.push(path);
+  });
+  const localStatus = new URL(baseURL!).hostname === "localhost" ? page.waitForResponse(response =>
+    new URL(response.url()).pathname === "/__studio/motion-export/status") : undefined;
+  await page.goto(route, { waitUntil: "commit" });
+  await localStatus;
+  expect(referenceRequests).toEqual([]);
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
+  const effects = motion.getByRole("region", { name: "Special Effects" });
+  await expect(effects.getByRole("button")).toHaveText(["Fire Burst", "Fire Shockwave", "Volumetric Fireball"]);
+  await motion.getByRole("searchbox", { name: "Search motion assets" }).fill("Shutterstock");
+  await expect(motion.getByText("No matching motion assets.")).toBeVisible();
+  await expect(effects).toHaveCount(0);
+});
+
+test("Volumetric Fireball renders live and saves editable name, size, and duration", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    const draw = WebGL2RenderingContext.prototype.drawArrays;
+    WebGL2RenderingContext.prototype.drawArrays = function(mode, first, count) {
+      draw.call(this, mode, first, count);
+      if (!(this.canvas instanceof HTMLCanvasElement) || !this.canvas.closest(".motion-fireball-artwork")) return;
+      const pixel = new Uint8Array(4);
+      this.readPixels(this.drawingBufferWidth >> 1, this.drawingBufferHeight >> 1, 1, 1, this.RGBA, this.UNSIGNED_BYTE, pixel);
+      this.canvas.dataset.centreAlpha = String(pixel[3]);
+    };
+  });
+  await page.goto(route, { waitUntil: "commit" });
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
+  const effects = motion.getByRole("region", { name: "Special Effects" });
+  await effects.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).press("Enter");
+  const preview = motion.getByRole("img", { name: "Volumetric Fireball animation preview" });
+  await expect(preview).toHaveAttribute("data-live-render", "true");
+  const canvas = preview.locator("canvas");
+  const position = motion.getByRole("slider", { name: "Animation position" });
+  await position.press("Home");
+  await expect(canvas).toHaveAttribute("data-centre-alpha", "0");
+  await position.press("ArrowUp");
+  await position.press("PageUp");
+  await expect.poll(async () => Number(await canvas.getAttribute("data-centre-alpha"))).toBeGreaterThan(100);
+  await expect(motion.getByRole("spinbutton", { name: "Duration (s)" })).toHaveValue("11.6");
+  await setNumber(page, "Width (px)", "360");
+  await setNumber(page, "Height (px)", "640");
+  await setNumber(page, "Duration (s)", "2.5");
+  await expect(preview).toHaveAttribute("data-preview-width", "360");
+  await expect(preview).toHaveAttribute("data-preview-height", "640");
+  await expect(position).toHaveAttribute("max", "75");
+  await motion.getByRole("textbox", { name: "Name" }).fill("My fireball");
+  const project = await save(page, "Download Project");
+  expect(project.name).toBe("my-fireball.acm-motion.json");
+  expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.5.0",
+    asset: { effect: "volumetric-fireball", name: "My fireball", width: 360, height: 640, durationFrames: 75 } });
+  await motion.getByRole("button", { name: "Reset Preview" }).click();
+  await expect(preview).toHaveAttribute("data-preview-width", "1920");
+  await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
+  await expect(motion.getByRole("img", { name: "My fireball animation preview" })).toHaveAttribute("data-preview-height", "640");
+});
+
+test("Volumetric Fireball accepts cancellation and exports edited dimensions and duration with alpha", async ({ page }) => {
+  test.skip(process.env.STUDIO_TEST_VOLUMETRIC_MOV !== "1", "Requires local Studio, Metal, Swift, and FFmpeg.");
+  test.setTimeout(90_000);
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const run = promisify(execFile);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(route, { waitUntil: "commit" });
+  await page.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).click();
+  const exportButton = page.getByRole("button", { name: "Transparent MOV", exact: true });
+  const started = page.waitForRequest(request => new URL(request.url()).pathname === "/__studio/motion-export");
+  await exportButton.click();
+  await started;
+  await page.getByRole("button", { name: "Cancel Export" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "MOV export cancelled." })).toBeVisible();
+  await setNumber(page, "Width (px)", "320");
+  await setNumber(page, "Height (px)", "180");
+  await setNumber(page, "Duration (s)", "1.2");
+  const pending = page.waitForEvent("download");
+  await exportButton.click();
+  const download = await pending;
+  const path = (await download.path())!;
+  expect(download.suggestedFilename()).toBe("volumetric-fireball.mov");
+  const { stdout } = await run("ffprobe", ["-v", "error", "-show_entries",
+    "stream=width,height,codec_name,profile,pix_fmt,nb_frames", "-of", "json", path]);
+  expect(JSON.parse(stdout).streams).toEqual([{ width: 320, height: 180, codec_name: "prores", profile: "4444",
+    pix_fmt: expect.stringMatching(/^yuva/), nb_frames: "36" }]);
+  const { stdout: alpha } = await run("ffmpeg", ["-v", "error", "-i", path, "-vf",
+    "select=eq(n\\,0)+eq(n\\,6)+eq(n\\,35),alphaextract,format=gray", "-fps_mode", "passthrough", "-f", "rawvideo", "pipe:1"],
+    { encoding: "buffer" });
+  const pixels = 320 * 180;
+  expect(alpha.length).toBe(pixels * 3);
+  expect(alpha.subarray(0, pixels).every(pixel => pixel === 0)).toBe(true);
+  expect(alpha.subarray(pixels, pixels * 2).some(pixel => pixel > 180)).toBe(true);
+  expect(alpha.subarray(pixels * 2).every(pixel => pixel === 0)).toBe(true);
+});
+
 test("holding a number stepper repeats until release or the field limit", async ({ page }) => {
   await page.goto(route);
   await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
@@ -787,6 +961,79 @@ test("exports a ProRes 4444 MOV with clear, partial, and held frames", async ({ 
   expect(bounds(2).thickness).toBe(9);
   expect(alpha.subarray(pixels * 2, pixels * 3).equals(alpha.subarray(pixels * 3))).toBe(true);
   await info.attach("transparent-wave", { path: path!, contentType: "video/quicktime" });
+});
+
+test("exports Fire Burst as a widescreen MOV with genuinely transparent frames and edges", async ({ page }, info) => {
+  test.skip(process.env.STUDIO_TEST_MOV !== "1", "Requires local Studio and FFmpeg.");
+  test.setTimeout(80_000);
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const run = promisify(execFile);
+  await page.goto(route);
+  await page.getByRole("button", { name: "Use Fire Burst" }).click();
+  const exportButton = page.getByRole("button", { name: "Transparent MOV" });
+  await expect(exportButton).toBeEnabled();
+  const pending = page.waitForEvent("download");
+  await exportButton.click();
+  const file = await pending;
+  const path = (await file.path())!;
+  expect(file.suggestedFilename()).toBe("fire-burst.mov");
+  const { stdout } = await run("ffprobe", ["-v", "error", "-show_entries",
+    "stream=width,height,codec_name,profile,pix_fmt,nb_frames,r_frame_rate", "-of", "json", path]);
+  expect(JSON.parse(stdout).streams).toEqual([{
+    width: 1920, height: 1080, codec_name: "prores", profile: "4444", pix_fmt: expect.stringMatching(/^yuva/),
+    nb_frames: "60", r_frame_rate: "30/1",
+  }]);
+  const width = 160, height = 90;
+  const { stdout: alpha } = await run("ffmpeg", ["-v", "error", "-i", path, "-vf",
+    `select=eq(n\\,0)+eq(n\\,13)+eq(n\\,42)+eq(n\\,59),alphaextract,scale=${width}:${height},format=gray`,
+    "-fps_mode", "passthrough", "-f", "rawvideo", "pipe:1"], { encoding: "buffer" });
+  const pixels = width * height;
+  expect(alpha.length).toBe(pixels * 4);
+  const [first, peak, smoke, last] = [0, 1, 2, 3].map(index => alpha.subarray(pixels * index, pixels * (index + 1)));
+  expect(first.every(pixel => pixel === 0)).toBe(true);
+  expect(last.every(pixel => pixel === 0)).toBe(true);
+  expect(peak.some(pixel => pixel > 230)).toBe(true);
+  expect(smoke.some(pixel => pixel > 32 && pixel < 160)).toBe(true);
+  for (const frame of [peak, smoke]) {
+    for (const corner of [0, width - 1, pixels - width, pixels - 1]) expect(frame[corner]).toBe(0);
+  }
+  await info.attach("transparent-fire-burst", { path, contentType: "video/quicktime" });
+});
+
+test("exports a Fire Shockwave that reaches all four corners and reveals the centre as it recedes", async ({ page }, info) => {
+  test.skip(process.env.STUDIO_TEST_MOV !== "1", "Requires local Studio and FFmpeg.");
+  test.setTimeout(80_000);
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const run = promisify(execFile);
+  await page.goto(route);
+  await page.getByRole("button", { name: "Use Fire Shockwave", exact: true }).click();
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Transparent MOV" }).click();
+  const file = await pending;
+  const path = (await file.path())!;
+  expect(file.suggestedFilename()).toBe("fire-shockwave.mov");
+  const { stdout } = await run("ffprobe", ["-v", "error", "-show_entries",
+    "stream=width,height,codec_name,profile,pix_fmt,nb_frames,r_frame_rate", "-of", "json", path]);
+  expect(JSON.parse(stdout).streams).toEqual([{
+    width: 1920, height: 1080, codec_name: "prores", profile: "4444", pix_fmt: expect.stringMatching(/^yuva/),
+    nb_frames: "60", r_frame_rate: "30/1",
+  }]);
+  const width = 160, height = 90, pixels = width * height;
+  const { stdout: alpha } = await run("ffmpeg", ["-v", "error", "-i", path, "-vf",
+    `select=eq(n\\,0)+eq(n\\,11)+eq(n\\,20)+eq(n\\,59),alphaextract,scale=${width}:${height},format=gray`,
+    "-fps_mode", "passthrough", "-f", "rawvideo", "pipe:1"], { encoding: "buffer" });
+  expect(alpha.length).toBe(pixels * 4);
+  const [first, peak, receding, last] = [0, 1, 2, 3].map(index => alpha.subarray(pixels * index, pixels * (index + 1)));
+  expect(first.every(pixel => pixel === 0)).toBe(true);
+  expect(last.every(pixel => pixel === 0)).toBe(true);
+  for (const corner of [0, width - 1, pixels - width, pixels - 1]) expect(peak[corner]).toBeGreaterThan(75);
+  const centre = Math.floor(height / 2) * width + width / 2;
+  expect(peak[centre]).toBeGreaterThan(128);
+  expect(receding[centre]).toBeLessThan(10);
+  expect(receding.some(pixel => pixel > 100)).toBe(true);
+  await info.attach("transparent-fire-shockwave", { path, contentType: "video/quicktime" });
 });
 
 test("the local bridge rejects foreign and invalid requests and recovers after cancellation", async ({ page, request, baseURL }) => {
