@@ -63,6 +63,7 @@
 - Browse imported visual effects and editable presets together as thumbnail tiles in Special Effects.
 - Use the same Preview workspace and playback controls for imported video effects and editable animations.
 - Use Full Screen, File Details, and Download MOV in the same places for editable and imported Special Effects.
+- Default Volumetric Fireball to 1 second.
 
 - Browse Sound Effects in its own top-level Studio UI Library tab. Motion Assets contains Special Effects and Sketches.
 

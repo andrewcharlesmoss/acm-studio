@@ -243,7 +243,7 @@ test("opens an existing Fire Shockwave project and saves its edited settings", a
 
   await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await motion.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).click();
-  await expect(duration).toHaveValue("11.6");
+  await expect(duration).toHaveValue("1");
   await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
   await expect(page.getByRole("img", { name: "Fire Shockwave animation preview" })).toBeVisible();
   await expect(duration).toHaveValue("1.6");
@@ -587,13 +587,15 @@ test("Volumetric Fireball renders live and saves editable name, size, and durati
   const preview = motion.getByRole("img", { name: "Volumetric Fireball animation preview" });
   await expect(preview).toHaveAttribute("data-live-render", "true");
   const canvas = preview.locator("canvas");
+  const duration = motion.getByRole("spinbutton", { name: "Duration (s)" });
+  await expect(duration).toHaveValue("1");
   const position = motion.getByRole("slider", { name: "Animation position" });
+  await expect(position).toHaveAttribute("max", "30");
   await position.press("Home");
   await expect(canvas).toHaveAttribute("data-centre-alpha", "0");
   await position.press("ArrowUp");
   await position.press("PageUp");
   await expect.poll(async () => Number(await canvas.getAttribute("data-centre-alpha"))).toBeGreaterThan(100);
-  await expect(motion.getByRole("spinbutton", { name: "Duration (s)" })).toHaveValue("11.6");
   await setNumber(page, "Width (px)", "360");
   await setNumber(page, "Height (px)", "640");
   await setNumber(page, "Duration (s)", "2.5");
@@ -647,8 +649,10 @@ test("Volumetric Fireball renders live and saves editable name, size, and durati
     asset: { effect: "volumetric-fireball", name: "My fireball", width: 360, height: 640, durationFrames: 75 } });
   await motion.getByRole("button", { name: "Reset Preview" }).click();
   await expect(preview).toHaveAttribute("data-preview-width", "1920");
+  await expect(duration).toHaveValue("1");
   await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
   await expect(motion.getByRole("img", { name: "My fireball animation preview" })).toHaveAttribute("data-preview-height", "640");
+  await expect(duration).toHaveValue("2.5");
 });
 
 test("Volumetric Fireball accepts cancellation and exports edited dimensions and duration with alpha", async ({ page }) => {

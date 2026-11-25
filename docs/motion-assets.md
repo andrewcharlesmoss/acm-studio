@@ -22,7 +22,7 @@ The initial wave uses the SVG geometry from the November 2026 cross-editor exper
 
 ## Special effects
 
-**Volumetric Fireball** is an independently generated 3D flame effect. Its shell, turbulent folds, sparks, and fade are defined in the [shared shader](../app/studio/motion-assets/volumetric-fireball.glsl). Change its name, width, height, and duration from 0.6 to 15 seconds. Defaults are 1920 × 1080 px and 11.6 seconds at 30 fps. Use **Download Project** to save an editable project in format v0.5.0, or **Download MOV** to render a ProRes 4444 file with alpha. **File Details** shows the settings for that MOV.
+**Volumetric Fireball** is an independently generated 3D flame effect. Its shell, turbulent folds, sparks, and fade are defined in the [shared shader](../app/studio/motion-assets/volumetric-fireball.glsl). Change its name, width, height, and duration from 0.6 to 15 seconds. Defaults are 1920 × 1080 px and 1 second at 30 fps. Use **Download Project** to save an editable project in format v0.5.0, or **Download MOV** to render a ProRes 4444 file with alpha. **File Details** shows the settings for that MOV.
 
 Studio previews the live shader on the transparency grid through WebGL 2. It shows a rendered still if live preview is unavailable. Local MOV export renders the same shader in Metal at the chosen size and duration. It requires a Mac with Metal, the Swift toolchain, and FFmpeg.
 
@@ -37,7 +37,7 @@ set -e -o pipefail
 render_dir=$(mktemp -d)
 mkdir -p outputs
 swiftc -O -module-cache-path "$render_dir/module-cache" scripts/volumetric-fireball/render.swift -o "$render_dir/render"
-"$render_dir/render" app/studio/motion-assets/volumetric-fireball.glsl 1920 1080 348 | \
+"$render_dir/render" app/studio/motion-assets/volumetric-fireball.glsl 1920 1080 30 | \
   ffmpeg -n -f rawvideo -pixel_format rgba -video_size 1920x1080 -framerate 30 -i pipe:0 \
   -vf 'scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le' -c:v prores_ks \
   -profile:v 4 -alpha_bits 8 -threads 4 -color_primaries bt709 -color_trc bt709 -colorspace bt709 \

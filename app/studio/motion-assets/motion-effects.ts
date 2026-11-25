@@ -1,12 +1,12 @@
 import { createElement } from "react";
 import { FireBurstArtwork, fireBurstPoster } from "./fire-burst.ts";
 import { FireShockwaveArtwork } from "./fire-shockwave.ts";
-import type { MotionEffect } from "./motion-asset.ts";
+import { motionFps, type MotionEffect } from "./motion-asset.ts";
 
 export { fireBurstPreview as motionEffectPreview } from "./fire-burst.ts";
 
 export const volumetricFireball: MotionEffect = {
-  effect: "volumetric-fireball", name: "Volumetric Fireball", width: 1920, height: 1080, durationFrames: 348,
+  effect: "volumetric-fireball", name: "Volumetric Fireball", width: 1920, height: 1080, durationFrames: motionFps,
 };
 
 const effects = {
