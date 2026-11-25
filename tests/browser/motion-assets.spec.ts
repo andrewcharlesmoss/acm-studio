@@ -374,6 +374,7 @@ test("routes Files audio and video to their own tabs and downloads the original 
   const audio = { name: "library-explosion.wav", mimeType: "audio/wav", buffer: audioBytes };
   const original = { name: "library-fireball.mov", mimeType: "video/quicktime", buffer: Buffer.from("original MOV bytes") };
   const otherVideo = { ...original, name: "second-fireball.mov" };
+  const playableVideo = { name: "thumbnail-check.webm", mimeType: "video/webm", buffer: await readFile("tests/browser/fixtures/timed-captions.webm") };
   const preview = { name: "library-fireball.mp4", mimeType: "video/mp4", buffer: Buffer.from("replacement preview bytes") };
   async function openNewFolder(name: string) {
     await files.getByRole("button", { name: "Folder", exact: true }).click();
@@ -400,7 +401,7 @@ test("routes Files audio and video to their own tabs and downloads the original 
   await upload.setInputFiles({ ...audio, name: "unrelated.wav" });
   await expect(files.getByText("unrelated.wav", { exact: true })).toBeVisible();
   await openNewFolder("Motion Assets");
-  await upload.setInputFiles([audio, original, otherVideo]);
+  await upload.setInputFiles([audio, original, otherVideo, playableVideo]);
   await expect(files.getByText(original.name, { exact: true })).toBeVisible();
   await files.getByRole("button", { name: /^library-explosion\.wav/ }).click();
   await expectAudioFileDetails(page, files.getByRole("button", { name: "File Details for library-explosion.wav" }));
@@ -459,12 +460,29 @@ test("routes Files audio and video to their own tabs and downloads the original 
   await expect.poll(() => sound.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
 
   await motionTab.click();
+  await setNumber(libraryPage, "Width (px)", "1050");
   await effectsTab.click();
+  const generatedTile = effects.getByRole("button", { name: "Use Volumetric Fireball", exact: true });
+  const importedTile = effects.getByRole("button", { name: `Preview ${original.name}`, exact: true });
+  const playableTile = effects.getByRole("button", { name: `Preview ${playableVideo.name}`, exact: true });
+  await expect(playableTile.locator("img")).toHaveAttribute("src", /^data:image\//);
+  await expect(video).toHaveCount(0);
+  for (const width of [desktop.width, 820, 320]) {
+    await libraryPage.setViewportSize({ width, height: desktop.height });
+    const generated = (await generatedTile.boundingBox())!;
+    const imported = (await importedTile.boundingBox())!;
+    expect(imported.x).toBeGreaterThan(generated.x);
+    expect(imported.y).toBe(generated.y);
+    expect(imported.width).toBeCloseTo(generated.width, 0);
+    expect(imported.x + imported.width).toBeLessThanOrEqual(width);
+  }
+  await libraryPage.setViewportSize(desktop);
+  await importedTile.press("Enter");
+  await expect(importedTile).toHaveAttribute("aria-pressed", "true");
   await expect(video).toHaveAccessibleName("library-fireball.mov preview");
+  await expect(libraryPage.getByRole("region", { name: "Motion preview", exact: true })).toBeHidden();
   await expect(effects.getByText(preview.name, { exact: true })).toHaveCount(0);
   await expect(effects.getByText("misfiled-video.mov", { exact: true })).toHaveCount(0);
-  await expectResponsiveCards(effects.getByRole("listitem").filter({ hasText: original.name }),
-    effects.getByRole("listitem").filter({ hasText: otherVideo.name }));
   expect(await video.evaluate(element => fetch((element as HTMLVideoElement).src).then(response => response.text()))).toBe(preview.buffer.toString());
   await effects.getByRole("button", { name: "File Details for library-fireball.mov" }).click();
   const videoDetails = libraryPage.getByRole("dialog", { name: "File Details", exact: true });
@@ -478,6 +496,15 @@ test("routes Files audio and video to their own tabs and downloads the original 
   const download = await pending;
   expect(download.suggestedFilename()).toBe(original.name);
   expect(await readFile((await download.path())!)).toEqual(original.buffer);
+  await effects.getByRole("button", { name: "Close Preview", exact: true }).press("Enter");
+  await expect(importedTile).toBeFocused();
+  await expect(importedTile).toHaveAttribute("aria-pressed", "false");
+  await expect(libraryPage.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1050");
+  await importedTile.press("Enter");
+  await libraryPage.getByRole("tab", { name: "Sketches", exact: true }).click();
+  await expect(libraryPage.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1050");
+  await effectsTab.click();
+  await expect(video).toBeVisible();
 
   await files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name: "All files", exact: true }).click();
   await files.getByRole("button", { name: "Motion Assets", exact: true }).press("Enter");

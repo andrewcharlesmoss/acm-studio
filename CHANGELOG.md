@@ -60,6 +60,8 @@
 
 ### Changed
 
+- Browse imported visual effects and editable presets together as thumbnail tiles in Special Effects.
+
 - Browse Sound Effects in its own top-level Studio UI Library tab. Motion Assets contains Special Effects and Sketches.
 
 - Browse sound and video files in responsive grids, with playback, download, and File Details on each card.

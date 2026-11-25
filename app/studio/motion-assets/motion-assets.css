@@ -5,6 +5,7 @@
   color: var(--acm-ui-color-label, #1c1c1e);
   background: var(--acm-color-workspace-background, #f8fafc);
 }
+.motion-workspace[hidden] { display: none; }
 
 .motion-preview { display: flex; flex-direction: column; align-self: start; min-width: 0; }
 .motion-toolbar, .motion-transport, .motion-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -86,11 +87,14 @@
 }
 .motion-category-tabs button { flex: 0 0 auto; }
 .motion-catalogue-options { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; }
-.motion-catalogue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-.motion-catalogue-card { display: grid; gap: 10px; text-align: left; padding: 12px; color: var(--rl-ink, #1c1c1e); background: white; border: 1px solid var(--rl-line, #dadde1); border-radius: 8px; font: inherit; }
+.motion-catalogue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 12px; }
+.motion-catalogue-card { display: grid; grid-template-rows: 80px auto; align-content: start; gap: 10px; min-width: 0; text-align: left; padding: 12px; color: var(--rl-ink, #1c1c1e); background: white; border: 1px solid var(--rl-line, #dadde1); border-radius: 8px; font: inherit; }
 .motion-catalogue-card:hover { border-color: var(--rl-ink, #1c1c1e); }
 .motion-catalogue-card[aria-pressed="true"] { border-color: var(--rl-ink, #1c1c1e); box-shadow: inset 0 0 0 1px var(--rl-ink, #1c1c1e); }
-.motion-catalogue-card :is(svg, img) { width: 100%; height: 80px; }
+.motion-catalogue-card img, .motion-catalogue-card > svg { width: 100%; height: 80px; }
 .motion-catalogue-card img { object-fit: contain; }
-.motion-catalogue-card strong { font-size: var(--studio-ui-size, 13px); }
-.motion-catalogue-grid + .media-preview-grid { margin-block-start: 12px; }
+.motion-catalogue-card strong { font-size: var(--studio-ui-size, 13px); overflow-wrap: anywhere; }
+.motion-video-thumbnail { display: grid; place-items: center; min-width: 0; }
+.motion-video-preview { display: grid; gap: 8px; max-width: 42rem; margin-block-start: 16px; }
+.motion-video-preview .media-preview-grid { grid-template-columns: minmax(0, 1fr); }
+.motion-video-toolbar > :last-child { margin-inline-start: auto; }
