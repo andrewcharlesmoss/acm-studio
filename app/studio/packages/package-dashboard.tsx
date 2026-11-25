@@ -42,19 +42,32 @@ function revealPackageAction(control: HTMLSelectElement) {
   else if (action.right > right - outlineRoom) scrollRegion.scrollBy({ left: action.right - right + outlineRoom });
 }
 
-function ConsumerCell({ dependency, release, action }: { dependency?: ConsumerPackage; release?: Release; action?: ReactNode }) {
+function ConsumerCell({ dependency, release, action, actionNote }: {
+  dependency?: ConsumerPackage;
+  release?: Release;
+  action?: ReactNode;
+  actionNote?: string;
+}) {
   if (!dependency) return <td>Unknown</td>;
 
   const label = stateLabel[dependency.state];
   const compare = dependency.comparison;
+  const versionInPicker = Boolean(action && dependency.version === dependency.declared);
+  const versionLabel = dependency.state === "locked" ? "Locked version" : dependency.state === "local" ? "Local version" : "Installed version";
   return <td>
-    {dependency.version ? <strong>v{dependency.version}{compare === 0 ? " (latest)" : ""}</strong> : null}
+    {action ? <div className="package-dash-cell-action">{action}</div> : null}
+    {dependency.version && !versionInPicker ? action
+      ? <span className="package-dash-detail">{versionLabel} v{dependency.version}{compare === 0 ? " (latest)" : ""}</span>
+      : <strong>v{dependency.version}{compare === 0 ? " (latest)" : ""}</strong>
+      : null}
     {compare === -1 && release ? <span className="package-dash-detail">Latest{release.source === "verified" ? " verified" : ""} v{release.version}</span> : null}
     {compare === 1 ? <span className="package-dash-detail">Ahead of latest {release?.source === "verified" ? "verified release" : "release"}</span> : null}
-    <span className={dependency.version ? "package-dash-detail" : undefined}>{label}</span>
+    <span className={dependency.version || action ? "package-dash-detail" : undefined}>{label}{versionInPicker && compare === 0 ? " · latest" : ""}</span>
     {dependency.declared && !action ? <span className="package-dash-detail">Declared {dependency.declared}</span> : null}
-    {dependency.state === "unidentified" && dependency.locked ? <span className="package-dash-detail">Locked v{dependency.locked}</span> : null}
-    {action ? <div className="package-dash-cell-action">{action}</div> : null}
+    {dependency.state === "unidentified" && dependency.locked ? <span className="package-dash-detail">
+      {action && dependency.locked === dependency.declared ? "Locked to selected version" : `Locked v${dependency.locked}`}
+    </span> : null}
+    {actionNote ? <span className="package-dash-detail">{actionNote}</span> : null}
   </td>;
 }
 
@@ -148,7 +161,9 @@ export function PackageDashboard() {
                 return <ConsumerCell key={pkg.id}
                   release={release}
                   dependency={dependency}
-                  action={versions ? <>
+                  actionNote={versions && !versions.alternatives.length
+                    ? versions.published ? "No other releases" : "Live versions unavailable" : undefined}
+                  action={versions ?
                     <SelectControl aria-label={`${pkg.label} version`} aria-describedby={versions.alternatives.length ? "package-version-review-help" : undefined}
                       value={versions.declared} disabled={!versions.alternatives.length}
                       onFocus={event => revealPackageAction(event.currentTarget)} onChange={event => {
@@ -159,10 +174,7 @@ export function PackageDashboard() {
                       <option value={versions.declared}>v{versions.declared} (current)</option>
                       {versions.alternatives.map(version => <option key={version} value={version}>v{version}</option>)}
                     </SelectControl>
-                    {!versions.alternatives.length ? <span className="package-dash-detail">
-                      {versions.published ? "No other releases" : "Live versions unavailable"}
-                    </span> : null}
-                  </> : null} />;
+                    : null} />;
               })}
             </tr>;
           })}</tbody>

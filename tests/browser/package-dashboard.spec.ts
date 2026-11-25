@@ -36,7 +36,10 @@ test("shows verified version comparisons and keyboard access from the Control Ce
   await expect(table.getByRole("columnheader", { name: /Panel/ })).toContainText("Latest release v0.1.0");
   await expect(table.getByRole("columnheader", { name: /Panel/ })).toContainText("Verified 23 Nov 2026");
   const studio = table.getByRole("row", { name: /^ACM Studio / });
-  await expect(studio.getByRole("cell").nth(0)).toContainText("v0.35.1 (latest)");
+  const iconsCell = studio.getByRole("cell").nth(0);
+  await expect(iconsCell.getByRole("combobox", { name: "Icons version" })).toHaveValue("0.35.1");
+  await expect(iconsCell.getByText("Installed · latest", { exact: true })).toBeVisible();
+  await expect(iconsCell.getByText("v0.35.1 (latest)", { exact: true })).toHaveCount(0);
   await expect(studio.getByRole("cell").nth(1)).toContainText("Latest verified v0.1.0");
   await expect(studio.getByRole("cell").nth(2)).toContainText("Broken local link");
   await expect(studio.getByRole("cell").nth(3)).toContainText("Unidentifiable source");
@@ -77,7 +80,8 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await page.route("**/__studio/packages", route => route.fulfill({ json: {
     available: true,
     projects: [{ id: "acm-studio", packages: [
-      { id: "icons", state: "installed", declared, version: "0.35.1", comparison: 0 },
+      { id: "icons", state: declared === "0.35.1" ? "installed" : "unidentified",
+        declared, version: "0.35.1", locked: declared, comparison: declared === "0.35.1" ? 0 : null },
       { id: "panel", state: "installed", declared: "0.1.0", version: "0.1.0", comparison: 0 },
     ] }, { id: "acm-account", packages: [
       { id: "panel", state: "installed", declared: "0.1.0", version: "0.1.0", comparison: 0 },
@@ -139,5 +143,6 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await expect(opener).toBeFocused();
   await expect(page.getByText(/Icons v0.34.0 is saved/)).toBeVisible();
   await expect(opener.locator("option:checked")).toHaveText("v0.34.0 (current)");
+  await expect(studio.getByText("Installed version v0.35.1", { exact: true })).toBeVisible();
   expect(actions).toEqual(["review", "review", "apply"]);
 });
