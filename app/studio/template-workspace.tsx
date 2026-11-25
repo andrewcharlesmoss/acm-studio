@@ -45,7 +45,7 @@ import { StudioButton } from "./controls/button";
 import { StudioTooltipGroup } from "./controls/tooltip-group";
 import { StudioNavigationFrame } from "./studio-navigation-frame";
 
-type NameDialog = { title: string; name: string; confirm: (name: string) => boolean | void };
+type NameDialog = { title: string; name: string; originalName: string; confirm: (name: string) => boolean | void };
 export type TemplateWorkspaceSession = ReturnType<typeof useStudioWorkspace>;
 export type TemplateStoreSession = ReturnType<typeof useTemplates>;
 const templateCreationActions = [
@@ -221,7 +221,7 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     pendingTemplateFocusRef.current = null;
   }, [templateEntries]);
   function closeDialog() { setDialog(null); }
-  function askName(title: string, name: string, confirm: NameDialog["confirm"]) { setDialogOpener(document.activeElement as HTMLElement); setDialog({ title, name, confirm }); }
+  function askName(title: string, name: string, confirm: NameDialog["confirm"]) { setDialogOpener(document.activeElement as HTMLElement); setDialog({ title, name, originalName: name, confirm }); }
   async function openSet(item: TemplateSet, id = item.templates[0]?.id ?? item.parts[0]?.id) {
     if (await changeSelection({ setId: item.id, targetId: id ?? null }) === false) return;
     setMediaTarget(null);
@@ -537,7 +537,8 @@ export function TemplateWorkspacePanel({ dependencyActions, viewControls, onCanv
     {templateContextMenu ? <StudioListContextMenu target={templateContextMenu} actions={templateContextMenuActions} canDelete={writable && Boolean(templateContextMenuEntry) && !templateContextMenuDeleteReason} disabledReason={!writable ? "Editing is unavailable in this tab." : templateContextMenuDeleteReason} returnFocusRef={templateContextMenuTriggerRef} onDelete={() => deleteTemplateEntry(templateContextMenu.setId, templateContextMenu.targetId)} onClose={closeTemplateContextMenu} /> : null}
     <input ref={importRef} hidden type="file" accept=".json,application/json" onChange={event => { void importFile(event.target.files?.[0]); event.target.value = ""; }} />
   </>;
-  const dialogElement = dialog ? <StudioDialog title={dialog.title} className="template-dialog" returnFocus={dialogOpener} selectInitialText onClose={closeDialog}>
+  const dialogElement = dialog ? <StudioDialog title={dialog.title} className="template-dialog" returnFocus={dialogOpener} selectInitialText
+    closeOnBackdrop={dialog.name === dialog.originalName} onClose={closeDialog}>
     <form onSubmit={event => { event.preventDefault(); if (dialog.confirm(dialog.name.trim()) !== false) closeDialog(); }}>
       <label>Name<TextInput required maxLength={160} value={dialog.name} onChange={event => setDialog({ ...dialog, name: event.target.value })} /></label>
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closeDialog}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable}>Save</StudioButton></StudioDialogActions>

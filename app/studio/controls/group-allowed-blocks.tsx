@@ -39,6 +39,7 @@ export function GroupAllowedBlocksControl({ value, onChange }: {
   const [query, setQuery] = useState("");
   const trigger = useRef<HTMLButtonElement>(null);
   const selected = value ?? [...GROUP_SELECTABLE_BLOCK_TYPES];
+  const changed = draft.length !== selected.length || draft.some(type => !selected.includes(type));
   const filteredOptions = filterGroupAllowedBlockOptions(query);
   const groups = [...new Set(filteredOptions.map(option => option.group))];
 
@@ -61,7 +62,7 @@ export function GroupAllowedBlocksControl({ value, onChange }: {
     <SettingLabel>Allowed Blocks</SettingLabel>
     <StudioButton type="button" variant="secondary" onClick={event => { trigger.current = event.currentTarget; openDialog(); }}>Manage allowed blocks</StudioButton>
     <p className="setting-note">Specify which blocks are allowed inside this container.</p>
-    {open ? <StudioDialog title="Manage allowed blocks" className="group-allowed-blocks-dialog" returnFocus={trigger} onClose={() => setOpen(false)}>
+    {open ? <StudioDialog title="Manage allowed blocks" className="group-allowed-blocks-dialog" returnFocus={trigger} closeOnBackdrop={!changed} onClose={() => setOpen(false)}>
       <p>Select which blocks can be added inside this container.</p>
       <label><span>Search for a block</span><SearchInput aria-label="Search for a block" value={query} onChange={event => setQuery(event.target.value)} /></label>
       <CheckboxControl label="Select all" checked={GROUP_SELECTABLE_BLOCK_TYPES.every(type => draft.includes(type))} indeterminate={draft.length > 0 && !GROUP_SELECTABLE_BLOCK_TYPES.every(type => draft.includes(type))} onChange={checked => toggleTypes(GROUP_SELECTABLE_BLOCK_TYPES, checked)} />

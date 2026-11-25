@@ -13,6 +13,7 @@ export function StudioDocumentDialogs({ actions, workspace, templates, writable,
   templates: TemplateStore; writable: boolean; templateWritable: boolean;
 }) {
   const { newTemplateChoice, saveTemplateDialog, renameDocumentDialog, actionError } = actions;
+  const renamedDocument = workspace.documents.find(item => item.id === renameDocumentDialog?.documentId);
   const choices = templates.sets.flatMap(set => set.templates.map(template => ({ set, template })));
   return <>
     {newTemplateChoice ? <StudioDialog title="New from template" className="template-dialog" onClose={() => actions.setNewTemplateChoice(undefined)}>
@@ -24,7 +25,7 @@ export function StudioDocumentDialogs({ actions, workspace, templates, writable,
         <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => actions.setNewTemplateChoice(undefined)}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable || !templateWritable}>Create document</StudioButton></StudioDialogActions>
       </form>
     </StudioDialog> : null}
-    {saveTemplateDialog ? <StudioDialog title="Save as template" className="template-dialog" onClose={() => actions.setSaveTemplateDialog(undefined)}>
+    {saveTemplateDialog ? <StudioDialog title="Save as template" className="template-dialog" closeOnBackdrop={false} onClose={() => actions.setSaveTemplateDialog(undefined)}>
       <form onSubmit={event => { event.preventDefault(); actions.commitSaveAsTemplate(saveTemplateDialog); }}>
         <p>The document body and personal content stay with this document. Choose reusable defaults below; the template keeps the layout and dynamic field structure.</p>
         <label><span>Template name</span><TextInput required value={saveTemplateDialog.name} onChange={event => actions.setSaveTemplateDialog({ ...saveTemplateDialog, name: event.target.value })} /></label>
@@ -37,7 +38,8 @@ export function StudioDocumentDialogs({ actions, workspace, templates, writable,
         <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => actions.setSaveTemplateDialog(undefined)}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable || !templateWritable}>Save template</StudioButton></StudioDialogActions>
       </form>
     </StudioDialog> : null}
-    {renameDocumentDialog ? <StudioDialog title={`Rename ${workspace.documents.find(item => item.id === renameDocumentDialog.documentId)?.kind ?? "document"}`} className="template-dialog" selectInitialText returnFocus={renameDocumentDialog.opener} onClose={() => actions.setRenameDocumentDialog(null)}>
+    {renameDocumentDialog ? <StudioDialog title={`Rename ${renamedDocument?.kind ?? "document"}`} className="template-dialog" selectInitialText returnFocus={renameDocumentDialog.opener}
+      closeOnBackdrop={renameDocumentDialog.name === renamedDocument?.title} onClose={() => actions.setRenameDocumentDialog(null)}>
       <form onSubmit={event => { event.preventDefault(); actions.confirmRenameDocument(); }}>
         <p>Change the title of this local document.</p>
         <label><span>Name</span><TextInput required maxLength={160} value={renameDocumentDialog.name} onChange={event => actions.setRenameDocumentDialog({ ...renameDocumentDialog, name: event.target.value })} /></label>

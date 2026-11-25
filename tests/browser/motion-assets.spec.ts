@@ -376,6 +376,47 @@ test("the top-level Sound Effects tab has its own search, pauses playback, and d
   expect(data.readUInt32LE(40) / (48_000 * 6)).toBe(4.1);
 });
 
+test("File Details closes on its backdrop and returns focus", async ({ page }) => {
+  await page.route("**/motion-assets/explosion-and-glass.wav", route => route.fulfill({ status: 404 }));
+  await page.goto(soundRoute);
+  const detailsTrigger = page.getByRole("button", { name: "File Details for explosion-and-glass.wav", exact: true });
+  const details = page.getByRole("dialog", { name: "File Details", exact: true });
+  await detailsTrigger.click();
+  const heading = details.getByRole("heading", { name: "File Details", exact: true });
+  await heading.click();
+  await expect(details).toBeVisible();
+  const inside = (await heading.boundingBox())!;
+  const outside = { x: 8, y: inside.y + inside.height / 2 };
+  const bounds = (await details.boundingBox())!;
+  expect(outside.x).toBeLessThan(bounds.x);
+  await page.mouse.move(inside.x + inside.width / 2, outside.y);
+  await page.mouse.down();
+  await page.mouse.move(outside.x, outside.y, { steps: 5 });
+  await page.mouse.up();
+  await expect(details).toBeVisible();
+  await page.mouse.click(outside.x, outside.y);
+  await expect(details).toHaveCount(0);
+  await expect(detailsTrigger).toBeFocused();
+});
+
+test.describe("Touch dismissal", () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+  test("File Details closes on a backdrop tap", async ({ page }) => {
+    await page.route("**/motion-assets/explosion-and-glass.wav", route => route.fulfill({ status: 404 }));
+    await page.goto(soundRoute);
+    const trigger = page.getByRole("button", { name: "File Details for explosion-and-glass.wav", exact: true });
+    const details = page.getByRole("dialog", { name: "File Details", exact: true });
+    await trigger.tap();
+    await expect(details).toBeVisible();
+    const bounds = (await details.boundingBox())!;
+    expect(bounds.x).toBeGreaterThan(0);
+    await page.touchscreen.tap(bounds.x / 2, bounds.y + bounds.height / 2);
+    await expect(details).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+});
+
 test("routes Files audio and video to their own tabs and downloads the original MOV", async ({ page, context }) => {
   test.setTimeout(60_000);
   await page.goto("/studio?mode=files");

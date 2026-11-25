@@ -1,5 +1,27 @@
 import { expect, test } from '@playwright/test';
 
+test('Add Page dismisses from its backdrop until a title is edited', async ({ page }) => {
+  await page.goto('/studio/ui/controls#site-pages-catalogue');
+  const example = page.locator('.ui-pages-catalogue-specimen');
+  const open = example.getByRole('button', { name: 'Add Page', exact: true });
+  await open.click();
+  const dialog = page.getByRole('dialog', { name: 'Add Page', exact: true });
+  await expect(dialog).toBeVisible();
+  const bounds = (await dialog.boundingBox())!;
+  const backdrop = { x: 8, y: bounds.y + bounds.height / 2 };
+  expect(backdrop.x).toBeLessThan(bounds.x);
+  await page.mouse.click(backdrop.x, backdrop.y);
+  await expect(dialog).toHaveCount(0);
+  await expect(open).toBeFocused();
+  await open.click();
+  const title = dialog.getByLabel('Page title');
+  await title.fill('Unsaved title');
+  await page.mouse.click(backdrop.x, backdrop.y);
+  await expect(title).toHaveValue('Unsaved title');
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+});
+
 test('Pages Library example exercises shared layouts and memory-only page actions, then resets', async ({ page }) => {
   await page.goto('/studio/ui/controls#site-pages-catalogue');
   await expect(page.getByRole('heading', { name: 'Pages catalogue' })).toBeVisible();
@@ -7,17 +29,22 @@ test('Pages Library example exercises shared layouts and memory-only page action
   await expect(example).toBeVisible();
 
   await expect(example.getByRole('button', { name: 'All Pages' })).toBeVisible();
-  await example.getByRole('button', { name: 'Grid', exact: true }).click();
-  await expect(example.getByRole('button', { name: 'Grid', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await example.getByRole('button', { name: 'Table', exact: true }).click();
+  const layout = example.getByRole('button', { name: /^Change layout,/ });
+  const layoutMenu = page.getByRole('menu', { name: 'Page layout', exact: true });
+  await layout.click();
+  await layoutMenu.getByRole('menuitemradio', { name: 'Grid', exact: true }).click();
+  await expect(layout).toHaveAccessibleName('Change layout, grid');
+  await layout.click();
+  await layoutMenu.getByRole('menuitemradio', { name: 'Table', exact: true }).click();
   await expect(example.locator('.site-pages-table')).toBeVisible();
-  await example.getByRole('button', { name: 'List', exact: true }).click();
+  await layout.click();
+  await layoutMenu.getByRole('menuitemradio', { name: 'List', exact: true }).click();
 
   await example.getByRole('button', { name: 'Add Page', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Add Page' });
   await dialog.getByLabel('Page title').fill('Added from the library example');
   await dialog.getByRole('button', { name: 'Add Page', exact: true }).click();
-  await expect(example.getByRole('status').filter({ hasText: 'Temporary page added to the example.' })).toBeVisible();
+  await expect(example.getByRole('status').filter({ hasText: 'Page created.' })).toBeVisible();
 
   await example.getByRole('searchbox', { name: 'Search pages' }).fill('Added from the library example');
   const actions = example.getByRole('button', { name: 'Actions for Added from the library example' });
@@ -25,7 +52,7 @@ test('Pages Library example exercises shared layouts and memory-only page action
   const menu = page.getByRole('menu', { name: 'Actions for Added from the library example' });
   await menu.getByRole('menuitem', { name: 'Order' }).click();
   const orderDialog = page.getByRole('dialog', { name: 'Order page' });
-  await orderDialog.getByLabel('Order').fill('-3');
+  await orderDialog.getByRole('spinbutton', { name: 'Order', exact: true }).fill('-3');
   await orderDialog.getByRole('button', { name: 'Save', exact: true }).click();
 
   await actions.click();
@@ -36,7 +63,7 @@ test('Pages Library example exercises shared layouts and memory-only page action
   await page.getByRole('menu', { name: 'Actions for Added from the library example' }).getByRole('menuitem', { name: 'Restore' }).click();
   await expect(example.getByText('The Bin is empty.')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Reset example', exact: true }).click();
+  await page.getByRole('region', { name: 'Pages catalogue', exact: true }).getByRole('button', { name: 'Reset example', exact: true }).click();
   await expect(example.getByRole('button', { name: 'Actions for Added from the library example' })).toHaveCount(0);
   await example.getByRole('checkbox', { name: 'Read-only example' }).check();
   await expect(example.getByRole('button', { name: 'Add Page', exact: true })).toBeDisabled();

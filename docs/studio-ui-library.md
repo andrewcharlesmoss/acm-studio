@@ -581,9 +581,14 @@ Destructive commands retain their feature-specific treatment.
 
 `overlays/StudioDialog` and `StudioDialogActions` own native modal opening,
 accessible headings, the close button, Escape dismissal, initial field focus,
-focus return and action layout. Block naming, notes and locks, template naming,
-image descriptions and permanent-deletion confirmation consume this shell;
-feature owners retain drafts, validation and write-ownership checks.
+focus return and action layout. Clicking the backdrop dismisses a modal by
+default and returns focus to the opener. The gesture must start and end on
+the backdrop. Feature owners can disable backdrop dismissal to protect drafts
+or keep a pending operation open. Block editorial, document and template naming,
+inline image, and Site Editor forms protect edited fields. Allowed-block and
+template dependency dialogs protect staged selections. Save as template keeps
+its review open until an explicit dismissal. Feature owners retain validation
+and write-ownership checks.
 
 Colour and gradient pickers share `PopoverHeading` and `useOverlayDismiss`.
 Dismissal applies to the topmost registered overlay; nested custom-colour and

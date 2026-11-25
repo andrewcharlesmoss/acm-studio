@@ -7,7 +7,7 @@ function clickAt({x, y, targetIsDialog = true, detail = 1} = {}) {
  return {target:targetIsDialog?dialog:{},currentTarget:dialog,detail,clientX:x,clientY:y};
 }
 
-test('dialog backdrop clicks dismiss only when the opt-in is enabled and the point is outside the dialog',()=>{
+test('dialog backdrop clicks dismiss only when backdrop dismissal is enabled and the point is outside the dialog',()=>{
  assert.equal(isStudioDialogBackdropClick(clickAt({x:40,y:200}),true,false),true);
  assert.equal(isStudioDialogBackdropClick(clickAt({x:120,y:100}),true,false),false);
  assert.equal(isStudioDialogBackdropClick(clickAt({x:40,y:200,targetIsDialog:false}),true,false),false);

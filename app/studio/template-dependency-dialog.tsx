@@ -34,7 +34,8 @@ export function TemplateDependencyDialog({ name, target, store, rows, unavailabl
     finally { setBusy(false); }
   }
   const kindLabel = (row: TemplateDependency) => ({ document: "Document assignment", publication: "Published layout", bin: "Document in Bin", default: "Default choice", part: "Shared-part reference", navigation: "Site navigation", recovery: "Recovery copy" })[row.kind];
-  return <StudioDialog title={`Manage dependencies — ${name}`} className="template-dependency-dialog" returnFocus={opener} onClose={() => { if (!busy) onClose(); }}>
+  return <StudioDialog title={`Manage dependencies — ${name}`} className="template-dependency-dialog" returnFocus={opener}
+    closeDisabled={busy} closeOnBackdrop={selected.length === 0 && choice === "detach"} onClose={onClose}>
     <p>Replace or detach selected assignments. Content stays intact. Published layout selections also change the local preview.</p>
     {unavailable ? <p role="alert">{unavailable}</p> : null}
     <CheckboxControl className="template-dependency-select-all" disabled={busy || Boolean(unavailable) || !selectable.length} checked={Boolean(selectable.length && selectable.every(row => selected.some(item => item.key === row.key)))} onChange={checked => toggle(selectable, checked)} label={<>Select all assignments</>} />

@@ -60,6 +60,8 @@
 
 ### Changed
 
+- Close Studio dialogs by clicking their backdrop, with draft and pending-operation safeguards.
+
 - Browse Sound Effects in a compact table with icon actions for downloads and file details.
 - Pause the previous sound when another starts playing in Sound Effects.
 

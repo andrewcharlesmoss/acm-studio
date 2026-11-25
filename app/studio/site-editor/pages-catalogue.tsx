@@ -29,7 +29,10 @@ const propertyNames: Record<PageProperty, string> = {
 const sortNames: Record<PageSort, string> = { title: "Title", author: "Author", status: "Status", date: "Date", slug: "Slug", parent: "Parent", order: "Order" };
 const dateNames: Record<string, string> = { month: "Past month", year: "Past year", future: "Future" };
 type PageListItem = StudioDocument & { binId?: string; deletedAt?: string };
-type PageDialog = { kind: "add"; title: string } | { kind: "rename"; document: StudioDocument; title: string } | { kind: "order"; document: StudioDocument; order: string };
+type PageDialog = (
+  { kind: "add"; title: string } | { kind: "rename"; document: StudioDocument; title: string }
+  | { kind: "order"; document: StudioDocument; order: string }
+) & { opener: HTMLElement | null };
 
 const displayDate = (document: StudioDocument) => {
   const raw = document.status === "published" ? document.publishedAt ?? document.updatedAt : document.publishAt ?? document.updatedAt;
@@ -79,12 +82,12 @@ export function PagesSidebar({ value, onChange, onBack, disabled = false }: { va
 
 function PageActions({ document, binId, home, writable, busy, onEdit, onView, onRename, onOrder, onBin, onRestore }: {
   document: StudioDocument; binId?: string; home: boolean; writable: boolean; busy: boolean;
-  onEdit: () => void; onView: () => void; onRename: () => void; onOrder: () => void; onBin: () => void; onRestore: () => void;
+  onEdit: () => void; onView: () => void; onRename: (opener: HTMLButtonElement | null) => void; onOrder: (opener: HTMLButtonElement | null) => void; onBin: () => void; onRestore: () => void;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const close = (restoreFocus = true) => { setOpen(false); if (restoreFocus) requestAnimationFrame(() => trigger.current?.focus()); };
-  const action = (label: string, run: () => void, disabled = false, destructive = false) => <button type="button" role="menuitem" className={destructive ? "is-destructive" : undefined} disabled={disabled} onClick={() => { close(false); run(); }}>{label}</button>;
+  const action = (label: string, run: (opener: HTMLButtonElement | null) => void, disabled = false, destructive = false) => <button type="button" role="menuitem" className={destructive ? "is-destructive" : undefined} disabled={disabled} onClick={() => { close(false); run(trigger.current); }}>{label}</button>;
   return <div className="site-pages-row-actions">
     <button ref={trigger} type="button" className="site-pages-more" aria-label={`Actions for ${document.title || "Untitled page"}`} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}><StudioIcon name="more-vertical" size={20} /></button>
     {open ? <StudioAnchoredMenu anchor={() => trigger.current} align="end" className="site-pages-action-menu" aria-label={`Actions for ${document.title || "Untitled page"}`} onClose={close}>
@@ -103,6 +106,8 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
   const [dialog, setDialog] = useState<PageDialog | null>(null);
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
+  const dialogEdited = dialog?.kind === "order" ? dialog.order !== String(dialog.document.pageOrder ?? 0)
+    : Boolean(dialog && dialog.title !== (dialog.kind === "rename" ? dialog.document.title : ""));
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [layoutOpen, setLayoutOpen] = useState(false);
   const filtersTrigger = useRef<HTMLButtonElement>(null);
@@ -180,8 +185,8 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
     return "—";
   };
   const actionsFor = (document: StudioDocument, binId?: string) => <PageActions document={document} binId={binId} home={document.id === homeDocumentId} writable={writable} busy={busy}
-    onEdit={() => selectPage(document, true)} onView={() => viewPage(document)} onRename={() => setDialog({ kind: "rename", document, title: document.title })}
-    onOrder={() => setDialog({ kind: "order", document, order: String(document.pageOrder ?? 0) })}
+    onEdit={() => selectPage(document, true)} onView={() => viewPage(document)} onRename={opener => setDialog({ kind: "rename", document, title: document.title, opener })}
+    onOrder={opener => setDialog({ kind: "order", document, order: String(document.pageOrder ?? 0), opener })}
     onBin={() => void run(() => onBin([document.id]), "Page moved to Bin.")} onRestore={() => void run(() => onRestore([binId!]), "Page restored.")} />;
   const selectionControl = (document: StudioDocument, id: string, binId?: string) => <CheckboxControl className="site-pages-selection" label={`Select ${document.title || "Untitled page"}`} checked={selected.has(id)} disabled={document.id === homeDocumentId && !binId} onChange={checked => toggleSelection(id, checked)} />;
   const row = (document: PageListItem) => <article {...(pageReordering && !document.binId ? pageReordering.targetProps(document.id, false) : {})} className={`site-pages-row${selectedId === document.id ? " is-current" : ""}`} key={document.binId ?? document.id}>
@@ -207,7 +212,7 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
   </tr>)}</tbody></table></div>;
 
   return <section className={`site-pages-catalogue density-${normalView.density}${pageReordering ? " has-page-reordering" : ""}`} aria-label={`${siteName} pages`}>
-    <header className="site-pages-heading"><h2>Pages</h2><StudioButton type="button" disabled={!writable || busy || isBin} onClick={() => { setFeedback(""); setDialog({ kind: "add", title: "" }); }}>Add Page</StudioButton></header>
+    <header className="site-pages-heading"><h2>Pages</h2><StudioButton type="button" disabled={!writable || busy || isBin} onClick={event => { setFeedback(""); setDialog({ kind: "add", title: "", opener: event.currentTarget }); }}>Add Page</StudioButton></header>
     <div className="site-pages-tools">
       <label className="site-pages-search"><span className="visually-hidden">Search pages</span><SearchInput value={query} placeholder="Search" onChange={event => { setQuery(event.target.value); setPage(1); }} /></label>
       <button ref={filtersTrigger} type="button" className={`site-pages-tool-button${activeFilterCount ? " has-active-options" : ""}`} aria-label={activeFilterCount ? `Filters, ${activeFilterCount} active` : "Filters"} title="Filters" aria-haspopup="menu" aria-expanded={filtersOpen} onClick={() => { setFiltersOpen(value => !value); setLayoutOpen(false); setViewOpen(false); }}><AcmIcon name="action.filter" size={24} scale="Regular-M" aria-hidden="true" />{activeFilterCount ? <span className="site-pages-tool-count" aria-hidden="true" /> : null}</button>
@@ -250,8 +255,9 @@ export function PagesCatalogue({ siteName, documents, binned, homeDocumentId, se
     {normalView.layout === "table" ? tableRows : normalView.layout === "grid" ? <div className="site-pages-grid">{activeDocuments.map(document => <article className={selectedId === document.id ? "is-current" : ""} key={document.binId ?? document.id}>{selectionControl(document, document.binId ?? document.id, document.binId)}<button className="site-pages-grid-preview" type="button" onClick={() => selectPage(document)}>{visibleProperties.includes("featuredImage") ? imageCell(document) : null}{pageLabel(document)}</button>{visibleProperties.filter(property => property !== "title" && property !== "featuredImage").map(property => <span key={property}>{propertyNames[property]}: {propertyValue(document, property)}</span>)}{actionsFor(document, document.binId)}</article>)}</div> : <div className="site-pages-list" {...(pageReordering ? pageReordering.listProps : {})}>{activeDocuments.map(row)}{pageReordering ? <><DragPlacementIndicator line={canReorderPages ? pageReordering.line : null} /><span className="visually-hidden" role="status">{pageReordering.message}</span></> : null}</div>}
     {!result.total ? <p className="site-pages-empty">{isBin ? "The Bin is empty." : "No pages match these filters."}</p> : null}
     {result.pageCount > 1 ? <footer className="site-pages-pagination"><span>{`${(result.page - 1) * normalView.pageSize + 1}–${Math.min(result.page * normalView.pageSize, result.total)} of ${result.total}`}</span><button type="button" disabled={result.page <= 1} onClick={() => setPage(value => value - 1)}>Previous</button><span>Page {result.page} of {result.pageCount}</span><button type="button" disabled={result.page >= result.pageCount} onClick={() => setPage(value => value + 1)}>Next</button></footer> : null}
-    {dialog ? <StudioDialog title={dialog.kind === "add" ? "Add Page" : dialog.kind === "rename" ? "Rename page" : "Order page"} className="studio-dialog-default site-pages-dialog" onClose={() => setDialog(null)} selectInitialText={dialog.kind === "rename"}>
-      <form onSubmit={submitDialog}>{dialog.kind === "order" ? <><p>Pages with the same order appear alphabetically by title.</p><label><span>Order</span><NumberInput required step={1} min={-2147483648} max={2147483647} value={dialog.order} onChange={event => setDialog({ ...dialog, order: event.target.value })} /></label></> : <label><span>Page title</span><TextInput required maxLength={160} value={dialog.title} onChange={event => setDialog({ ...dialog, title: event.target.value })} /></label>}{feedback ? <p role="alert">{feedback}</p> : null}<StudioDialogActions><StudioButton variant="secondary" type="button" onClick={() => setDialog(null)}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable || busy}>{busy ? "Saving…" : dialog.kind === "add" ? "Add Page" : dialog.kind === "rename" ? "Rename" : "Save"}</StudioButton></StudioDialogActions></form>
+    {dialog ? <StudioDialog title={dialog.kind === "add" ? "Add Page" : dialog.kind === "rename" ? "Rename page" : "Order page"} className="studio-dialog-default site-pages-dialog"
+      returnFocus={dialog.opener} closeDisabled={busy} closeOnBackdrop={!dialogEdited} onClose={() => setDialog(null)} selectInitialText={dialog.kind === "rename"}>
+      <form onSubmit={submitDialog}>{dialog.kind === "order" ? <><p>Pages with the same order appear alphabetically by title.</p><label><span>Order</span><NumberInput required step={1} min={-2147483648} max={2147483647} value={dialog.order} onChange={event => setDialog({ ...dialog, order: event.target.value })} /></label></> : <label><span>Page title</span><TextInput required maxLength={160} value={dialog.title} onChange={event => setDialog({ ...dialog, title: event.target.value })} /></label>}{feedback ? <p role="alert">{feedback}</p> : null}<StudioDialogActions><StudioButton variant="secondary" type="button" disabled={busy} onClick={() => setDialog(null)}>Cancel</StudioButton><StudioButton type="submit" disabled={!writable || busy}>{busy ? "Saving…" : dialog.kind === "add" ? "Add Page" : dialog.kind === "rename" ? "Rename" : "Save"}</StudioButton></StudioDialogActions></form>
     </StudioDialog> : null}
   </section>;
 }

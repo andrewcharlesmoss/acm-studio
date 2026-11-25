@@ -85,7 +85,8 @@ export function InlineImagePicker({ loadImages, replacing, returnFocus, onChoose
     }
   }
 
-  return <StudioDialog title={replacing ? "Replace image" : "Insert inline image"} returnFocus={returnFocus} onClose={() => { generation.current++; onClose(); }} className="inline-image-picker">
+  return <StudioDialog title={replacing ? "Replace image" : "Insert inline image"} returnFocus={returnFocus} closeOnBackdrop={!busy && !url.trim() && !alt.trim()}
+    onClose={() => { generation.current++; onClose(); }} className="inline-image-picker">
     {loadImages ? <section aria-label="Local images">
       <h3>Local images</h3>
       <ImageChoiceGrid choices={choices ?? emptyChoices} urls={imageUrls} loading={choices === null} disabled={busy} empty="No local images are available." className="inline-image-choices" onChoose={(choice, src) => void choose(src, { type: "image", mediaId: choice.id, alt: choice.altText ?? "" })} />

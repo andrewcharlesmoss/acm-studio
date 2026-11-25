@@ -80,7 +80,7 @@ export function NavigationOverview({ siteName, ready, error, menus = [], default
     {reviewPending && !hideReviewAction ? <div className="navigation-review-action"><StudioButton type="button" onClick={event => { setReviewOpener(event.currentTarget); setReviewOpen(true); }}>Review 1 change…</StudioButton></div> : null}
     {operationError ? <p role="alert">{operationError}</p> : null}
     {reviewOpen ? <NavigationReviewDialog items={[{ id: "navigation", label: "Navigation" }]} opener={reviewOpener} onClose={() => setReviewOpen(false)} onSave={async () => { if (!onReviewSaved) throw new Error("Navigation saving is unavailable."); await onReviewSaved(); }} /> : null}
-    {dialog ? <StudioDialog title={dialog.kind === "rename" ? "Rename menu" : "Delete menu"} onClose={() => setDialog(null)} returnFocus={anchor}>
+    {dialog ? <StudioDialog title={dialog.kind === "rename" ? "Rename menu" : "Delete menu"} closeOnBackdrop={dialog.kind === "delete" || name === dialog.menu.name} onClose={() => setDialog(null)} returnFocus={anchor}>
       {dialog.kind === "rename" ? <label>Menu name<TextInput maxLength={80} value={name} onChange={event => setName(event.target.value)} /></label> : <p>Delete “{dialog.menu.name}”? Navigation blocks assigned to this menu will use the default menu.</p>}
       <StudioDialogActions><StudioButton variant="text" type="button" onClick={() => setDialog(null)}>Cancel</StudioButton><StudioButton type="button" className={dialog.kind === "delete" ? "danger-button" : undefined} disabled={dialog.kind === "rename" && !name.trim()} onClick={submitDialog}>{dialog.kind === "rename" ? "Rename" : "Delete"}</StudioButton></StudioDialogActions>
     </StudioDialog> : null}

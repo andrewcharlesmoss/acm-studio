@@ -11,7 +11,9 @@ import { StudioButton } from "./controls/button";
 export function BlockEditorialDialog({ kind, value, trigger, onApply, onClose, writable }: { kind: "rename" | "note" | "lock"; value: BlockEditorial; trigger: RefObject<HTMLElement | null>; onApply: (value: BlockEditorial) => void; onClose: () => void; writable: boolean }) {
   const [draft, setDraft] = useState(value);
   const title = kind === "rename" ? "Rename block" : kind === "note" ? "Block note" : "Lock block";
-  return <StudioDialog title={title} className="block-editorial-dialog" returnFocus={trigger} onClose={onClose}>
+  const changed = (draft.name ?? "") !== (value.name ?? "") || (draft.note ?? "") !== (value.note ?? "")
+    || Boolean(draft.lock?.move) !== Boolean(value.lock?.move) || Boolean(draft.lock?.remove) !== Boolean(value.lock?.remove);
+  return <StudioDialog title={title} className="block-editorial-dialog" returnFocus={trigger} closeOnBackdrop={!changed} onClose={onClose}>
     <form onSubmit={event => { event.preventDefault(); if (writable) onApply(draft); }}>
       {kind === "rename" ? <label>Block name<TextInput disabled={!writable} maxLength={100} value={draft.name ?? ""} onChange={event => setDraft({ ...draft, name: event.target.value })} /><span>Shown in List View. Leave blank to use the block’s default name.</span></label> : null}
       {kind === "note" ? <label>Note<TextArea disabled={!writable} rows={5} maxLength={4000} value={draft.note ?? ""} onChange={event => setDraft({ ...draft, note: event.target.value })} /><span>A private authoring note for this block.</span></label> : null}
