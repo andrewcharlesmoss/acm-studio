@@ -1,8 +1,10 @@
 import { expect, test, devices, type Locator, type Page } from "@playwright/test";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
-import { motionGeometry, motionPreset, motionProject } from "../../app/studio/motion-assets/motion-asset";
+import { motionGeometry, motionPreset, motionProject, type MotionEffect } from "../../app/studio/motion-assets/motion-asset";
 import { motionCatalogue } from "../../app/studio/motion-assets/motion-catalogue";
+import { fireBurst } from "../../app/studio/motion-assets/fire-burst";
+import { fireShockwave } from "../../app/studio/motion-assets/fire-shockwave";
 
 const require = createRequire(import.meta.url);
 const route = "/studio/ui/motion-assets";
@@ -18,6 +20,17 @@ async function setNumber(page: Page, label: string, value: string) {
   const field = page.getByRole("spinbutton", { name: label, exact: true });
   await field.fill(value);
   await field.press("Enter");
+}
+
+async function openLegacyFireProject(page: Page, asset: MotionEffect, version: "0.3.0" | "0.4.0") {
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  await motion.locator('input[type="file"]').setInputFiles({
+    name: `${asset.effect}.acm-motion.json`,
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ format: "acm-motion", version, asset })),
+  });
+  await expect(motion.getByRole("img", { name: `${asset.name} animation preview`, exact: true })).toBeVisible();
 }
 
 async function expectPreviewSize(preview: Locator, width: number, height: number) {
@@ -155,17 +168,13 @@ test("Space toggles playback from the preview and preserves native control short
   await expect(play).toBeVisible();
 });
 
-test("finds Fire Burst, previews it with the keyboard, and reopens its editable settings", async ({ page }) => {
+test("opens a saved Fire Burst project, previews it with the keyboard, and reopens its edits", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route);
-  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
   const search = page.getByRole("searchbox", { name: "Search motion assets" });
-  const effects = page.getByRole("region", { name: "Special Effects" });
-  const burst = effects.getByRole("button", { name: "Use Fire Burst" });
   const slider = page.getByRole("slider", { name: "Animation position" });
-  await search.fill("explosion");
-  await expect(page.getByRole("region", { name: "Sketches" })).toHaveCount(0);
-  await burst.press("Enter");
+  await openLegacyFireProject(page, fireBurst, "0.3.0");
   const preview = page.getByRole("img", { name: "Fire Burst animation preview" });
   await expectPreviewSize(preview, 1920, 1080);
   await expect(slider).toHaveValue("13");
@@ -185,49 +194,36 @@ test("finds Fire Burst, previews it with the keyboard, and reopens its editable 
   await search.fill("wave");
   await page.getByRole("button", { name: "Use Wave" }).click();
   await expect(page.getByRole("button", { name: "Lottie JSON" })).toBeVisible();
-  await page.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
+  await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
   await expectPreviewSize(preview, 1280, 720);
   await expect(page.getByRole("spinbutton", { name: "Duration (s)" })).toHaveValue("1.5");
   await expect(page.getByRole("button", { name: "Lottie JSON" })).toHaveCount(0);
 });
 
-test("Fire Shockwave keeps its own catalogue draft and reopens alongside Fire Burst", async ({ page }) => {
+test("opens an existing Fire Shockwave project and saves its edited settings", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route);
   const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
-  const effects = motion.getByRole("region", { name: "Special Effects" });
-  const original = effects.getByRole("button", { name: "Use Fire Burst", exact: true });
-  const variant = effects.getByRole("button", { name: "Use Fire Shockwave", exact: true });
   const duration = page.getByRole("spinbutton", { name: "Duration (s)" });
-  const search = page.getByRole("searchbox", { name: "Search motion assets" });
 
-  await original.click();
-  await setNumber(page, "Duration (s)", "1");
-  await search.fill("shockwave");
-  await expect(original).toHaveCount(0);
-  await variant.press("Enter");
-  await expect(page.getByRole("img", { name: "Fire Shockwave animation preview" })).toBeVisible();
+  await openLegacyFireProject(page, fireShockwave, "0.4.0");
+  const shockwave = page.getByRole("img", { name: "Fire Shockwave animation preview" });
+  await expect(shockwave.locator("path").first()).toBeVisible();
   await expect(duration).toHaveValue("2");
   await setNumber(page, "Duration (s)", "1.6");
   const project = await save(page, "Download Project");
   expect(project.name).toBe("fire-shockwave.acm-motion.json");
   expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.4.0", asset: { effect: "fire-shockwave", durationFrames: 48 } });
 
-  await search.fill("");
-  await original.click();
-  await expect(duration).toHaveValue("1");
-  await variant.click();
-  await expect(duration).toHaveValue("1.6");
-  await original.click();
+  await motion.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).click();
+  await expect(duration).toHaveValue("11.6");
   await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
   await expect(page.getByRole("img", { name: "Fire Shockwave animation preview" })).toBeVisible();
   await expect(duration).toHaveValue("1.6");
-  await original.click();
-  await expect(duration).toHaveValue("1");
 });
 
-test("Special Effects lists the three Studio fire effects and omits the Shutterstock reference", async ({ page, baseURL }) => {
+test("Special Effects lists Volumetric Fireball and omits retired effects and the Shutterstock reference", async ({ page, baseURL }) => {
   const referenceRequests: string[] = [];
   page.on("request", request => {
     const path = new URL(request.url()).pathname;
@@ -241,10 +237,22 @@ test("Special Effects lists the three Studio fire effects and omits the Shutters
   const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
   const effects = motion.getByRole("region", { name: "Special Effects" });
-  await expect(effects.getByRole("button")).toHaveText(["Fire Burst", "Fire Shockwave", "Volumetric Fireball"]);
-  await motion.getByRole("searchbox", { name: "Search motion assets" }).fill("Shutterstock");
-  await expect(motion.getByText("No matching motion assets.")).toBeVisible();
-  await expect(effects).toHaveCount(0);
+  await expect(effects.getByRole("button")).toHaveText(["Volumetric Fireball"]);
+  const search = motion.getByRole("searchbox", { name: "Search motion assets" });
+  for (const name of ["Fire Burst", "Shockwave", "Shutterstock"]) {
+    await search.fill(name);
+    await expect(motion.getByText("No matching motion assets.")).toBeVisible();
+    await expect(effects).toHaveCount(0);
+  }
+  await search.fill("");
+  const fireball = effects.getByRole("button", { name: "Use Volumetric Fireball", exact: true });
+  for (const width of [820, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(fireball).toBeVisible();
+    const bounds = await fireball.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+  }
 });
 
 test("Sound Effects plays and downloads the original glass explosion", async ({ page }) => {
@@ -1007,7 +1015,7 @@ test("exports Fire Burst as a widescreen MOV with genuinely transparent frames a
   const { promisify } = await import("node:util");
   const run = promisify(execFile);
   await page.goto(route);
-  await page.getByRole("button", { name: "Use Fire Burst" }).click();
+  await openLegacyFireProject(page, fireBurst, "0.3.0");
   const exportButton = page.getByRole("button", { name: "Transparent MOV" });
   await expect(exportButton).toBeEnabled();
   const pending = page.waitForEvent("download");
@@ -1045,7 +1053,7 @@ test("exports a Fire Shockwave that reaches all four corners and reveals the cen
   const { promisify } = await import("node:util");
   const run = promisify(execFile);
   await page.goto(route);
-  await page.getByRole("button", { name: "Use Fire Shockwave", exact: true }).click();
+  await openLegacyFireProject(page, fireShockwave, "0.4.0");
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Transparent MOV" }).click();
   const file = await pending;
