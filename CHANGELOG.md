@@ -60,6 +60,8 @@
 
 ### Changed
 
+- Browse Special Effects, Sound Effects, and Sketches in separate Motion Assets tabs, each with its own search.
+
 - Browse sound and video files in responsive grids in Motion Assets, with playback, download, and File Details on each card.
 
 - Dashboard cards now shuffle into their prospective slots while dragging and settle smoothly on release. The same interaction is available in the UI Library under Drag to position.

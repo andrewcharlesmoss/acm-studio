@@ -217,6 +217,7 @@ test("opens an existing Fire Shockwave project and saves its edited settings", a
   expect(project.name).toBe("fire-shockwave.acm-motion.json");
   expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.4.0", asset: { effect: "fire-shockwave", durationFrames: 48 } });
 
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await motion.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).click();
   await expect(duration).toHaveValue("11.6");
   await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
@@ -237,48 +238,78 @@ test("Special Effects lists Volumetric Fireball and omits retired effects and th
   expect(referenceRequests).toEqual([]);
   const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
-  const effects = motion.getByRole("region", { name: "Special Effects" });
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  const effects = motion.getByRole("tabpanel", { name: "Special Effects", exact: true });
   await expect(effects.getByRole("button")).toHaveText(["Volumetric Fireball"]);
   const search = motion.getByRole("searchbox", { name: "Search motion assets" });
   for (const name of ["Fire Burst", "Shockwave", "Shutterstock"]) {
     await search.fill(name);
-    await expect(motion.getByText("No matching motion assets.")).toBeVisible();
-    await expect(effects).toHaveCount(0);
+    await expect(effects.getByText("No matching motion assets.")).toBeVisible();
+    await expect(effects.getByRole("button")).toHaveCount(0);
   }
   await search.fill("");
   const fireball = effects.getByRole("button", { name: "Use Volumetric Fireball", exact: true });
   for (const width of [820, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(fireball).toBeVisible();
-    const bounds = await fireball.boundingBox();
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    for (const control of [fireball, ...(await motion.getByRole("tablist", { name: "Motion asset categories" }).getByRole("tab").all())]) {
+      const bounds = (await control.boundingBox())!;
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    }
   }
 });
 
-test("Sound Effects plays and downloads the original glass explosion", async ({ page }) => {
+test("Sound Effects has its own search, pauses on tab changes, and downloads the original", async ({ page }) => {
   await page.goto(route, { waitUntil: "commit" });
   const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
-  const sounds = motion.getByRole("region", { name: "Sound Effects", exact: true });
-  const audio = sounds.locator("audio");
-  await expect(audio).toHaveAccessibleName("Explosion and Glass preview");
+  const soundsTab = motion.getByRole("tab", { name: "Sound Effects", exact: true });
+  const sketchesTab = motion.getByRole("tab", { name: "Sketches", exact: true });
+  const preview = motion.getByRole("region", { name: "Motion preview" });
+  await expect(sketchesTab).toHaveAttribute("aria-selected", "true");
   await setNumber(page, "Width (px)", "1100");
+  const position = preview.getByRole("slider", { name: "Animation position" });
+  await preview.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(preview.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect.poll(async () => Number(await position.inputValue())).toBeGreaterThan(0);
+  const playingFrame = Number(await position.inputValue());
 
+  await sketchesTab.press("ArrowLeft");
+  await expect(soundsTab).toBeFocused();
+  await expect(soundsTab).toHaveAttribute("aria-selected", "true");
+  const sounds = motion.getByRole("tabpanel", { name: "Sound Effects", exact: true });
+  const audio = motion.locator('audio[aria-label="Explosion and Glass preview"]');
+  await expect(audio).toBeVisible();
+  await expect(preview).toBeHidden();
   const search = motion.getByRole("searchbox", { name: "Search motion assets" });
   await search.fill("shatter");
-  await expect(motion.getByRole("region", { name: "Special Effects" })).toHaveCount(0);
   await expect(sounds.getByText("Explosion and Glass", { exact: true })).toBeVisible();
   await audio.press("Space");
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(0);
-  await expect(motion.getByRole("region", { name: "Motion preview" }).getByRole("button", { name: "Play", exact: true })).toBeVisible();
 
+  await soundsTab.press("End");
+  await expect(sketchesTab).toBeFocused();
+  await expect(sounds).toBeHidden();
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
+  await expect(search).toHaveValue("");
+  await expect(preview.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  const pausedFrame = Number(await position.inputValue());
+  expect(pausedFrame).toBeGreaterThanOrEqual(playingFrame);
+  expect(pausedFrame).toBeLessThan(90);
+  await expect(motion.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1100");
+  await search.fill("wave");
+  await expect(motion.getByRole("button", { name: "Use Wave", exact: true })).toBeVisible();
+
+  await soundsTab.click();
+  await expect(search).toHaveValue("shatter");
+  await audio.press("Space");
   await page.getByRole("tab", { name: "Icons", exact: true }).click();
   await page.getByRole("tab", { name: "Motion Assets", exact: true }).click();
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
   expect(await audio.evaluate((element: HTMLAudioElement) => element.ended)).toBe(false);
-  await expect(motion.getByRole("spinbutton", { name: "Width (px)" })).toHaveValue("1100");
+  await expect(soundsTab).toHaveAttribute("aria-selected", "true");
 
   const detailsTrigger = sounds.getByRole("button", { name: "File Details for explosion-and-glass.wav" });
   await detailsTrigger.press("Enter");
@@ -363,23 +394,22 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
 
   const libraryPage = await context.newPage();
   await libraryPage.goto(route);
-  const effects = libraryPage.getByRole("region", { name: "Special Effects", exact: true });
-  const sounds = libraryPage.getByRole("region", { name: "Sound Effects", exact: true });
+  const effectsTab = libraryPage.getByRole("tab", { name: "Special Effects", exact: true });
+  const soundsTab = libraryPage.getByRole("tab", { name: "Sound Effects", exact: true });
+  const effects = libraryPage.getByRole("tabpanel", { name: "Special Effects", exact: true });
+  const sounds = libraryPage.getByRole("tabpanel", { name: "Sound Effects", exact: true });
   const video = effects.locator('video[aria-label="library-fireball.mov preview"]');
   const sound = sounds.locator('audio[aria-label="library-explosion.wav preview"]');
-  await expect(video).toHaveAccessibleName("library-fireball.mov preview");
-  await expect(sound).toBeVisible();
-  await expect(sounds.getByText("unrelated.wav", { exact: true })).toHaveCount(0);
-  await expect(effects.getByText(preview.name, { exact: true })).toHaveCount(0);
   const audioDetailsTrigger = sounds.getByRole("button", { name: "File Details for library-explosion.wav" });
   const cardPairs = [
-    [sounds.getByRole("listitem").filter({ hasText: "Explosion and Glass" }), sounds.getByRole("listitem").filter({ hasText: audio.name })],
-    [effects.getByRole("listitem").filter({ hasText: original.name }), effects.getByRole("listitem").filter({ hasText: otherVideo.name })],
-  ];
+    [soundsTab, sounds.getByRole("listitem").filter({ hasText: "Explosion and Glass" }), sounds.getByRole("listitem").filter({ hasText: audio.name })],
+    [effectsTab, effects.getByRole("listitem").filter({ hasText: original.name }), effects.getByRole("listitem").filter({ hasText: otherVideo.name })],
+  ] as const;
   const desktop = libraryPage.viewportSize()!;
-  for (const width of [desktop.width, 820, 320]) {
-    await libraryPage.setViewportSize({ width, height: desktop.height });
-    for (const [firstCard, secondCard] of cardPairs) {
+  for (const [tab, firstCard, secondCard] of cardPairs) {
+    await tab.click();
+    for (const width of [desktop.width, 820, 320]) {
+      await libraryPage.setViewportSize({ width, height: desktop.height });
       const first = (await firstCard.boundingBox())!;
       const second = (await secondCard.boundingBox())!;
       if (width === 320) {
@@ -393,6 +423,9 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
     }
   }
   await libraryPage.setViewportSize(desktop);
+  await soundsTab.click();
+  await expect(sound).toBeVisible();
+  await expect(sounds.getByText("unrelated.wav", { exact: true })).toHaveCount(0);
   await expectAudioFileDetails(libraryPage, audioDetailsTrigger);
   await audioDetailsTrigger.click();
   const audioDetails = libraryPage.getByRole("dialog", { name: "File Details", exact: true });
@@ -403,6 +436,12 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   }
   await libraryPage.setViewportSize(desktop);
   await audioDetails.getByRole("button", { name: "Close file details" }).click();
+  await sound.press("Space");
+  await expect.poll(() => sound.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
+
+  await effectsTab.click();
+  await expect(video).toHaveAccessibleName("library-fireball.mov preview");
+  await expect(effects.getByText(preview.name, { exact: true })).toHaveCount(0);
   expect(await video.evaluate(element => fetch((element as HTMLVideoElement).src).then(response => response.text()))).toBe(preview.buffer.toString());
   await effects.getByRole("button", { name: "File Details for library-fireball.mov" }).click();
   const videoDetails = libraryPage.getByRole("dialog", { name: "File Details", exact: true });
@@ -410,8 +449,6 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await expect(videoDetails.getByText(`${original.buffer.length} bytes`, { exact: true })).toBeVisible();
   await expect(videoDetails.getByRole("status")).toHaveText("Media metadata couldn’t be read from this file.");
   await videoDetails.getByRole("button", { name: "Close file details" }).click();
-  await sound.press("Space");
-  await expect.poll(() => sound.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
 
   const pending = libraryPage.waitForEvent("download");
   await effects.getByRole("link", { name: "Download MOV for library-fireball.mov" }).click();
@@ -423,6 +460,7 @@ test("shows Files audio and video in Motion Assets and downloads the original MO
   await files.getByRole("button", { name: /^library-fireball\.mov/ }).click();
   await files.getByRole("combobox", { name: "Folder", exact: true }).selectOption({ label: "All files" });
   await expect(video).toHaveCount(0);
+  await soundsTab.click();
   await expect(sound).toBeVisible();
 });
 
@@ -442,7 +480,8 @@ test("Volumetric Fireball renders live and saves editable name, size, and durati
   await page.goto(route, { waitUntil: "commit" });
   const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
-  const effects = motion.getByRole("region", { name: "Special Effects" });
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  const effects = motion.getByRole("tabpanel", { name: "Special Effects", exact: true });
   await effects.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).press("Enter");
   const preview = motion.getByRole("img", { name: "Volumetric Fireball animation preview" });
   await expect(preview).toHaveAttribute("data-live-render", "true");
@@ -479,13 +518,16 @@ test("Volumetric Fireball accepts cancellation and exports edited dimensions and
   const run = promisify(execFile);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(route, { waitUntil: "commit" });
+  await page.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await page.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).click();
   const exportButton = page.getByRole("button", { name: "Transparent MOV", exact: true });
   const started = page.waitForRequest(request => new URL(request.url()).pathname === "/__studio/motion-export");
   await exportButton.click();
   await started;
+  await page.getByRole("tab", { name: "Sound Effects", exact: true }).click();
   await page.getByRole("button", { name: "Cancel Export" }).click();
   await expect(page.getByRole("status").filter({ hasText: "MOV export cancelled." })).toBeVisible();
+  await page.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await setNumber(page, "Width (px)", "320");
   await setNumber(page, "Height (px)", "180");
   await setNumber(page, "Duration (s)", "1.2");
@@ -952,13 +994,21 @@ for (const view of ["desktop", "tablet", "mobile"] as const) {
 
       test("touch-holding a number stepper repeats and stops on release", async ({ page }) => {
         await page.goto(route);
-        await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
-        const decrease = page.getByRole("button", { name: "Decrease Width (px)" });
-        await decrease.scrollIntoViewIfNeeded();
+        const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+        await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+        await expect(motion.getByText("Checking local MOV export…", { exact: true })).toHaveCount(0);
+        await motion.getByRole("searchbox", { name: "Search motion assets" }).fill("wave");
+        await expect(motion.getByRole("tabpanel", { name: "Sketches" }).getByRole("button")).toHaveCount(1);
+        const decrease = motion.getByRole("button", { name: "Decrease Width (px)" });
+        await decrease.click({ trial: true });
         const box = (await decrease.boundingBox())!;
+        expect(await decrease.evaluate(element => {
+          const bounds = element.getBoundingClientRect();
+          return element.contains(document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2));
+        })).toBe(true);
         const touch = await page.context().newCDPSession(page);
         await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
-        const field = page.getByRole("spinbutton", { name: "Width (px)" });
+        const field = motion.getByRole("spinbutton", { name: "Width (px)" });
         await expect.poll(async () => Number(await field.inputValue())).toBeLessThanOrEqual(798);
         await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         const released = await field.inputValue();

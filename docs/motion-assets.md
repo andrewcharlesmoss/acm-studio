@@ -1,6 +1,8 @@
 # Motion Assets
 
-Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Browse or search the collection for arrows, shapes, lines and other sketch marks. With **Autoplay on selection** on by default, each sketch plays from the start when you choose it. Use the switch to turn autoplay off. Valid settings update the preview as you edit, including while dragging in the colour spectrum. A built-in sketch’s thumbnail shows its current name, proportions, colour and stroke thickness. You can also preview with **Play** or the position slider. The draft and autoplay setting stay open while you browse other Library tabs.
+Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Choose **Special Effects**, **Sound Effects**, or **Sketches** to browse and search that collection. **Sketches** opens by default and includes arrows, shapes, lines, and other marks. Switching tabs keeps each search, your animation draft, and your autoplay setting. Audio and video players pause when you leave their tab.
+
+With **Autoplay on selection** on by default, each sketch plays from the start when you choose it. Use the switch to turn autoplay off. Valid settings update the preview as you edit, including while dragging in the colour spectrum. A built-in sketch’s thumbnail shows its current name, proportions, colour and stroke thickness. You can also preview with **Play** or the position slider.
 
 Each built-in sketch keeps its edits while you browse the catalogue. **Reset Preview** restores the selected sketch’s defaults or the original settings of an opened file. Studio asks before leaving an opened file with unsaved changes.
 
