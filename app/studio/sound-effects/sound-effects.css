@@ -1,3 +1,46 @@
 .sound-effects-export { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-block-end: 12px; }
 .sound-effects-export p { margin: 0; }
 .sound-effects-export [role="alert"] { color: var(--rl-danger, #a42129); }
+
+.sound-effects-table-frame {
+  --media-preview-icon-size: 36px;
+  container-type: inline-size;
+  overflow: hidden;
+  background: var(--acm-color-surface, white);
+  border: 1px solid var(--rl-line, #dadde1);
+  border-radius: var(--acm-layout-radius, 8px);
+}
+.sound-effects-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  color: var(--rl-ink, #1c1c1e);
+  font: var(--studio-ui-size, 13px)/1.4 var(--studio-ui-font, system-ui);
+}
+.sound-effects-action-column { width: calc(2 * var(--media-preview-icon-size) + 24px); }
+.sound-effects-table th { padding: 8px 12px; background: var(--rl-soft, #f4f4f2); text-align: start; }
+.sound-effects-table td { padding: 6px 12px; border-block-start: 1px solid var(--rl-line, #dadde1); }
+.sound-effects-table :is(th, td):last-child { padding-inline: 6px; text-align: center; }
+.sound-effects-table .media-preview-actions { justify-content: center; }
+.sound-effect-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.sound-effect-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; overflow-wrap: anywhere; }
+.sound-effect-name span { color: var(--rl-muted, #62666b); }
+.sound-effect-preview audio { display: block; flex: 0 0 min(18rem, 55%); width: min(18rem, 55%); height: 38px; }
+.sound-effect-error { margin: 6px 0 0; }
+
+@media (pointer: coarse) {
+  .sound-effects-table-frame { --media-preview-icon-size: 44px; }
+}
+@container (max-width: 480px) {
+  .sound-effect-preview { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .sound-effect-preview audio { flex: auto; width: min(18rem, 100%); }
+}
+@container (max-width: 360px) {
+  .sound-effects-action-column { width: calc(var(--media-preview-icon-size) + 20px); }
+  .sound-effects-table .media-preview-actions { flex-direction: column; }
+}

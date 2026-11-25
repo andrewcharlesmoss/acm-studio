@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
+import { useEffect, useState } from "react";
 import { MediaFileDetailsButton } from "./media-file-details";
 import { listMediaLibrary, type MediaAsset } from "./media-store";
 import { useMediaSession } from "./media-sync";
@@ -8,7 +9,7 @@ import "./media-library-preview.css";
 
 type MediaKind = "audio" | "video";
 export type LibraryPreviewFile = { asset: MediaAsset; kind: MediaKind; preview?: MediaAsset };
-type MediaFileActions = {
+export type MediaFileActions = {
   name: string;
   source: string;
   active: boolean;
@@ -17,12 +18,15 @@ type MediaFileActions = {
   originalFile?: { blob: Blob; addedAt: string };
 };
 
-export function MediaPreviewActions({ name, source, active, download, format, originalFile }: MediaFileActions) {
-  return <div className="media-preview-actions">
+export function MediaPreviewActions({ name, source, active, download, format, originalFile, iconOnly }: MediaFileActions & { iconOnly?: boolean }) {
+  const downloadLabel = `Download ${format}`;
+  return <div className="media-preview-actions" data-icon-only={iconOnly || undefined}>
     <a className="button-secondary" href={download?.href ?? source} download={download?.name ?? true}
-      aria-label={`Download ${format} for ${name}`}>Download {format}</a>
+      aria-label={`${downloadLabel} for ${name}`} title={iconOnly ? downloadLabel : undefined}>
+      {iconOnly ? <AcmIcon name="action.download" scale="Regular-S" size={20} /> : downloadLabel}
+    </a>
     {active ? <MediaFileDetailsButton name={download?.name ?? (source.split("/").at(-1) || name)}
-      source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} /> : null}
+      source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} iconOnly={iconOnly} /> : null}
   </div>;
 }
 
@@ -61,42 +65,6 @@ export function useLibraryPreviewFiles(kind: MediaKind) {
   return library;
 }
 
-export function MediaPreviewCard({ name, source, kind, active, download, description, detail, format, originalFile }: MediaFileActions & {
-  kind: MediaKind;
-  description?: string;
-  detail?: string;
-}) {
-  const player = useRef<HTMLMediaElement | null>(null);
-  const descriptionId = useId();
-  const [unavailable, setUnavailable] = useState(false);
-
-  useEffect(() => {
-    const media = player.current;
-    if (!active) media?.pause();
-    return () => media?.pause();
-  }, [active]);
-
-  const playback = {
-    "aria-label": `${name} preview`,
-    "aria-describedby": description ? descriptionId : undefined,
-    ref: (element: HTMLMediaElement | null) => { player.current = element; },
-    src: source,
-    controls: true,
-    controlsList: "nodownload",
-    preload: "none",
-    onError: () => setUnavailable(true),
-    onCanPlay: () => setUnavailable(false),
-  };
-  return <li className="media-preview-card">
-    <div className="media-preview-name"><strong>{name}</strong>{detail ? <span>{detail}</span> : null}</div>
-    {description ? <span className="sr-only" id={descriptionId}>{description}</span> : null}
-    {/* eslint-disable-next-line jsx-a11y/media-has-caption -- This player previews locally selected media. Supplied descriptions are linked above. */}
-    {kind === "audio" ? <audio {...playback} /> : <video {...playback} playsInline />}
-    <MediaPreviewActions name={name} source={source} active={active} download={download} format={format} originalFile={originalFile} />
-    {unavailable ? <p role="alert">This preview couldn’t play. Download the file to open it in another app.</p> : null}
-  </li>;
-}
-
 export function useLibraryFilePreview(file: LibraryPreviewFile) {
   const { asset, preview, kind } = file;
   const original = asset.blob;
@@ -122,9 +90,4 @@ export function useLibraryFilePreview(file: LibraryPreviewFile) {
     originalFile: { blob: original, addedAt: asset.createdAt },
     description: asset.caption || asset.altText, detail: extension, format: extension ?? "File",
   };
-}
-
-export function LibraryFilePreview({ file, active }: { file: LibraryPreviewFile; active: boolean }) {
-  const preview = useLibraryFilePreview(file);
-  return preview ? <MediaPreviewCard key={preview.source} {...preview} active={active} /> : null;
 }

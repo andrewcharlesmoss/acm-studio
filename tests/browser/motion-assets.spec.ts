@@ -308,10 +308,15 @@ test("the top-level Sound Effects tab has its own search, pauses playback, and d
   await expect(soundsTab).toHaveAttribute("aria-selected", "true");
   await expect(page).toHaveURL(soundRoute);
   const sounds = page.getByRole("tabpanel", { name: "Sound Effects", exact: true });
+  const table = sounds.getByRole("table", { name: "Sound Effects", exact: true });
+  const explosion = table.getByRole("row").filter({ hasText: "Explosion and Glass" });
   const audio = page.locator('audio[aria-label="Explosion and Glass preview"]');
-  await expect(audio).toBeVisible();
+  await expect(explosion.locator("audio")).toBeVisible();
   await expect(preview).toBeHidden();
   const search = sounds.getByRole("searchbox", { name: "Search sound effects" });
+  await search.fill("no-sound-matches");
+  await expect(sounds.getByText("No matching sound effects.", { exact: true })).toBeVisible();
+  await expect(table).toHaveCount(0);
   await search.fill("shatter");
   await expect(sounds.getByText("Explosion and Glass", { exact: true })).toBeVisible();
   await audio.press("Space");
@@ -345,7 +350,9 @@ test("the top-level Sound Effects tab has its own search, pauses playback, and d
   await expect(soundsTab).toHaveAttribute("aria-selected", "true");
   await expect(search).toHaveValue("shatter");
 
-  const detailsTrigger = sounds.getByRole("button", { name: "File Details for explosion-and-glass.wav" });
+  const detailsTrigger = explosion.getByRole("button", { name: "File Details for explosion-and-glass.wav" });
+  await expect(detailsTrigger).toHaveText("");
+  await expect(detailsTrigger.locator("svg")).toBeVisible();
   await detailsTrigger.press("Enter");
   const details = page.getByRole("dialog", { name: "File Details", exact: true });
   await expect(details.getByText("48 kHz", { exact: true })).toBeVisible();
@@ -353,8 +360,11 @@ test("the top-level Sound Effects tab has its own search, pauses playback, and d
   await page.keyboard.press("Escape");
   await expect(detailsTrigger).toBeFocused();
 
+  const downloadAction = explosion.getByRole("link", { name: "Download WAV for Explosion and Glass" });
+  await expect(downloadAction).toHaveText("");
+  await expect(downloadAction.locator("svg")).toBeVisible();
   const downloadPending = page.waitForEvent("download");
-  await sounds.getByRole("link", { name: "Download WAV for Explosion and Glass" }).click();
+  await downloadAction.press("Enter");
   const download = await downloadPending;
   expect(download.suggestedFilename()).toBe("explosion-and-glass.wav");
   const data = await readFile((await download.path())!);
@@ -446,24 +456,30 @@ test("routes Files audio and video to their own tabs and downloads the original 
   await expect(sounds.getByText("new-sound.wav", { exact: true })).toBeVisible();
   await expect(sounds.getByText("misfiled-video.mov", { exact: true })).toHaveCount(0);
   const desktop = libraryPage.viewportSize()!;
-  async function expectResponsiveCards(firstCard: Locator, secondCard: Locator) {
-    for (const width of [desktop.width, 820, 320]) {
-      await libraryPage.setViewportSize({ width, height: desktop.height });
-      const first = (await firstCard.boundingBox())!;
-      const second = (await secondCard.boundingBox())!;
-      if (width === 320) {
-        expect(second.x).toBe(first.x);
-        expect(second.y).toBeGreaterThan(first.y);
-      } else {
-        expect(second.x).toBeGreaterThan(first.x);
-        expect(second.y).toBe(first.y);
-      }
-      expect(second.x + second.width).toBeLessThanOrEqual(width);
+  const audioTable = sounds.getByRole("table", { name: "Sound Effects", exact: true });
+  const builtInRow = audioTable.getByRole("row").filter({ hasText: "Explosion and Glass" });
+  const importedRow = audioTable.getByRole("row").filter({ hasText: audio.name });
+  const downloadAudio = importedRow.getByRole("link", { name: `Download WAV for ${audio.name}`, exact: true });
+  for (const width of [desktop.width, 820, 320]) {
+    await libraryPage.setViewportSize({ width, height: desktop.height });
+    const first = (await builtInRow.boundingBox())!;
+    const second = (await importedRow.boundingBox())!;
+    expect(second.x).toBe(first.x);
+    expect(second.width).toBe(first.width);
+    expect(second.y).toBeGreaterThan(first.y);
+    for (const control of [sound, downloadAudio, audioDetailsTrigger]) {
+      const bounds = (await control.boundingBox())!;
+      expect(bounds.x).toBeGreaterThanOrEqual(second.x);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+      expect(bounds.height).toBeGreaterThanOrEqual(36);
     }
-    await libraryPage.setViewportSize(desktop);
   }
-  await expectResponsiveCards(sounds.getByRole("listitem").filter({ hasText: "Explosion and Glass" }),
-    sounds.getByRole("listitem").filter({ hasText: audio.name }));
+  await libraryPage.setViewportSize(desktop);
+  const pendingAudio = libraryPage.waitForEvent("download");
+  await downloadAudio.click();
+  const audioDownload = await pendingAudio;
+  expect(audioDownload.suggestedFilename()).toBe(audio.name);
+  expect(await readFile((await audioDownload.path())!)).toEqual(audio.buffer);
   await expect(sound).toBeVisible();
   await expect(sounds.getByText("unrelated.wav", { exact: true })).toHaveCount(0);
   await expectAudioFileDetails(libraryPage, audioDetailsTrigger);

@@ -60,6 +60,8 @@
 
 ### Changed
 
+- Browse Sound Effects in a compact table with icon actions for downloads and file details.
+
 - Browse imported visual effects and editable presets together as thumbnail tiles in Special Effects.
 - Use the same Preview workspace and playback controls for imported video effects and editable animations.
 - Use Full Screen, File Details, and Download MOV in the same places for editable and imported Special Effects.

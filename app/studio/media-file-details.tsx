@@ -1,5 +1,6 @@
 "use client";
 
+import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useEffect, useRef, useState } from "react";
 import { StudioDialog } from "./overlays/dialog";
 import { metadataDate, type MediaFileMetadata, type MediaMetadataResult, type MetadataRow } from "./media-file-metadata";
@@ -78,14 +79,16 @@ function FileMetadataPanel({ name, source, addedAt }: MediaFileDetailsProps) {
   </div>;
 }
 
-export function MediaFileDetailsButton(details: FileDetailsProps) {
-  const { name } = details;
+export function MediaFileDetailsButton(details: FileDetailsProps & { iconOnly?: boolean }) {
+  const { name, iconOnly } = details;
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
   return <>
     <button ref={trigger} type="button" className="button-secondary" aria-haspopup="dialog"
-      aria-label={`File Details for ${name}`} onClick={() => setOpen(true)}>File Details</button>
+      aria-label={`File Details for ${name}`} title={iconOnly ? "File Details" : undefined} onClick={() => setOpen(true)}>
+      {iconOnly ? <AcmIcon name="state.info" scale="Regular-S" size={20} /> : "File Details"}
+    </button>
     {open ? <StudioDialog title="File Details" returnFocus={trigger} onClose={() => setOpen(false)}>
       {"exportRows" in details ? <div className="media-file-details">
         <p className="media-file-details-name">{name}</p>
