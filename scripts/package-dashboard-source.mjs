@@ -4,10 +4,10 @@ import catalogue from "../app/studio/package-dashboard-catalogue.json" with { ty
 
 const registry = "https://npm.pkg.github.com";
 const scope = "@andrewcharlesmoss";
-const manifestRoots = {
-  "acm-studio": "acm-studio",
-  "acm-account": "acm-account/web",
-  "project-ports": "project-ports/scripts/icons",
+export const packageTargets = {
+  "acm-studio": { directory: "", manifestName: "acm-studio", section: "dependencies" },
+  "acm-account": { directory: "web", manifestName: "acm-account-web", section: "dependencies" },
+  "project-ports": { directory: "scripts/icons", manifestName: "project-ports-icons", section: "devDependencies" },
 };
 
 const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
@@ -181,10 +181,10 @@ async function readRelease({ id, verifiedVersion }, token, fetchRelease) {
 
 export async function readPackageDashboard({ workspace, studio, token, fetchRelease = fetch }) {
   const root = await fs.realpath(workspace);
-  const studioRoot = studio ? await fs.realpath(studio) : path.join(root, manifestRoots["acm-studio"]);
+  const studioRoot = studio ? await fs.realpath(studio) : path.join(root, "acm-studio");
   const [projects, releases] = await Promise.all([
     Promise.all(catalogue.projects.map(async ({ id }) => {
-      const directory = id === "acm-studio" ? studioRoot : path.join(root, manifestRoots[id]);
+      const directory = id === "acm-studio" ? studioRoot : path.join(root, id, packageTargets[id].directory);
       const boundary = id === "acm-studio" && !isWithin(root, directory) ? directory : root;
       return { id, packages: await readConsumer(boundary, directory) };
     })),

@@ -37,7 +37,7 @@ test("shows verified version comparisons and keyboard access from the Control Ce
   await expect(table.getByRole("columnheader", { name: /Panel/ })).toContainText("Verified 23 Nov 2026");
   const studio = table.getByRole("row", { name: /^ACM Studio / });
   const iconsCell = studio.getByRole("cell").nth(0);
-  await expect(iconsCell.getByRole("combobox", { name: "Icons version" })).toHaveValue("0.35.1");
+  await expect(iconsCell.getByRole("combobox", { name: "Icons version in ACM Studio" })).toHaveValue("0.35.1");
   await expect(iconsCell.getByText("Installed", { exact: true })).toBeVisible();
   await expect(iconsCell).not.toContainText(/latest/i);
   await expect(studio.getByRole("cell").nth(1)).toContainText("Latest verified v0.1.0");
@@ -100,20 +100,20 @@ test("reviews a published Studio version before applying it from a narrow dashbo
     const input = route.request().postDataJSON();
     actions.push(input.action);
     if (input.action === "review") {
-      expect(input).toEqual({ action: "review", packageId: "icons", version: "0.34.0" });
-      return route.fulfill({ json: { reviewId: "test-review", previous: "0.35.1", version: "0.34.0", diff: "--- package.json\n+ 0.34.0" } });
+      expect(input).toEqual({ action: "review", projectId: "acm-studio", packageId: "icons", version: "0.34.0" });
+      return route.fulfill({ json: { reviewId: "test-review", projectId: "acm-studio", branch: "main", previous: "0.35.1", version: "0.34.0", diff: "--- package.json\n+ 0.34.0" } });
     }
-    expect(input).toEqual({ action: "apply", reviewId: "test-review" });
+    expect(input).toEqual({ action: "apply", projectId: "acm-studio", reviewId: "test-review" });
     declared = "0.34.0";
-    return route.fulfill({ json: { applied: true, version: declared } });
+    return route.fulfill({ json: { applied: true, projectId: "acm-studio", version: declared } });
   });
 
   await page.goto("/studio/packages");
   const studio = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "ACM Studio" }) });
   const account = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "ACM Account" }) });
-  const opener = studio.getByRole("combobox", { name: "Icons version" });
-  const panelVersion = studio.getByRole("combobox", { name: "Panel version" });
-  await expect(account.getByRole("combobox")).toHaveCount(0);
+  const opener = studio.getByRole("combobox", { name: "Icons version in ACM Studio" });
+  const panelVersion = studio.getByRole("combobox", { name: "Panel version in ACM Studio" });
+  await expect(account.getByRole("combobox", { name: "Panel version in ACM Account" })).toHaveValue("0.1.0");
   await expect(page.getByText("Choosing a different version opens a review.")).toBeVisible();
   await expect(opener).toHaveAccessibleDescription("Choosing a different version opens a review.");
   await expect(panelVersion).toHaveValue("0.1.0");
@@ -128,7 +128,7 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await expect.poll(async () => (await opener.boundingBox())!.x).toBeGreaterThan(headerBox.x + headerBox.width);
   const actionBox = (await opener.boundingBox())!;
   expect(actionBox.x + actionBox.width).toBeLessThan(scrollBox.x + scrollBox.width);
-  const dialog = page.getByRole("dialog", { name: "Change Icons version" });
+  const dialog = page.getByRole("dialog", { name: "Change Icons version in ACM Studio" });
   await expect(opener.locator("option:checked")).toHaveText("v0.35.1 (current)");
   await opener.selectOption("0.34.0");
   await expect(dialog.getByText(/will change from/)).toContainText("v0.35.1 to v0.34.0");
@@ -150,4 +150,40 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await expect(opener.locator("option:checked")).toHaveText("v0.34.0 (current)");
   await expect(studio.getByText("Installed version v0.35.1", { exact: true })).toBeVisible();
   expect(actions).toEqual(["review", "review", "apply"]);
+});
+
+test("opens the selected local project and dependency files from Account and Project Ports cells", async ({ page }) => {
+  const targets = [
+    { id: "acm-account", project: "ACM Account", packageId: "panel", label: "Panel", current: "0.1.0", next: "0.1.1", directory: "web", branch: "staging" },
+    { id: "project-ports", project: "Project Ports", packageId: "icons", label: "Icons", current: "0.35.1", next: "0.35.2", directory: "scripts/icons", branch: "main" },
+  ];
+  const reviews: string[] = [];
+  await page.route("**/__studio/packages", route => route.fulfill({ json: {
+    available: true,
+    projects: targets.map(target => ({ id: target.id, packages: [{ id: target.packageId, state: "installed", declared: target.current, version: target.current, comparison: -1 }] })),
+    releases: targets.map(target => ({ id: target.packageId, version: target.next, source: "registry", publishedVersions: [target.next, target.current] })),
+  } }));
+  await page.route("**/__studio/package-version", route => {
+    const request = route.request().postDataJSON();
+    const target = targets.find(item => item.id === request.projectId)!;
+    expect(request).toEqual({ action: "review", projectId: target.id, packageId: target.packageId, version: target.next });
+    reviews.push(target.id);
+    return route.fulfill({ json: { reviewId: target.id, projectId: target.id, branch: target.branch, previous: target.current,
+      version: target.next, diff: `+++ b/after/${target.directory}/package-lock.json` } });
+  });
+  await page.goto("/studio/packages");
+  for (const target of targets) {
+    const picker = page.getByRole("combobox", { name: `${target.label} version in ${target.project}` });
+    await expect(picker).toHaveValue(target.current);
+    await picker.selectOption(target.next);
+    const dialog = page.getByRole("dialog", { name: `Change ${target.label} version in ${target.project}` });
+    await expect(dialog.getByText(/will change from/)).toContainText(`in ${target.project}`);
+    await expect(dialog.getByText(target.branch, { exact: true })).toBeVisible();
+    await dialog.getByText("Dependency file changes").click();
+    await expect(dialog.getByText(`+++ b/after/${target.directory}/package-lock.json`)).toBeVisible();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(picker).toBeFocused();
+    await expect(picker).toHaveValue(target.current);
+  }
+  expect(reviews).toEqual(["acm-account", "project-ports"]);
 });

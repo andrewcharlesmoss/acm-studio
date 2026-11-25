@@ -105,15 +105,17 @@ export function PackageDashboard() {
   }, [request]);
 
   const loading = phase === "loading";
-  const studioPackages = snapshot?.projects.find(project => project.id === "acm-studio")?.packages ?? [];
-  const studioVersions = new Map(studioPackages.flatMap(dependency => {
-    const { id, declared } = dependency;
-    if (!declared || !/^\d+\.\d+\.\d+(?:[-+][\w.+-]+)?$/.test(declared)) return [];
-    const published = snapshot?.releases.find(release => release.id === id)?.publishedVersions;
-    const alternatives = published?.filter(version => version !== declared) ?? [];
-    return [[id, { declared, published, alternatives }] as const];
-  }));
-  const canChooseVersion = Array.from(studioVersions.values()).some(({ alternatives }) => alternatives.length > 0);
+  const projectVersions = new Map(snapshot?.projects.map(project => [
+    project.id, new Map(project.packages.flatMap(dependency => {
+      const { id, declared } = dependency;
+      if (!declared || !/^\d+\.\d+\.\d+(?:[-+][\w.+-]+)?$/.test(declared)) return [];
+      const published = snapshot.releases.find(release => release.id === id)?.publishedVersions;
+      const alternatives = published?.filter(version => version !== declared) ?? [];
+      return [[id, { declared, published, alternatives }] as const];
+    })),
+  ]));
+  const canChooseVersion = Array.from(projectVersions.values()).some(packages =>
+    Array.from(packages.values()).some(({ alternatives }) => alternatives.length > 0));
   const registryUnavailable = snapshot?.releases.some(release => release.source === "verified");
   const status = loading ? "Checking package versions…" : phase === "unavailable"
     ? "Local package data unavailable. Open this page in local Studio to check installed versions."
@@ -157,19 +159,22 @@ export function PackageDashboard() {
               {catalogue.packages.map(pkg => {
                 const dependency = dependencies?.find(item => item.id === pkg.id);
                 const release = snapshot?.releases.find(item => item.id === pkg.id);
-                const versions = project.id === "acm-studio" ? studioVersions.get(pkg.id) : undefined;
+                const versions = projectVersions.get(project.id)?.get(pkg.id);
                 return <ConsumerCell key={pkg.id}
                   release={release}
                   dependency={dependency}
                   actionNote={versions && !versions.alternatives.length
                     ? versions.published ? "No other releases" : "Live versions unavailable" : undefined}
                   action={versions ?
-                    <SelectControl aria-label={`${pkg.label} version`} aria-describedby={versions.alternatives.length ? "package-version-review-help" : undefined}
+                    <SelectControl aria-label={`${pkg.label} version in ${project.label}`} aria-describedby={versions.alternatives.length ? "package-version-review-help" : undefined}
                       value={versions.declared} disabled={!versions.alternatives.length}
                       onFocus={event => revealPackageAction(event.currentTarget)} onChange={event => {
                         const opener = event.currentTarget;
                         const version = opener.value;
-                        if (versions.alternatives.includes(version)) setVersionDialog({ selected: { id: pkg.id, label: pkg.label, version }, opener });
+                        if (versions.alternatives.includes(version)) setVersionDialog({
+                          selected: { id: pkg.id, label: pkg.label, version, projectId: project.id, projectLabel: project.label },
+                          opener,
+                        });
                       }}>
                       <option value={versions.declared}>v{versions.declared} (current)</option>
                       {versions.alternatives.map(version => <option key={version} value={version}>v{version}</option>)}

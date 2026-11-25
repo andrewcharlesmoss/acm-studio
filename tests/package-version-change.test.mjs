@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -13,31 +13,34 @@ const oldVersion = "0.35.1";
 const newVersion = "0.34.0";
 const dist = version => ({ tarball: `https://npm.pkg.github.com/download/${name}/${version}/test`, integrity: "sha512-example" });
 const json = data => JSON.stringify(data, null, 2) + "\n";
-const reviewRequest = { action: "review", packageId: "icons", version: newVersion };
+const reviewRequest = { action: "review", projectId: "acm-studio", packageId: "icons", version: newVersion };
 
-async function fixture(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), "studio-package-change-test-"));
+async function fixture(t, { root, directory = "", manifestName = "acm-studio", section = "dependencies" } = {}) {
+  root ??= await mkdtemp(path.join(os.tmpdir(), "studio-package-change-test-"));
   t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, directory), { recursive: true });
   const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
   git("init", "-q");
-  const manifest = { name: "acm-studio", dependencies: { [name]: oldVersion } };
-  const lock = { name: "acm-studio", lockfileVersion: 3, packages: { "": manifest,
+  const manifest = { name: manifestName, [section]: { [name]: oldVersion } };
+  const lock = { name: manifestName, lockfileVersion: 3, packages: { "": manifest,
     [`node_modules/${name}`]: { version: oldVersion, resolved: dist(oldVersion).tarball, integrity: dist(oldVersion).integrity } } };
-  const manifestPath = path.join(root, "package.json");
-  const lockPath = path.join(root, "package-lock.json");
+  const manifestPath = path.join(root, directory, "package.json");
+  const lockPath = path.join(root, directory, "package-lock.json");
+  const unrelated = path.join(root, "unrelated.txt");
+  await writeFile(unrelated, "Baseline\n");
   await writeFile(manifestPath, json(manifest));
   await writeFile(lockPath, json(lock));
-  git("add", "package.json", "package-lock.json");
+  git("add", manifestPath, lockPath, unrelated);
   git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "Baseline");
   const releases = async () => [oldVersion, newVersion].map(version => [version, { dist: dist(version) }]);
-  const resolve = async ({ contents, version }) => {
+  const resolve = async ({ contents, version, section: saveSection = section }) => {
     const [before, beforeLock] = contents.map(JSON.parse);
-    before.dependencies[name] = version;
-    beforeLock.packages[""].dependencies[name] = version;
+    before[saveSection][name] = version;
+    beforeLock.packages[""][saveSection][name] = version;
     beforeLock.packages[`node_modules/${name}`] = { version, resolved: dist(version).tarball, integrity: dist(version).integrity };
     return [json(before), json(beforeLock)];
   };
-  return { root, git, manifestPath, lockPath, releases, resolve };
+  return { root, git, manifestPath, lockPath, unrelated, releases, resolve };
 }
 
 test("reviews a downgrade without changing the checkout, then applies the exact reviewed files once", async t => {
@@ -52,8 +55,8 @@ test("reviews a downgrade without changing the checkout, then applies the exact 
   assert.match(review.diff, /\+.*@andrewcharlesmoss\/icons.*0\.34\.0/);
   assert.match(review.diff, /\+.*resolved.*0\.34\.0/);
   assert.deepEqual(await read(), original);
-  const apply = { action: "apply", reviewId: review.reviewId };
-  assert.deepEqual(await change(root, "fixture", apply), { applied: true, version: newVersion });
+  const apply = { action: "apply", projectId: "acm-studio", reviewId: review.reviewId };
+  assert.deepEqual(await change(root, "fixture", apply), { applied: true, projectId: "acm-studio", version: newVersion });
   assert.deepEqual(await read(), await resolve({ contents: original, version: newVersion }));
   assert.equal(git("diff", "--cached", "--name-only"), "");
   assert.equal(git("diff", "--name-only"), "package-lock.json\npackage.json");
@@ -64,17 +67,17 @@ test("preserves dirty dependency files and rejects stale, expired, and unmanaged
   const { root, git, manifestPath, releases, resolve } = await fixture(t);
   let now = 0;
   const change = createPackageVersionChanges({ releases, resolve, now: () => now });
-  const request = { action: "review", packageId: "unknown", version: newVersion };
-  await assert.rejects(change(root, "fixture", request), /available Studio package/);
+  const request = { action: "review", projectId: "acm-studio", packageId: "unknown", version: newVersion };
+  await assert.rejects(change(root, "fixture", request), /available shared package/);
   await assert.rejects(change(root, "fixture", { ...reviewRequest, version: "9.0.0" }), /no longer available/);
   const expired = await change(root, "fixture", reviewRequest);
   now += 600_001;
-  await assert.rejects(change(root, "fixture", { action: "apply", reviewId: expired.reviewId }), /expired/);
+  await assert.rejects(change(root, "fixture", { action: "apply", projectId: "acm-studio", reviewId: expired.reviewId }), /expired/);
   const review = await change(root, "fixture", reviewRequest);
   const dirty = (await readFile(manifestPath, "utf8")) + "\n";
   await writeFile(manifestPath, dirty);
   await assert.rejects(change(root, "fixture", reviewRequest), /local changes/);
-  await assert.rejects(change(root, "fixture", { action: "apply", reviewId: review.reviewId }), /local changes/);
+  await assert.rejects(change(root, "fixture", { action: "apply", projectId: "acm-studio", reviewId: review.reviewId }), /local changes/);
   assert.equal(await readFile(manifestPath, "utf8"), dirty);
   assert.equal(git("diff", "--name-only"), "package.json");
 });
@@ -84,7 +87,7 @@ test("rejects a competing writer and a lockfile resolved outside supported regis
   const change = createPackageVersionChanges({ releases, resolve });
   const review = await change(root, "fixture", reviewRequest);
   await mkdir(path.join(root, ".git", "studio-package-version.lock"));
-  await assert.rejects(change(root, "fixture", { action: "apply", reviewId: review.reviewId }), /Another package change/);
+  await assert.rejects(change(root, "fixture", { action: "apply", projectId: "acm-studio", reviewId: review.reviewId }), /Another package change/);
   const unsafe = createPackageVersionChanges({ releases, resolve: async input => {
     const [manifest, lockText] = await resolve(input);
     const lock = JSON.parse(lockText);
@@ -107,7 +110,7 @@ test("restores a partially applied file and retains recovery evidence when anoth
   } });
   const apply = async () => {
     const review = await change(root, "fixture", reviewRequest);
-    return change(root, "fixture", { action: "apply", reviewId: review.reviewId });
+    return change(root, "fixture", { action: "apply", projectId: "acm-studio", reviewId: review.reviewId });
   };
   await assert.rejects(apply(), /Both dependency files match their original contents/);
   assert.equal(git("status", "--porcelain"), "");
@@ -119,6 +122,59 @@ test("restores a partially applied file and retains recovery evidence when anoth
   const recovery = JSON.parse(await readFile(path.join(root, ".git", "studio-package-version.lock", "review.json"), "utf8"));
   assert.equal(recovery.head, git("rev-parse", "HEAD"));
   assert.match(recovery.patch, /0\.34\.0/);
+});
+
+test("isolates reviews and real Git applies across the approved nested project directories", async t => {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), "studio-package-workspace-"));
+  t.after(() => rm(workspace, { recursive: true, force: true }));
+  const studio = await fixture(t, { root: path.join(workspace, "acm-studio") });
+  const account = await fixture(t, { root: path.join(workspace, "acm-account"), directory: "web", manifestName: "acm-account-web" });
+  const ports = await fixture(t, { root: path.join(workspace, "project-ports"), directory: "scripts/icons",
+    manifestName: "project-ports-icons", section: "devDependencies" });
+  const sections = [];
+  const change = createPackageVersionChanges({ releases: studio.releases, resolve: input => {
+    sections.push(input.section);
+    return studio.resolve(input);
+  } });
+  const request = data => change(studio.root, "fixture", data, workspace);
+  await writeFile(account.unrelated, "Independent work\n");
+  await assert.rejects(request({ ...reviewRequest, projectId: "../project-ports" }), /supported project/);
+  const accountReview = await request({ ...reviewRequest, projectId: "acm-account", directory: ports.root });
+  const portsReview = await request({ ...reviewRequest, projectId: "project-ports" });
+  assert.equal(accountReview.projectId, "acm-account");
+  assert.equal(portsReview.projectId, "project-ports");
+  assert.match(accountReview.diff, /after\/web\/package\.json/);
+  assert.match(portsReview.diff, /after\/scripts\/icons\/package-lock\.json/);
+  assert.deepEqual(sections, ["dependencies", "devDependencies"]);
+  assert.equal(ports.git("status", "--porcelain"), "");
+  assert.equal(account.git("diff", "--name-only"), "unrelated.txt");
+  await assert.rejects(request({ action: "apply", projectId: "project-ports", reviewId: accountReview.reviewId }), /different project/);
+  assert.deepEqual(await request({ action: "apply", projectId: "acm-account", reviewId: accountReview.reviewId }),
+    { applied: true, projectId: "acm-account", version: newVersion });
+  assert.equal(account.git("diff", "--name-only"), "unrelated.txt\nweb/package-lock.json\nweb/package.json");
+  assert.equal(account.git("diff", "--cached", "--name-only"), "");
+  assert.equal(await readFile(account.unrelated, "utf8"), "Independent work\n");
+  assert.equal(ports.git("status", "--porcelain"), "");
+  await request({ action: "apply", projectId: "project-ports", reviewId: portsReview.reviewId });
+  const manifest = JSON.parse(await readFile(ports.manifestPath, "utf8"));
+  assert.equal(manifest.devDependencies[name], newVersion);
+  assert.equal(manifest.dependencies, undefined);
+  assert.equal(ports.git("diff", "--name-only"), "scripts/icons/package-lock.json\nscripts/icons/package.json");
+  assert.equal(studio.git("status", "--porcelain"), "");
+});
+
+test("rejects a nested directory swapped for a symlink after review", async t => {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), "studio-package-workspace-"));
+  t.after(() => rm(workspace, { recursive: true, force: true }));
+  const account = await fixture(t, { root: path.join(workspace, "acm-account"), directory: "web", manifestName: "acm-account-web" });
+  const relocated = path.join(workspace, "relocated");
+  const change = createPackageVersionChanges({ releases: account.releases, resolve: account.resolve });
+  const request = data => change(path.join(workspace, "acm-studio"), "fixture", { ...data, projectId: "acm-account" }, workspace);
+  const review = await request(reviewRequest);
+  await rename(path.join(account.root, "web"), relocated);
+  await symlink(relocated, path.join(account.root, "web"));
+  await assert.rejects(request({ action: "apply", reviewId: review.reviewId }), /without symbolic links/);
+  assert.equal(JSON.parse(await readFile(path.join(relocated, "package.json"), "utf8")).dependencies[name], oldVersion);
 });
 
 test("keeps the version endpoint local and rejects malformed or oversized actions before dispatch", async () => {
@@ -138,5 +194,6 @@ test("keeps the version endpoint local and rejects malformed or oversized action
   assert.equal((await request(json(reviewRequest), "http://localhost:3000")).statusCode, 403);
   assert.equal((await request("{")).statusCode, 400);
   assert.equal((await request(" ".repeat(2049))).statusCode, 413);
+  assert.equal((await request(json({ ...reviewRequest, projectId: null }))).statusCode, 400);
   assert.deepEqual((await request(json(reviewRequest))).body, { root: "/studio", action: "review" });
 });

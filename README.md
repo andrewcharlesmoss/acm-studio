@@ -122,25 +122,27 @@ versions independently in the registry. A separately located workspace can be
 set through `STUDIO_PACKAGES_WORKSPACE`; the Studio column still reads the
 checkout that launched its server.
 
-### Change a Studio package version
+### Change a local project’s package version
 
-In local Studio, use the version dropdown in the package’s cell in the
-**ACM Studio** row. Choosing a different published release opens a review of
-the exact diff for `package.json` and `package-lock.json`.
-**Apply Version Change** saves those files in the running Studio checkout.
-Run `npm ci` from that checkout,
-restart Studio, and verify the affected interface before committing the update.
-The pilot leaves installation, Git publication, and deployment as separate
-steps. ACM Account and Project Ports remain read-only.
+In local Studio, use the version dropdown in the package’s cell. Choosing a
+different published release shows the project, local branch, and exact diff.
+**Apply Version Change** saves that project's `package.json` and
+`package-lock.json`. The supported locations are the running ACM Studio
+checkout, ACM Account’s `web/` directory, and Project Ports’ `scripts/icons/`
+directory. The sibling projects use their own local Git checkouts in the
+configured workspace. Only packages the selected project already pins can be
+changed. The version picker leaves installation, verification, Git commits,
+and deployment as separate steps. Use the selected project’s install and build
+instructions before committing its dependency update.
 
-The pilot requires the server’s `STUDIO_PACKAGES_READ_TOKEN` and an npm version
+The picker requires the server’s `STUDIO_PACKAGES_READ_TOKEN` and an npm version
 that supports `allow-git`, `allow-file`, `allow-directory`, and `allow-remote`.
 npm resolves the proposed lockfile in a temporary directory with lifecycle
 scripts disabled. Reviews expire after ten minutes or a server restart.
 Existing dependency edits must be resolved before preparing a review. If a
 failed or interrupted Apply leaves `studio-package-version.lock` in the
-checkout’s Git directory (`git rev-parse --absolute-git-dir`), stop the server and
-inspect `git diff -- package.json package-lock.json`. The lock’s `review.json`
+selected checkout’s Git directory (`git rev-parse --absolute-git-dir`), stop
+Studio and inspect the dependency file diff in that checkout. The lock’s `review.json`
 records the original commit and the reviewed patch. Use it to identify any
 partially applied change and preserve independent edits before clearing the lock
 and restarting Studio.
