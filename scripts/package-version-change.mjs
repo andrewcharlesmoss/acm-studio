@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import catalogue from "../app/studio/package-dashboard-catalogue.json" with { type: "json" };
-import { compareVersions, packageRegistryMetadata, registryArchive } from "./package-dashboard-source.mjs";
+import { compareVersions, packageRegistryMetadata, publishedPackageReleases } from "./package-dashboard-source.mjs";
 
 const files = ["package.json", "package-lock.json"];
 const prefix = "@andrewcharlesmoss/";
@@ -65,9 +65,7 @@ async function loadReleases(id, token) {
   if (!token) throw new PackageChangeError(503, "Version changes need read access to GitHub Packages. Configure Studio’s package registry access and reopen this dialog.");
   const metadata = await packageRegistryMetadata(id, token).catch(() => null);
   if (!metadata) throw new PackageChangeError(503, "Studio couldn’t read published versions from GitHub Packages. Check registry access and try again.");
-  const name = prefix + id;
-  return Object.entries(metadata.versions ?? {}).filter(([version, item]) =>
-    compareVersions(version, version) === 0 && registryArchive(item?.dist?.tarball, name, version));
+  return publishedPackageReleases(id, metadata);
 }
 
 async function resolveLock({ directory, name, version, token, contents }) {

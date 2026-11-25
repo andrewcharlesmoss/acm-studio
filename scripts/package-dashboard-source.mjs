@@ -154,6 +154,12 @@ export async function packageRegistryMetadata(id, token, fetchRelease = fetch) {
   return response.ok ? response.json() : null;
 }
 
+export function publishedPackageReleases(id, metadata) {
+  const name = `${scope}/${id}`;
+  return Object.entries(metadata?.versions ?? {}).filter(([version, item]) =>
+    parseVersion(version) && registryArchive(item?.dist?.tarball, name, version));
+}
+
 async function readRelease({ id, verifiedVersion }, token, fetchRelease) {
   if (token) {
     const name = `${scope}/${id}`;
@@ -161,7 +167,10 @@ async function readRelease({ id, verifiedVersion }, token, fetchRelease) {
       const metadata = await packageRegistryMetadata(id, token, fetchRelease);
       const version = metadata?.["dist-tags"]?.latest;
       if (parseVersion(version) && registryArchive(metadata.versions?.[version]?.dist?.tarball, name, version)) {
-        return { id, version, source: "registry" };
+        const publishedVersions = publishedPackageReleases(id, metadata)
+          .map(([publishedVersion]) => publishedVersion)
+          .sort((left, right) => compareVersions(right, left));
+        return { id, version, source: "registry", publishedVersions };
       }
     } catch {
       // The authenticated registry is optional during local development.

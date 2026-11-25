@@ -82,16 +82,14 @@ test("reviews a published Studio version before applying it from a narrow dashbo
     ] }, { id: "acm-account", packages: [
       { id: "panel", state: "installed", declared: "0.1.0", version: "0.1.0", comparison: 0 },
     ] }],
-    releases: [{ id: "icons", version: "0.35.1", source: "registry" }],
+    releases: [
+      { id: "icons", version: "0.35.1", source: "registry", publishedVersions: ["0.35.1", "0.34.0"] },
+      { id: "panel", version: "0.1.0", source: "registry", publishedVersions: ["0.1.0"] },
+    ],
   } }));
   await page.route("**/__studio/package-version", route => {
     const input = route.request().postDataJSON();
     actions.push(input.action);
-    if (input.action === "versions") {
-      if (input.packageId === "panel") return route.fulfill({ json: { versions: ["0.1.0"] } });
-      expect(input).toEqual({ action: "versions", packageId: "icons" });
-      return route.fulfill({ json: { versions: ["0.35.1", "0.34.0"] } });
-    }
     if (input.action === "review") {
       expect(input).toEqual({ action: "review", packageId: "icons", version: "0.34.0" });
       return route.fulfill({ json: { reviewId: "test-review", previous: "0.35.1", version: "0.34.0", diff: "--- package.json\n+ 0.34.0" } });
@@ -104,20 +102,14 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await page.goto("/studio/packages");
   const studio = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "ACM Studio" }) });
   const account = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: "ACM Account" }) });
-  const opener = studio.getByRole("button", { name: "Change version of Icons" });
-  const panelOpener = studio.getByRole("button", { name: "Change version of Panel" });
-  await expect(account.getByRole("button")).toHaveCount(0);
-  await panelOpener.focus();
-  await page.keyboard.press("Enter");
-  const panelDialog = page.getByRole("dialog", { name: "Change Panel version" });
-  const panelVersion = panelDialog.getByRole("combobox", { name: "Published version" });
+  const opener = studio.getByRole("combobox", { name: "Icons version" });
+  const panelVersion = studio.getByRole("combobox", { name: "Panel version" });
+  await expect(account.getByRole("combobox")).toHaveCount(0);
+  await expect(page.getByText("Choosing a different version opens a review.")).toBeVisible();
+  await expect(opener).toHaveAccessibleDescription("Choosing a different version opens a review.");
   await expect(panelVersion).toHaveValue("0.1.0");
   await expect(panelVersion.locator("option:checked")).toHaveText("v0.1.0 (current)");
   await expect(panelVersion).toBeDisabled();
-  await expect(panelDialog.getByRole("button", { name: "Review Change" })).toBeDisabled();
-  await page.keyboard.press("Escape");
-  await expect(panelDialog).toHaveCount(0);
-  await expect(panelOpener).toBeFocused();
   const scroll = page.getByRole("region", { name: "Package versions by project" });
   await scroll.evaluate(el => { el.scrollLeft = el.scrollWidth; });
   await opener.focus();
@@ -127,24 +119,25 @@ test("reviews a published Studio version before applying it from a narrow dashbo
   await expect.poll(async () => (await opener.boundingBox())!.x).toBeGreaterThan(headerBox.x + headerBox.width);
   const actionBox = (await opener.boundingBox())!;
   expect(actionBox.x + actionBox.width).toBeLessThan(scrollBox.x + scrollBox.width);
-  await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Change Icons version" });
-  const versionChoice = dialog.getByRole("combobox", { name: "Published version" });
-  await expect(versionChoice.getByRole("option", { name: "v0.35.1 (current)" })).toHaveJSProperty("disabled", true);
-  await versionChoice.selectOption("0.34.0");
-  await expect(dialog.getByRole("button", { name: "Apply Version Change" })).toHaveCount(0);
-  await dialog.getByRole("button", { name: "Review Change" }).click();
+  await expect(opener.locator("option:checked")).toHaveText("v0.35.1 (current)");
+  await opener.selectOption("0.34.0");
   await expect(dialog.getByText(/will change from/)).toContainText("v0.35.1 to v0.34.0");
   await expect(dialog.getByText(/will change from/)).toBeFocused();
   await dialog.getByText("Dependency file changes").click();
   await expect(dialog.getByText("--- package.json", { exact: false })).toBeVisible();
-  expect(actions).toEqual(["versions", "versions", "review"]);
+  expect(actions).toEqual(["review"]);
   const box = (await dialog.boundingBox())!;
   expect(box.width + box.x).toBeLessThanOrEqual(320);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await expect(opener).toHaveValue("0.35.1");
+  await opener.selectOption("0.34.0");
   await dialog.getByRole("button", { name: "Apply Version Change" }).press("Enter");
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
   await expect(page.getByText(/Icons v0.34.0 is saved/)).toBeVisible();
-  await expect(page.getByRole("table").getByText("Declared 0.34.0")).toBeVisible();
-  expect(actions).toEqual(["versions", "versions", "review", "apply"]);
+  await expect(opener.locator("option:checked")).toHaveText("v0.34.0 (current)");
+  expect(actions).toEqual(["review", "review", "apply"]);
 });

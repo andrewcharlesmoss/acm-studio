@@ -31,7 +31,6 @@
 .package-dash-detail { display: block; color: var(--muted); font-size: var(--studio-ui-size, .875rem); }
 .package-dash-detail + .package-dash-detail { margin-top: 4px; }
 .package-dash-cell-action { margin-block-start: 8px; }
-.package-version-field { display: grid; gap: 4px; max-inline-size: 22rem; }
 .package-version-diff summary { cursor: pointer; }
 .package-version-diff pre {
   overflow: auto;

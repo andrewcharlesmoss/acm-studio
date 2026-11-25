@@ -131,6 +131,8 @@ test("uses authenticated registry latest separately from checked fallback and re
       if (name.endsWith("/ribbon")) return new Response(null, { status: 403 });
       const version = "2.0.0";
       return Response.json({ "dist-tags": { latest: version }, versions: {
+        "1.0.0": { dist: { tarball: tarball(icons, "1.0.0") } },
+        "1.5.0": { dist: { tarball: "https://example.test/package" } },
         [version]: { dist: { tarball: name === icons ? tarball(icons, version) : "https://example.test/package" } },
       } });
     },
@@ -138,6 +140,8 @@ test("uses authenticated registry latest separately from checked fallback and re
   assert.deepEqual(snapshot.releases.map(({ id, source }) => [id, source]),
     [["icons", "registry"], ["panel", "verified"], ["ribbon", "verified"], ["styles", "verified"]]);
   assert.equal(snapshot.releases[0].version, "2.0.0");
+  assert.deepEqual(snapshot.releases[0].publishedVersions, ["2.0.0", "1.0.0"]);
+  assert.equal(snapshot.releases[1].publishedVersions, undefined);
   assert.doesNotMatch(JSON.stringify(snapshot), /test-token/);
 });
 

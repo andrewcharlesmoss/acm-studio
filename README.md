@@ -124,11 +124,11 @@ checkout that launched its server.
 
 ### Change a Studio package version
 
-In local Studio, choose **Change Version** in the package’s cell in the
-**ACM Studio** row, select a published release, then choose **Review Change**.
-The review shows the exact diff for `package.json` and `package-lock.json`.
-**Apply Version Change** saves
-those files in the running Studio checkout. Run `npm ci` from that checkout,
+In local Studio, use the version dropdown in the package’s cell in the
+**ACM Studio** row. Choosing a different published release opens a review of
+the exact diff for `package.json` and `package-lock.json`.
+**Apply Version Change** saves those files in the running Studio checkout.
+Run `npm ci` from that checkout,
 restart Studio, and verify the affected interface before committing the update.
 The pilot leaves installation, Git publication, and deployment as separate
 steps. ACM Account and Project Ports remain read-only.

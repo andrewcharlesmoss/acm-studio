@@ -2,18 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { StudioButton } from "../controls/button";
-import { SelectControl } from "../controls/native-fields";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 
-export type PackageChoice = { id: string; label: string; declared: string };
+export type PackageChoice = { id: string; label: string; version: string };
 type Review = { reviewId: string; previous: string; version: string; diff: string };
 
-async function requestVersionChange<T>(payload: Record<string, string>, signal?: AbortSignal): Promise<T> {
+async function requestVersionChange<T>(payload: Record<string, string>): Promise<T> {
   const response = await fetch("/__studio/package-version", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Studio-Client": "package-dashboard" },
     body: JSON.stringify(payload),
-    signal,
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data) {
@@ -24,49 +22,34 @@ async function requestVersionChange<T>(payload: Record<string, string>, signal?:
 
 export function PackageVersionDialog({ selected, opener, onClose, onApplied }: {
   selected: PackageChoice;
-  opener: HTMLButtonElement;
+  opener: HTMLSelectElement;
   onClose: () => void;
   onApplied: (message: string) => void;
 }) {
-  const [versions, setVersions] = useState<string[] | null>(null);
-  const [version, setVersion] = useState("");
   const [review, setReview] = useState<Review | null>(null);
-  const [busy, setBusy] = useState<"review" | "apply" | null>(null);
+  const [applying, setApplying] = useState(false);
   const [error, setError] = useState("");
   const reviewSummary = useRef<HTMLParagraphElement>(null);
-  const { id: packageId, declared: currentVersion } = selected;
-  const hasAlternative = versions?.some(item => item !== currentVersion);
-  const canReview = Boolean(version && version !== currentVersion && versions?.includes(version));
-  const displayedVersion = version || (!hasAlternative && currentVersion && versions?.includes(currentVersion) ? currentVersion : "");
+  const reviewTask = useRef<Promise<Review> | null>(null);
+  const { id: packageId, version } = selected;
 
   useEffect(() => {
-    const controller = new AbortController();
-    void requestVersionChange<{ versions: string[] }>({ action: "versions", packageId }, controller.signal).then(result => {
-      if (!controller.signal.aborted) setVersions(result.versions);
+    let open = true;
+    // Strict Mode can repeat the effect setup. Reuse the same server review.
+    reviewTask.current ??= requestVersionChange<Review>({ action: "review", packageId, version });
+    void reviewTask.current.then(result => {
+      if (open) setReview(result);
     }).catch(reason => {
-      if (!controller.signal.aborted) {
-        setVersions([]);
-        setError(reason.message);
-      }
+      if (open) setError(reason instanceof Error ? reason.message : "Studio couldn’t prepare the review.");
     });
-    return () => controller.abort();
-  }, [packageId]);
+    return () => { open = false; };
+  }, [packageId, version]);
 
   useEffect(() => { if (review) reviewSummary.current?.focus(); }, [review]);
 
-  async function reviewChange() {
-    setBusy("review");
-    setError("");
-    try {
-      setReview(await requestVersionChange<Review>({ action: "review", packageId, version }));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Studio couldn’t prepare the review.");
-    } finally { setBusy(null); }
-  }
-
   async function applyChange() {
     if (!review) return;
-    setBusy("apply");
+    setApplying(true);
     setError("");
     try {
       const result = await requestVersionChange<{ applied: boolean; version: string }>({ action: "apply", reviewId: review.reviewId });
@@ -75,21 +58,12 @@ export function PackageVersionDialog({ selected, opener, onClose, onApplied }: {
     } catch (reason) {
       setReview(null);
       setError(reason instanceof Error ? reason.message : "Studio couldn’t confirm the change.");
-    } finally { setBusy(null); }
+    } finally { setApplying(false); }
   }
 
   return <StudioDialog title={`Change ${selected.label} version`} className="studio-dialog-wide package-version-dialog" returnFocus={opener}
-    onClose={onClose} closeDisabled={busy !== null}>
-    <form onSubmit={event => { event.preventDefault(); if (!review && !busy && canReview) void reviewChange(); }}>
-      <label className="package-version-field">Published version<SelectControl value={displayedVersion} disabled={busy !== null || review !== null || !hasAlternative}
-        onChange={event => { setVersion(event.target.value); setError(""); }}>
-        <option value="">Choose a version</option>
-        {versions?.map(item => <option value={item} key={item} disabled={item === currentVersion}>
-          v{item}{item === currentVersion ? " (current)" : ""}
-        </option>)}
-      </SelectControl></label>
-      {!versions ? <p role="status">Checking published versions…</p> : null}
-      {versions && !hasAlternative && !error ? <p role="status">No other published versions are available for this package.</p> : null}
+    onClose={onClose} closeDisabled={applying}>
+      {!review && !error ? <p role="status">Preparing the review for v{version}…</p> : null}
       {error ? <p role="alert">{error}</p> : null}
       {review ? <section aria-label="Proposed dependency change">
         <p ref={reviewSummary} tabIndex={-1}><strong>{selected.label}</strong> will change from <strong>v{review.previous}</strong> to <strong>v{review.version}</strong> in ACM Studio.</p>
@@ -97,10 +71,8 @@ export function PackageVersionDialog({ selected, opener, onClose, onApplied }: {
         <details className="package-version-diff"><summary>Dependency file changes</summary><pre>{review.diff}</pre></details>
       </section> : null}
       <StudioDialogActions>
-        <StudioButton type="button" variant="secondary" disabled={busy !== null} onClick={review ? () => setReview(null) : onClose}>{review ? "Back" : "Cancel"}</StudioButton>
-        {review ? <StudioButton key="apply" type="button" disabled={busy !== null} onClick={() => void applyChange()}>{busy ? "Applying…" : "Apply Version Change"}</StudioButton>
-          : <StudioButton key="review" type="submit" disabled={!canReview || busy !== null}>{busy ? "Preparing Review…" : "Review Change"}</StudioButton>}
+        <StudioButton type="button" variant="secondary" disabled={applying} onClick={onClose}>Cancel</StudioButton>
+        <StudioButton type="button" disabled={!review || applying} onClick={() => void applyChange()}>{applying ? "Applying…" : "Apply Version Change"}</StudioButton>
       </StudioDialogActions>
-    </form>
   </StudioDialog>;
 }
