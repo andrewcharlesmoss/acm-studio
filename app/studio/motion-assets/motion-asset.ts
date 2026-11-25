@@ -1,6 +1,12 @@
 export const motionFps = 30;
 const singleStrokeProjectVersion = "0.1.0";
 export const motionProjectVersion = "0.2.0";
+const effectProjectVersions = {
+  "fire-burst": "0.3.0",
+  "fire-shockwave": "0.4.0",
+  "volumetric-fireball": "0.5.0",
+} as const;
+const effectVersions: readonly string[] = Object.values(effectProjectVersions);
 export const motionFileLimit = 24 * 1024;
 
 export type MotionAsset = {
@@ -14,6 +20,19 @@ export type MotionAsset = {
   drawFrames: number;
   holdFrames: number;
 };
+
+export type MotionEffect = Pick<MotionAsset, "name" | "width" | "height"> & {
+  effect: keyof typeof effectProjectVersions;
+  durationFrames: number;
+};
+
+export type MotionClip = MotionAsset | MotionEffect;
+export const motionEffectDuration = { min: 18, max: 90 };
+export const volumetricExportRequirement = "Volumetric Fireball MOV export requires local Studio on a Mac with Metal and the Swift toolchain.";
+
+export function motionEffectFrameLimit(effect: MotionEffect["effect"]) {
+  return effect === "volumetric-fireball" ? 450 : motionEffectDuration.max;
+}
 
 type Point = [number, number];
 type Segment = { from: Point; to: Point; controls?: [Point, Point] };
@@ -137,7 +156,31 @@ export function readMotionAsset(input: unknown): MotionAsset {
   };
 }
 
-export function motionProject(asset: MotionAsset) {
+function readMotionEffect(input: unknown): MotionEffect {
+  if (!input || typeof input !== "object" || !("effect" in input)
+    || typeof input.effect !== "string" || !Object.hasOwn(effectProjectVersions, input.effect)) {
+    throw new Error("Choose a motion project with a supported special effect.");
+  }
+  const { effect, name, width, height, durationFrames } = input as MotionEffect;
+  if (typeof name !== "string" || !name.trim() || name.length > 100) {
+    throw new Error("Enter an asset name from 1 to 100 characters.");
+  }
+  if (!integerIn(width, 128, motionDimensionLimit(height)) || !integerIn(height, 128, motionDimensionLimit(width))) {
+    throw new Error("Use dimensions from 128 px up to 1920 × 1080 or 1080 × 1920.");
+  }
+  const limit = motionEffectFrameLimit(effect);
+  if (!integerIn(durationFrames, motionEffectDuration.min, limit) || durationFrames % 3) {
+    throw new Error(`Set a duration from 0.6 to ${limit / motionFps} s in steps of 0.1 s.`);
+  }
+  return { name: name.trim(), width, height, effect, durationFrames };
+}
+
+export function motionProject(asset: MotionClip) {
+  if ("effect" in asset) {
+    const validated = readMotionEffect(asset);
+    const version = effectProjectVersions[validated.effect];
+    return { format: "acm-motion", version, asset: validated };
+  }
   const validated = readMotionAsset(asset);
   const version = validated.path.indexOf("M", 1) === -1 ? singleStrokeProjectVersion : motionProjectVersion;
   return { format: "acm-motion", version, asset: validated };
@@ -145,7 +188,19 @@ export function motionProject(asset: MotionAsset) {
 
 export function readMotionProject(value: unknown) {
   const file = value as ReturnType<typeof motionProject>;
-  if (!file || file.format !== "acm-motion" || (file.version !== singleStrokeProjectVersion && file.version !== motionProjectVersion)) {
+  if (!file || file.format !== "acm-motion") {
+    throw new Error("Choose an ACM Motion project saved in a supported version.");
+  }
+  const effectVersion = effectVersions.indexOf(file.version);
+  if (effectVersion !== -1) {
+    const asset = readMotionEffect(file.asset);
+    const requiredVersion = effectProjectVersions[asset.effect];
+    if (effectVersion < effectVersions.indexOf(requiredVersion)) {
+      throw new Error(`Use ACM Motion project v${requiredVersion} for this special effect.`);
+    }
+    return asset;
+  }
+  if (file.version !== singleStrokeProjectVersion && file.version !== motionProjectVersion) {
     throw new Error("Choose an ACM Motion project saved in a supported version.");
   }
   const asset = readMotionAsset(file.asset);

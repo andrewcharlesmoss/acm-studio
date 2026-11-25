@@ -18,6 +18,34 @@ The preview frame follows the finished stroke and stays in place during playback
 
 The initial wave uses the SVG geometry from the November 2026 cross-editor experiment. The collection includes original geometry for the sketch marks. An imported SVG needs a viewBox and one untransformed path. It supports absolute M, L, C and Z commands, with up to 128 segments across all subpaths. Separate strokes draw in path order within the overall draw time. Path and control points must be inside the viewBox. Studio imports the geometry and uses a supported solid stroke colour and whole-pixel thickness if specified directly on the path. Files are limited to 24 KB. Projects with multiple strokes use v0.2.0. Studio still reads and writes v0.1.0 projects for a single stroke.
 
+## Special effects
+
+**Fire Burst** opens with a bright fireball, sends embers outwards, and fades as the smoke disperses. **Fire Shockwave** sends a ring of hot gold and orange flame through the edges of the canvas, then reveals the footage through its centre and leaves a short ember trail. Its original artwork takes visual inspiration from [JoyRea Effects’ green-screen Short](https://www.youtube.com/shorts/w6MCj9em7J8).
+
+Both effects default to 1920 × 1080 px at 30 fps for two seconds. You can change the name, canvas dimensions, and duration from 0.6 to 3 seconds. The first and last video frames are fully transparent. If your system requests reduced motion, use **Play** to start the effect manually.
+
+Choose **Download Project** to keep editable settings or **Transparent MOV** to use the effect above your footage. Fire Shockwave requires project format v0.4.0, while Fire Burst uses v0.3.0. Studio still opens sketch projects in v0.1.0 and v0.2.0. SVG and Lottie exports are available for sketches.
+
+**Volumetric Fireball** is an independently generated 3D flame effect. Its shell, turbulent folds, sparks, and fade are defined in the [shared shader](../app/studio/motion-assets/volumetric-fireball.glsl). Change its name, width, height, and duration from 0.6 to 15 seconds. Defaults are 1920 × 1080 px and 11.6 seconds at 30 fps. Download an editable project in format v0.5.0 or export a new ProRes 4444 MOV with alpha using **Transparent MOV**.
+
+Studio previews the live shader on the transparency grid through WebGL 2. It shows a rendered still if live preview is unavailable. Local MOV export renders the same shader in Metal at the chosen size and duration. It requires a Mac with Metal, the Swift toolchain, and FFmpeg.
+
+### Render Volumetric Fireball from the command line
+
+From the repository root, run these commands in Bash to render the default size and duration on a Mac with Metal, the Swift toolchain, and FFmpeg installed:
+
+```sh
+set -e -o pipefail
+render_dir=$(mktemp -d)
+mkdir -p outputs
+swiftc -O -module-cache-path "$render_dir/module-cache" scripts/volumetric-fireball/render.swift -o "$render_dir/render"
+"$render_dir/render" app/studio/motion-assets/volumetric-fireball.glsl 1920 1080 348 | \
+  ffmpeg -n -f rawvideo -pixel_format rgba -video_size 1920x1080 -framerate 30 -i pipe:0 \
+  -vf 'scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le' -c:v prores_ks \
+  -profile:v 4 -alpha_bits 8 -threads 4 -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
+  -movflags +faststart outputs/volumetric-fireball-render.mov
+```
+
 ## Choose an export
 
 | Export | Use |
