@@ -60,6 +60,8 @@
 
 ### Changed
 
+- Delete individual imported sounds from Sound Effects and restore the built-in sound after removing it.
+
 - Close Studio dialogs by clicking their backdrop, with draft and pending-operation safeguards.
 
 - Browse Sound Effects in a compact table with icon actions for downloads and file details.

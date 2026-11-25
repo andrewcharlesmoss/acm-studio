@@ -376,6 +376,62 @@ test("the top-level Sound Effects tab has its own search, pauses playback, and d
   expect(data.readUInt32LE(40) / (48_000 * 6)).toBe(4.1);
 });
 
+test("deletes an individual library sound and restores the built-in sound", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await page.goto("/studio?mode=files");
+  const files = page.getByRole("region", { name: "File manager", exact: true });
+  const upload = files.locator('input[type="file"]');
+  await expect(upload).toBeEnabled({ timeout: 30_000 });
+  await files.getByRole("button", { name: "Folder", exact: true }).click();
+  const folderName = files.getByRole("textbox", { name: "Name", exact: true });
+  await folderName.fill("Sound Effects");
+  await folderName.press("Enter");
+  await files.getByRole("button", { name: "Sound Effects", exact: true }).press("Enter");
+  await expect(files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name: "Sound Effects" })).toBeVisible();
+  const buffer = await readFile("public/motion-assets/explosion-and-glass.wav");
+  await upload.setInputFiles(["delete-this.wav", "keep-this.wav"].map(name => ({ name, mimeType: "audio/wav", buffer })));
+  await expect(files.getByText("delete-this.wav", { exact: true })).toBeVisible();
+
+  const library = await context.newPage();
+  await library.goto(soundRoute);
+  const table = library.getByRole("table", { name: "Sound Effects", exact: true });
+  const remove = table.getByRole("button", { name: "Delete delete-this.wav", exact: true });
+  await expect(remove).toBeEnabled();
+  await remove.click();
+  const dialog = library.getByRole("dialog", { name: "Delete sound?", exact: true });
+  await expect(dialog.getByText(/delete-this\.wav/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(remove).toBeFocused();
+  await remove.click();
+  await dialog.getByRole("button", { name: "Delete sound", exact: true }).click();
+  await expect(remove).toHaveCount(0);
+  await expect(table.getByText("keep-this.wav", { exact: true })).toBeVisible();
+  await expect(files.getByText("delete-this.wav", { exact: true })).toHaveCount(0);
+  await expect(files.getByText("keep-this.wav", { exact: true })).toBeVisible();
+
+  const builtIn = table.getByRole("button", { name: "Delete Explosion and Glass", exact: true });
+  await builtIn.click();
+  await library.getByRole("dialog", { name: "Remove built-in sound?", exact: true }).getByRole("button", { name: "Remove sound", exact: true }).click();
+  const restore = library.getByRole("button", { name: "Restore Explosion and Glass", exact: true });
+  await expect(restore).toBeVisible();
+  await library.reload();
+  await expect(restore).toBeVisible();
+  await expect(builtIn).toHaveCount(0);
+  await expect(table.getByText("delete-this.wav", { exact: true })).toHaveCount(0);
+  await restore.click();
+  await expect(builtIn).toBeVisible();
+  await library.reload();
+  await expect(builtIn).toBeVisible();
+  await expect(restore).toHaveCount(0);
+
+  await page.close();
+  const lastFile = table.getByRole("button", { name: "Delete keep-this.wav", exact: true });
+  await lastFile.click();
+  await dialog.getByRole("button", { name: "Delete sound", exact: true }).click();
+  await expect(lastFile).toHaveCount(0, { timeout: 12_000 });
+  await expect(builtIn).toBeVisible();
+});
+
 test("File Details closes on its backdrop and returns focus", async ({ page }) => {
   await page.route("**/motion-assets/explosion-and-glass.wav", route => route.fulfill({ status: 404 }));
   await page.goto(soundRoute);

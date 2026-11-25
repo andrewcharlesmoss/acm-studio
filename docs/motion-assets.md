@@ -46,7 +46,7 @@ swiftc -O -module-cache-path "$render_dir/module-cache" scripts/volumetric-fireb
 
 ## Sound effects
 
-Open **Studio UI Library → Sound Effects** at `/studio/ui/sound-effects`. Find **Explosion and Glass** in the table, use its audio player, or choose the **Download WAV** icon for a 4.1-second stereo clip at 48 kHz and 24-bit PCM. Search for the name or terms such as “shatter” and “blast”. Starting another sound stops the current one and resets it to the beginning. Switching Library tabs keeps your search and pauses audio playback.
+Open **Studio UI Library → Sound Effects** at `/studio/ui/sound-effects`. Find **Explosion and Glass** in the table, use its audio player, or choose the **Download WAV** icon for a 4.1-second stereo clip at 48 kHz and 24-bit PCM. Search for the name or terms such as “shatter” and “blast”. Starting another sound stops the current one and resets it to the beginning. Switching Library tabs keeps your search and pauses audio playback. Each row has a **Delete** icon. Confirming deletion of an imported sound permanently removes the copy in **Files**. Removing **Explosion and Glass** hides it in this browser and enables **Restore Explosion and Glass**.
 
 The sound is synthesised from seeded noise, oscillators, and short stereo reflections. The Camtasia sound informed the timing and character. The generator uses no recording as input. From the repository root, run `node scripts/synthesise-explosion-glass.mjs` to regenerate the bundled WAV.
 

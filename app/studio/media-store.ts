@@ -535,6 +535,10 @@ export function prepareMediaFolderMove(folders: MediaFolder[], id: string, paren
 
 const liveMediaStore = createLiveMediaStore();
 export const readMediaLibrarySnapshot = liveMediaStore.readMediaLibrarySnapshot;
+export async function readMediaLibraryWithGeneration() {
+  const { assets, folders, related } = await readMediaLibrarySnapshot(metadata => metadata.get("generation"), ["generation"]);
+  return { assets, folders, generation: typeof related === "string" ? related : null };
+}
 export const listMediaLibrary: () => Promise<{ assets: MediaAsset[]; folders: MediaFolder[] }> = liveMediaStore.listMediaLibrary;
 export const getMediaAsset: (id: string) => Promise<MediaAsset | undefined> = liveMediaStore.getMediaAsset;
 export const { addMediaFiles, createMediaFolder, updateMediaAsset, replaceMediaAssetContent, renameMediaFolder, colourMediaFolder, moveMediaFolder, deleteMediaAsset, deleteMediaFolder, replaceMediaLibrary, ensureMediaGeneration, applyMediaRequest } = liveMediaStore;

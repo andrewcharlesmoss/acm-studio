@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { MEDIA_COMMAND_PROTOCOL, MEDIA_RENDITION_CAPABILITY, MEDIA_REQUEST_LIFETIME_MS, MediaCommandError, mediaId, mediaRecord, validateMediaCommand, validateMediaRequest, type MediaCommand, type MediaRequest } from "./media-command";
-import { applyMediaRequest, MEDIA_STORE_CHANGED, supportsImageRenditions } from "./media-store";
+import { applyMediaRequest, listMediaLibrary, MEDIA_STORE_CHANGED, supportsImageRenditions } from "./media-store";
 import { studioWriteOwnership } from "./write-ownership";
 
 const ROOM = MEDIA_COMMAND_PROTOCOL;
@@ -94,8 +94,11 @@ export function startMediaClient() {
   };
 }
 
-export function submitMediaCommand(command: MediaCommand): Promise<void> {
+export function submitMediaCommand(command: MediaCommand, expectedGeneration?: string): Promise<void> {
   if (!channel || !ready) return Promise.reject(new MediaCommandError("Files are reconnecting. Your change has not been saved yet.", "unavailable"));
+  if (expectedGeneration !== undefined && expectedGeneration !== generation) {
+    return Promise.reject(new MediaCommandError("The library was restored or replaced. Close this confirmation and review the current file.", "replaced"));
+  }
   if (pending.size >= 64) return Promise.reject(new MediaCommandError("Wait for the current file actions to finish.", "unavailable"));
   let captured: MediaCommand;
   try {
@@ -109,6 +112,40 @@ export function submitMediaCommand(command: MediaCommand): Promise<void> {
     pending.set(request.id, { request, resolve, reject });
     channel!.postMessage({ protocol: ROOM, kind: "request", clientId: currentClientId, ownerId, request });
   });
+}
+
+/** Browse-only routes can hold the same writer lock for the duration of a confirmed Files action. */
+export async function deleteLibraryFile(command: Extract<MediaCommand, { kind: "delete-asset" }>, expectedGeneration: string | null) {
+  if (typeof BroadcastChannel !== "function") throw new MediaCommandError("This browser cannot coordinate Files saving.", "unavailable");
+  const acquire = () => studioWriteOwnership.acquire(token => {
+    void listMediaLibrary().then(() => studioWriteOwnership.loaded(token, true), () => studioWriteOwnership.loaded(token, false));
+  });
+  let release = acquire();
+  // A peer can leave before its last availability announcement expires.
+  const retry = setInterval(() => {
+    if (ready || studioWriteOwnership.getState() !== "waiting") return;
+    release();
+    release = acquire();
+  }, 1000);
+  try {
+    if (!ready) await new Promise<void>((resolve, reject) => {
+      const unsubscribe = subscribe(() => {
+        if (!ready) return;
+        clearTimeout(timeout);
+        unsubscribe();
+        resolve();
+      });
+      const timeout = setTimeout(() => {
+        unsubscribe();
+        reject(new MediaCommandError("Files saving is unavailable. Try again when it reconnects.", "unavailable"));
+      }, 8000);
+    });
+    if (!expectedGeneration) throw new MediaCommandError("Files saving was initialised. Close this confirmation and review the current file.", "replaced");
+    await submitMediaCommand(command, expectedGeneration);
+  } finally {
+    clearInterval(retry);
+    release();
+  }
 }
 
 // Kept separate from the saving owner: even its own Files UI uses the protocol.

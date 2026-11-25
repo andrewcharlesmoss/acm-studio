@@ -1,9 +1,9 @@
 "use client";
 
 import { AcmIcon } from "@andrewcharlesmoss/icons/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { MediaFileDetailsButton } from "./media-file-details";
-import { listMediaLibrary, type MediaAsset } from "./media-store";
+import { readMediaLibraryWithGeneration, type MediaAsset } from "./media-store";
 import { useMediaSession } from "./media-sync";
 import "./media-library-preview.css";
 
@@ -18,7 +18,10 @@ export type MediaFileActions = {
   originalFile?: { blob: Blob; addedAt: string };
 };
 
-export function MediaPreviewActions({ name, source, active, download, format, originalFile, iconOnly }: MediaFileActions & { iconOnly?: boolean }) {
+export function MediaPreviewActions({ name, source, active, download, format, originalFile, iconOnly, children }: MediaFileActions & {
+  iconOnly?: boolean;
+  children?: ReactNode;
+}) {
   const downloadLabel = `Download ${format}`;
   return <div className="media-preview-actions" data-icon-only={iconOnly || undefined}>
     <a className="button-secondary" href={download?.href ?? source} download={download?.name ?? true}
@@ -27,16 +30,19 @@ export function MediaPreviewActions({ name, source, active, download, format, or
     </a>
     {active ? <MediaFileDetailsButton name={download?.name ?? (source.split("/").at(-1) || name)}
       source={originalFile?.blob ?? source} addedAt={originalFile?.addedAt} iconOnly={iconOnly} /> : null}
+    {children}
   </div>;
 }
 
 export function useLibraryPreviewFiles(kind: MediaKind) {
   const { revision, ready, error } = useMediaSession();
-  const [library, setLibrary] = useState<{ files: LibraryPreviewFile[]; unavailable: boolean }>({ files: [], unavailable: false });
+  const [library, setLibrary] = useState<{ files: LibraryPreviewFile[]; generation: string | null; unavailable: boolean }>({
+    files: [], generation: null, unavailable: false,
+  });
 
   useEffect(() => {
     let cancelled = false;
-    void listMediaLibrary().then(({ assets, folders }) => {
+    void readMediaLibraryWithGeneration().then(({ assets, folders, generation }) => {
       if (cancelled) return;
       const sourceFolders = new Set(folders.filter(folder => folder.parentId === null
         && (folder.name === "Motion Assets" || (kind === "audio" && folder.name === "Sound Effects"))).map(folder => folder.id));
@@ -54,10 +60,10 @@ export function useLibraryPreviewFiles(kind: MediaKind) {
         ) : [];
         return [{ asset, kind, preview: matches.length === 1 ? matches[0] : undefined }];
       }).sort((left, right) => left.asset.name.localeCompare(right.asset.name));
-      setLibrary({ files, unavailable: false });
+      setLibrary({ files, generation, unavailable: false });
     }).catch(() => {
       // An empty library may still be waiting for its first Files owner.
-      if (!cancelled) setLibrary({ files: [], unavailable: ready || Boolean(error) });
+      if (!cancelled) setLibrary({ files: [], generation: null, unavailable: ready || Boolean(error) });
     });
     return () => { cancelled = true; };
   }, [kind, ready, error, revision]);

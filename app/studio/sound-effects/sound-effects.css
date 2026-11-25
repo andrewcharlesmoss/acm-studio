@@ -1,6 +1,6 @@
-.sound-effects-export { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-block-end: 12px; }
-.sound-effects-export p { margin: 0; }
-.sound-effects-export [role="alert"] { color: var(--rl-danger, #a42129); }
+.sound-effects-export, .sound-effects-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-block-end: 12px; }
+.sound-effects-export p, .sound-effects-feedback p { margin: 0; }
+.sound-effects-export [role="alert"], .sound-effects-feedback [role="alert"] { color: var(--rl-danger, #a42129); }
 
 .sound-effects-table-frame {
   --media-preview-icon-size: 36px;
@@ -17,7 +17,7 @@
   color: var(--rl-ink, #1c1c1e);
   font: var(--studio-ui-size, 13px)/1.4 var(--studio-ui-font, system-ui);
 }
-.sound-effects-action-column { width: calc(2 * var(--media-preview-icon-size) + 24px); }
+.sound-effects-action-column { width: calc(3 * var(--media-preview-icon-size) + 24px); }
 .sound-effects-table th { padding: 8px 12px; background: var(--rl-soft, #f4f4f2); text-align: start; }
 .sound-effects-table td { padding: 6px 12px; border-block-start: 1px solid var(--rl-line, #dadde1); }
 .sound-effects-table :is(th, td):last-child { padding-inline: 6px; text-align: center; }
