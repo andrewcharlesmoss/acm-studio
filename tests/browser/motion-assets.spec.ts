@@ -43,6 +43,24 @@ function playbackBarTop(page: Page) {
   return page.locator(".motion-transport").evaluate(bar => bar.getBoundingClientRect().top + window.scrollY);
 }
 
+async function expectFullscreenPreview(page: Page, preview: Locator) {
+  const enter = preview.getByRole("button", { name: "Full Screen", exact: true });
+  if (!(await page.evaluate(() => document.fullscreenEnabled))) return;
+  await expect(enter).toBeVisible();
+  await enter.click();
+  await expect.poll(() => preview.evaluate(element => document.fullscreenElement === element)).toBe(true);
+  await expect(preview.getByRole("slider")).toBeInViewport();
+  await preview.getByRole("button", { name: "Exit Full Screen", exact: true }).press("Enter");
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+  await expect(enter).toBeFocused();
+  await enter.click();
+  await expect.poll(() => preview.evaluate(element => document.fullscreenElement === element)).toBe(true);
+  await preview.getByRole("slider").focus();
+  // Exercise the document's exit event after focus has moved to the timeline.
+  await page.evaluate(() => document.exitFullscreen());
+  await expect(enter).toBeFocused();
+}
+
 test("opens Motion Assets from Icons, preserves the draft across tabs, and redirects old links", async ({ page }) => {
   await page.goto("/studio/ui/icons");
   const iconsTab = page.getByRole("tab", { name: "Icons", exact: true });
@@ -488,15 +506,25 @@ test("routes Files audio and video to their own tabs and downloads the original 
   await expect(play).toBeEnabled();
   await expect(scrubber).toHaveValue("0");
   expect(await playable.evaluate((element: HTMLVideoElement) => ({ position: element.currentTime, paused: element.paused }))).toEqual({ position: 0, paused: true });
+  await expectFullscreenPreview(libraryPage, motionPreview);
   const volume = videoFilesPane.getByRole("slider", { name: "Volume", exact: true });
   await volume.press("Home");
   await expect.poll(() => playable.evaluate((element: HTMLVideoElement) => element.volume)).toBe(0);
   await play.press("Space");
   await expect.poll(() => playable.evaluate(element => (element as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
   await motionPreview.getByRole("button", { name: "Pause", exact: true }).press("Space");
+  await expect(play).toBeVisible();
+  await expect(scrubber).not.toHaveValue("0");
   await scrubber.press("Home");
   await expect.poll(() => playable.evaluate(element => (element as HTMLVideoElement).currentTime)).toBe(0);
-  await motionPreview.getByRole("button", { name: "Close Preview", exact: true }).press("Enter");
+  await motionPreview.evaluate((element: HTMLElement) => {
+    element.requestFullscreen = () => Promise.reject(new DOMException("Embedded fullscreen unavailable", "NotAllowedError"));
+  });
+  await motionPreview.getByRole("button", { name: "Full Screen", exact: true }).click();
+  const expandedVideo = libraryPage.getByRole("dialog", { name: "Motion preview", exact: true });
+  await expandedVideo.getByRole("button", { name: "Close Preview", exact: true }).press("Enter");
+  await expect(expandedVideo).toHaveCount(0);
+  await expect.poll(() => libraryPage.evaluate(() => document.fullscreenElement === null)).toBe(true);
   await expect(playableTile).toBeFocused();
   await importedTile.press("Enter");
   await expect(importedTile).toHaveAttribute("aria-pressed", "true");
@@ -573,6 +601,46 @@ test("Volumetric Fireball renders live and saves editable name, size, and durati
   await expect(preview).toHaveAttribute("data-preview-height", "640");
   await expect(position).toHaveAttribute("max", "75");
   await motion.getByRole("textbox", { name: "Name" }).fill("My fireball");
+  const previewPane = motion.getByRole("region", { name: "Motion preview", exact: true });
+  await expectFullscreenPreview(page, previewPane);
+  await previewPane.evaluate((element: HTMLElement) => {
+    element.requestFullscreen = () => Promise.reject(new DOMException("Embedded fullscreen unavailable", "NotAllowedError"));
+  });
+  const desktop = page.viewportSize()!;
+  await page.setViewportSize({ width: 320, height: 568 });
+  const enterFullscreen = previewPane.getByRole("button", { name: "Full Screen", exact: true });
+  await enterFullscreen.click();
+  const expandedPreview = page.getByRole("dialog", { name: "Motion preview", exact: true });
+  const timeline = expandedPreview.getByRole("slider");
+  const firstControl = expandedPreview.getByRole("button", { name: "Reset Preview", exact: true });
+  await expect.poll(() => expandedPreview.evaluate(element => {
+    const bounds = element.getBoundingClientRect();
+    return bounds.x === 0 && bounds.y === 0
+      && bounds.width === document.documentElement.clientWidth && bounds.height === window.innerHeight;
+  })).toBe(true);
+  await expect(timeline).toBeInViewport();
+  const nameField = motion.getByRole("textbox", { name: "Name" });
+  await expect.poll(() => nameField.evaluate(element => Boolean(element.closest("[inert]")))).toBe(true);
+  await timeline.press("Tab");
+  await expect(firstControl).toBeFocused();
+  await firstControl.press("Shift+Tab");
+  await expect(timeline).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(expandedPreview).toHaveCount(0);
+  await expect(enterFullscreen).toBeFocused();
+  await expect.poll(() => nameField.evaluate(element => Boolean(element.closest("[inert]")))).toBe(false);
+  await page.setViewportSize(desktop);
+  await previewPane.evaluate((element: HTMLElement) => { Reflect.deleteProperty(element, "requestFullscreen"); });
+  const settings = motion.getByRole("complementary", { name: "Motion settings", exact: true });
+  await expect(settings.getByRole("button", { name: "Download MOV", exact: true })).toBeVisible();
+  const detailsTrigger = settings.getByRole("button", { name: "File Details for My fireball", exact: true });
+  await detailsTrigger.press("Enter");
+  const details = page.getByRole("dialog", { name: "File Details", exact: true });
+  for (const value of ["MOV Export Settings", "Apple ProRes 4444", "360 × 640 px", "2.50 s", "30 fps", "Alpha channel", "Silent"]) {
+    await expect(details.getByText(value, { exact: true })).toBeVisible();
+  }
+  await page.keyboard.press("Escape");
+  await expect(detailsTrigger).toBeFocused();
   const project = await save(page, "Download Project");
   expect(project.name).toBe("my-fireball.acm-motion.json");
   expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.5.0",
@@ -593,7 +661,7 @@ test("Volumetric Fireball accepts cancellation and exports edited dimensions and
   await page.goto(route, { waitUntil: "commit" });
   await page.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await page.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).click();
-  const exportButton = page.getByRole("button", { name: "Transparent MOV", exact: true });
+  const exportButton = page.getByRole("button", { name: "Download MOV", exact: true });
   const started = page.waitForRequest(request => new URL(request.url()).pathname === "/__studio/motion-export");
   await exportButton.click();
   await started;
@@ -1273,7 +1341,7 @@ test("exports Fire Burst as a widescreen MOV with genuinely transparent frames a
   const run = promisify(execFile);
   await page.goto(route);
   await openLegacyFireProject(page, fireBurst, "0.3.0");
-  const exportButton = page.getByRole("button", { name: "Transparent MOV" });
+  const exportButton = page.getByRole("button", { name: "Download MOV", exact: true });
   await expect(exportButton).toBeEnabled();
   const pending = page.waitForEvent("download");
   await exportButton.click();
@@ -1312,7 +1380,7 @@ test("exports a Fire Shockwave that reaches all four corners and reveals the cen
   await page.goto(route);
   await openLegacyFireProject(page, fireShockwave, "0.4.0");
   const pending = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Transparent MOV" }).click();
+  await page.getByRole("button", { name: "Download MOV", exact: true }).click();
   const file = await pending;
   const path = (await file.path())!;
   expect(file.suggestedFilename()).toBe("fire-shockwave.mov");

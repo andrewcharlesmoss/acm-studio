@@ -7,6 +7,7 @@ import metadataWorkerUrl from "./media-file-metadata-worker.ts?worker&url";
 import "./media-file-details.css";
 
 type MediaFileDetailsProps = { name: string; source: Blob | string; addedAt?: string };
+type FileDetailsProps = MediaFileDetailsProps | { name: string; exportRows: readonly MetadataRow[] };
 type FileRead = { source: Blob | string; blob?: Blob; metadata: MediaFileMetadata | null };
 
 const metadataReadTimeoutMs = 10_000;
@@ -77,7 +78,8 @@ function FileMetadataPanel({ name, source, addedAt }: MediaFileDetailsProps) {
   </div>;
 }
 
-export function MediaFileDetailsButton({ name, source, addedAt }: MediaFileDetailsProps) {
+export function MediaFileDetailsButton(details: FileDetailsProps) {
+  const { name } = details;
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -85,7 +87,11 @@ export function MediaFileDetailsButton({ name, source, addedAt }: MediaFileDetai
     <button ref={trigger} type="button" className="button-secondary" aria-haspopup="dialog"
       aria-label={`File Details for ${name}`} onClick={() => setOpen(true)}>File Details</button>
     {open ? <StudioDialog title="File Details" returnFocus={trigger} onClose={() => setOpen(false)}>
-      <FileMetadataPanel name={name} source={source} addedAt={addedAt} />
+      {"exportRows" in details ? <div className="media-file-details">
+        <p className="media-file-details-name">{name}</p>
+        <h3>MOV Export Settings</h3>
+        <FileMetadataRows rows={details.exportRows} />
+      </div> : <FileMetadataPanel {...details} />}
     </StudioDialog> : null}
   </>;
 }

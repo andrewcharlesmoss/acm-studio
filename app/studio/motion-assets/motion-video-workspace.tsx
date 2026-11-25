@@ -65,7 +65,7 @@ function VideoWorkspace({ id, media, active, poster, onClose, onPreviewReady, ex
   useMotionPlaybackShortcut(active && ready, togglePlayback);
 
   return <div className="motion-workspace">
-    <MotionPreviewPane previewRef={preview} actions={<button type="button" className="button-secondary" onClick={onClose}>Close Preview</button>}>
+    <MotionPreviewPane previewRef={preview} active={active} onClose={onClose}>
       <div className="motion-stage">
         <div className="motion-video-artboard" style={{ "--motion-video-ratio": ratio } as CSSProperties}>
           {media.description ? <span className="sr-only" id={descriptionId}>{media.description}</span> : null}
@@ -91,8 +91,8 @@ function VideoWorkspace({ id, media, active, poster, onClose, onPreviewReady, ex
       collapsible={false} trackClassName="motion-inspector" header={<h2>Video</h2>}>
       <div className="motion-settings">
         <div className="motion-setting-group motion-video-file">
-          <strong>{media.name}</strong>
           <MediaPreviewActions {...media} active={active} />
+          <strong>{media.name}</strong>
           {unavailable ? <p role="alert" className="motion-feedback">This preview couldn’t play. Download the file to open it in another app.</p> : null}
         </div>
         {ready ? <div className="motion-setting-group">
@@ -101,9 +101,6 @@ function VideoWorkspace({ id, media, active, poster, onClose, onPreviewReady, ex
             <RangeControl id={volumeId} min={0} max={100} step={1} value={volume} aria-valuetext={`${volume}%`} tooltipText={`${volume}%`}
               onChange={event => { if (player.current) player.current.volume = event.target.valueAsNumber / 100; }} />
           </div>
-          {document.fullscreenEnabled ? <div className="motion-actions"><button type="button" className="button-secondary" onClick={() => {
-            void player.current?.requestFullscreen().catch(() => setControlError("Full screen couldn’t open."));
-          }}>Full Screen</button></div> : null}
         </div> : null}
         {controlError ? <p role="alert" className="motion-feedback">{controlError}</p> : null}
         {exportFeedback}

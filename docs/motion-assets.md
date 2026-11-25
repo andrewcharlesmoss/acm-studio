@@ -22,7 +22,7 @@ The initial wave uses the SVG geometry from the November 2026 cross-editor exper
 
 ## Special effects
 
-**Volumetric Fireball** is an independently generated 3D flame effect. Its shell, turbulent folds, sparks, and fade are defined in the [shared shader](../app/studio/motion-assets/volumetric-fireball.glsl). Change its name, width, height, and duration from 0.6 to 15 seconds. Defaults are 1920 × 1080 px and 11.6 seconds at 30 fps. Download an editable project in format v0.5.0 or export a new ProRes 4444 MOV with alpha using **Transparent MOV**.
+**Volumetric Fireball** is an independently generated 3D flame effect. Its shell, turbulent folds, sparks, and fade are defined in the [shared shader](../app/studio/motion-assets/volumetric-fireball.glsl). Change its name, width, height, and duration from 0.6 to 15 seconds. Defaults are 1920 × 1080 px and 11.6 seconds at 30 fps. Use **Download Project** to save an editable project in format v0.5.0, or **Download MOV** to render a ProRes 4444 file with alpha. **File Details** shows the settings for that MOV.
 
 Studio previews the live shader on the transparency grid through WebGL 2. It shows a rendered still if live preview is unavailable. Local MOV export renders the same shader in Metal at the chosen size and duration. It requires a Mac with Metal, the Swift toolchain, and FFmpeg.
 
@@ -56,7 +56,7 @@ Put audio in a top-level **Sound Effects** folder under **Files**. Audio already
 
 If a MOV needs a browser-compatible preview, put a matching MP4 in a **Previews** subfolder inside **Motion Assets**. For example, `impact.mov` uses `Previews/impact.mp4` for playback and still downloads as `impact.mov`.
 
-Imported videos appear beside editable presets in the **Special Effects** thumbnail grid. Select a video to open it in the Preview workspace with the shared playback controls. The Video pane provides download and file details. The animation draft stays open while you browse videos.
+Imported videos appear beside editable presets in the **Special Effects** thumbnail grid. Both use the same Preview workspace with Play, the timeline, and **Full Screen**. In embedded browsers, Full Screen can fill the Studio window. The Video pane provides the original download and file details. The animation draft stays open while you browse videos.
 
 Choose **File Details** to see the original audio or video file's size, duration, technical properties, and available embedded tags. Files also offers this panel when an audio or video file is selected. Finder's download history and other macOS-only attributes do not come across when a file is imported into the browser.
 

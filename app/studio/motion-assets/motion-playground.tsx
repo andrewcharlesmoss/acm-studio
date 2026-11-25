@@ -7,6 +7,7 @@ import { SearchInput, TextInput } from "../controls/native-fields";
 import { NumberStepper } from "../controls/number-stepper";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { useLibraryPreviewFiles } from "../media-library-preview";
+import { MediaFileDetailsButton } from "../media-file-details";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane, PaneTabPanel, PaneTabs } from "../panes/pane-components";
 import { StudioUiActiveSectionContext } from "../ui/studio-ui-library";
@@ -14,7 +15,7 @@ import { importMotionSvg } from "./import-motion-svg";
 import { motionCatalogue } from "./motion-catalogue";
 import { MotionEffectArtwork, motionEffectCatalogue, motionEffectKeywords, motionEffectPoster, motionEffectPreview } from "./motion-effects";
 import { MotionPreviewStage } from "./motion-preview-stage";
-import { MotionPlaybackTransport, MotionPreviewPane, useMotionPlaybackShortcut } from "./motion-preview-controls";
+import { formatPlaybackTime, MotionPlaybackTransport, MotionPreviewPane, useMotionPlaybackShortcut } from "./motion-preview-controls";
 import { MotionVideoWorkspace } from "./motion-video-workspace";
 import { VideoCatalogueThumbnail } from "./video-catalogue-thumbnail";
 import { VolumetricFireballCanvas, volumetricFireballPoster } from "./volumetric-fireball-canvas";
@@ -410,6 +411,16 @@ export function MotionPlayground() {
     setAssetTab(tab.id);
   }
 
+  const movAction = cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button>
+    : <button type="button" className="button-secondary" disabled={!canExportMov} onClick={() => void exportMov()}>
+      {sketch ? "Transparent MOV" : "Download MOV"}
+    </button>;
+  const exportStatus = <>
+    {!canExportMov ? <p className="motion-explanation">{exportExplanation}</p> : null}
+    <p role="status" className="motion-feedback">{feedbackMessage}</p>
+    {feedbackError ? <p role="alert" className="motion-feedback">{feedbackError}</p> : null}
+  </>;
+
   return <>
     <section className="media-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
       <div className="media-catalogue-heading motion-catalogue-heading">
@@ -463,7 +474,7 @@ export function MotionPlayground() {
         {cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button> : null}
       </div> : undefined} /> : null}
     <div className="motion-workspace" data-motion-ready={ready} inert={!ready} hidden={Boolean(selectedVideo)}>
-      <MotionPreviewPane id="motion-preview" previewRef={preview} actions={<>
+      <MotionPreviewPane id="motion-preview" previewRef={preview} active={animationActive} actions={<>
         <button type="button" className="button-secondary motion-reset-button" onClick={resetPreview}>
           <AcmIcon name="action.reset" scale="Regular-S" size={18} />Reset Preview
         </button>
@@ -482,6 +493,21 @@ export function MotionPlayground() {
       <Pane label="Motion settings" side="right" width={312} collapsed={false} onCollapsedChange={() => {}} collapseIcon={null} collapsible={false} inspectorPopoverOwner
         trackClassName="motion-inspector" header={<h2>Settings</h2>}>
         <div className="motion-settings">
+          {!sketch ? <div className="motion-setting-group" role="group" aria-label="Video export">
+            <div className="media-preview-actions">
+              {movAction}
+              {animationActive ? <MediaFileDetailsButton name={asset.name} exportRows={[
+                { label: "Container", value: "QuickTime (MOV)" },
+                { label: "Video codec", value: "Apple ProRes 4444" },
+                { label: "Dimensions", value: `${asset.width} × ${asset.height} px` },
+                { label: "Duration", value: formatPlaybackTime(duration / motionFps) },
+                { label: "Frame rate", value: `${motionFps} fps` },
+                { label: "Transparency", value: "Alpha channel" },
+                { label: "Audio", value: "Silent" },
+              ]} /> : null}
+            </div>
+            {exportStatus}
+          </div> : null}
           <div className="motion-setting-group" role="group" aria-label="Asset">
             <NameSetting key={previewRevision} name={asset.name} onChange={name => changeAsset({ name })} />
             <div className="motion-field-grid">
@@ -503,18 +529,15 @@ export function MotionPlayground() {
             <NumberSetting label="Duration (s)" value={duration / motionFps} min={motionEffectDuration.min / motionFps} max={durationLimit / motionFps} step={0.1}
               onCommit={value => changeEffectDuration(Math.round(value * motionFps))} />
           </div>}
-          <div className="motion-setting-group">
+          {sketch ? <div className="motion-setting-group">
             <h3>Export</h3>
             <div className="motion-actions">
-              {sketch ? <><button type="button" className="button-secondary" onClick={() => downloadSource("svg")}>SVG</button>
-                <button type="button" className="button-secondary" onClick={() => downloadSource("lottie")}>Lottie JSON</button></> : null}
-              {cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button>
-                : <button type="button" className="button-secondary" disabled={!canExportMov} onClick={() => void exportMov()}>Transparent MOV</button>}
+              <button type="button" className="button-secondary" onClick={() => downloadSource("svg")}>SVG</button>
+              <button type="button" className="button-secondary" onClick={() => downloadSource("lottie")}>Lottie JSON</button>
+              {movAction}
             </div>
-            {!canExportMov ? <p className="motion-explanation">{exportExplanation}</p> : null}
-            <p role="status" className="motion-feedback">{feedbackMessage}</p>
-            {feedbackError ? <p role="alert" className="motion-feedback">{feedbackError}</p> : null}
-          </div>
+            {exportStatus}
+          </div> : null}
         </div>
       </Pane>
     </div>
