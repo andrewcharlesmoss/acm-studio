@@ -995,6 +995,7 @@
 - Documented the future publishing-contract boundary.
 
 ### Fixed
+- Fill the available desktop viewport height with the Motion Assets catalogue, preview, and settings panes.
 
 - Keep the Motion Assets preview, timeline, and settings pane in place when switching between editable effects and videos.
 

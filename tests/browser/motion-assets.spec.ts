@@ -138,8 +138,12 @@ test("keeps the scrollable Motion Assets catalogue beside the preview and stacks
       expect(assets!.x).toBeCloseTo(canvas!.x, 0);
       expect(assets!.y + assets!.height).toBeCloseTo(canvas!.y, 0);
     }
-    if (width >= 960) expect(canvas!.x + canvas!.width).toBeCloseTo(inspector!.x, 0);
-    else expect(canvas!.y + canvas!.height).toBeCloseTo(inspector!.y, 0);
+    if (width >= 960) {
+      expect(canvas!.x + canvas!.width).toBeCloseTo(inspector!.x, 0);
+      for (const pane of [assets!, canvas!, inspector!]) {
+        expect(pane.y + pane.height).toBeCloseTo(900, 0);
+      }
+    } else expect(canvas!.y + canvas!.height).toBeCloseTo(inspector!.y, 0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -564,6 +568,11 @@ test("keeps the workspace in place when switching between editable and imported 
     await expect(generatedTile).toHaveAttribute("aria-pressed", "true");
     await playableTile.scrollIntoViewIfNeeded();
     const before = await previewLayout();
+    if (width >= 960) {
+      const [, top, , height] = before.transport;
+      expect(top + height).toBeCloseTo(1100, 0);
+      expect(before.scroll).toBe(0);
+    }
     await playableTile.click();
     await expect(libraryPage.getByRole("slider", { name: "Volume", exact: true })).toBeVisible();
     expect(await previewLayout(), `video at ${width}px`).toEqual(before);

@@ -119,6 +119,26 @@
 .motion-feedback:empty { margin-top: -10px; }
 .motion-feedback[role="alert"] { color: #a42129; }
 
+@media (width >= 960px) {
+  .ui-library:has(> .ui-library-content > div:not([hidden]) > .motion-playground) {
+    display: grid;
+    grid-template: auto auto minmax(360px, 1fr) / minmax(0, 1fr);
+    block-size: 100dvh;
+  }
+  .ui-library-content:has(> div:not([hidden]) > .motion-playground),
+  .ui-library-content > div:not([hidden]):has(> .motion-playground) {
+    display: grid;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  }
+  .motion-playground { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .motion-preview:not(:fullscreen, [data-expanded]) .motion-stage {
+    /* Fit either artboard to the stage’s content box after the toolbar and timeline are laid out. */
+    container-type: size;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    --motion-artboard-max-height: 100cqh;
+    block-size: auto;
+  }
+}
 @media (width < 960px) {
   .motion-playground { grid-template-columns: 280px minmax(0, 1fr); grid-template-rows: repeat(4, auto); }
   .motion-inspector { grid-area: 4 / 1 / 5 / 2; width: 100%; max-width: none; }
