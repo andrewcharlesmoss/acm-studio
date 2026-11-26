@@ -1,16 +1,16 @@
-vec4 fireballAt(vec2 uv, float aspect, float time) {
+vec4 fireballAt(vec2 uv, float aspect, float time, float centreTime) {
     if (time <= 0.016f || time >= 0.994f) { return vec4(0.0f); }
 
     float growth = max(time - 0.022f, 0.0f);
     float radius = 0.065f + 2.48f * pow(unitRange(growth / 0.66f), 0.78f);
     float ignition = smoothstep(0.026f, 0.105f, time);
     float cooling = smoothstep(0.28f, 0.86f, time);
-    float fade = (1.0f - smoothstep(0.66f, 0.994f, time)) * ignition;
+    float fade = (1.0f - smoothstep(0.66f, 0.994f, centreTime)) * ignition;
     float thickness = 0.045f + 0.204f * min(radius, 1.4f);
     float distortion = 0.12f + 0.28f * min(radius, 1.5f);
     vec2 screen = vec2(uv.x - 0.5f, 0.5f - uv.y) * vec2(2.92f * aspect / (16.0f / 9.0f), 1.6425f);
-    float rise = time * time * 0.29f + 2.08f * smoothstep(0.70f, 0.97f, time);
-    vec2 centre = vec2(0.16f - time * 0.29f, -0.10f + rise);
+    float rise = centreTime * centreTime * 0.29f + 2.08f * smoothstep(0.70f, 0.97f, centreTime);
+    vec2 centre = vec2(0.16f - centreTime * 0.29f, -0.10f + rise);
     vec2 ray = (screen - centre) * vec2(1.0f, 1.04f);
     float outer = radius + distortion + thickness * 2.1f;
     float distanceSquared = outer * outer - dot(ray, ray);
@@ -25,6 +25,7 @@ vec4 fireballAt(vec2 uv, float aspect, float time) {
     float fromCentre = length(ray) / radius;
     float limb = mix(0.77f, 1.0f, smoothstep(0.18f, 0.94f, fromCentre));
     float heatFalloff = mix(limb, 1.0f, smoothstep(0.18f, 0.46f, time));
+    float burnout = smoothstep(0.0f, 0.34f, time - centreTime);
     vec4 accumulated = vec4(0.0f);
     for (uint rayStep = 0u; rayStep < 88u && accumulated.a < 0.994f; ++rayStep, depth -= depthStep) {
         vec3 point = vec3(ray, depth);
@@ -50,6 +51,13 @@ vec4 fireballAt(vec2 uv, float aspect, float time) {
         float rim = smoothstep(-0.72f, 0.42f, surface / thickness);
         float incandescent = 0.22f + coarseFold * 0.34f + fineFold * 0.15f + rim * 0.36f + (pattern - 0.5f) * 0.32f;
         float temperature = unitRange(incandescent * (1.17f - 0.66f * cooling) * heatFalloff);
+        // Thin, cooler folds empty first. Dense hot filaments remain visible
+        // between the gaps as the turbulence carries them through the fade.
+        if (burnout > 0.0f) {
+            float fuel = 0.62f * pockets + 0.38f * coarseFold;
+            density *= 1.0f - smoothstep(fuel * 0.50f, 0.32f + fuel * 0.72f, burnout);
+            temperature *= 1.0f - 0.23f * burnout;
+        }
         float opacity = (1.0f - exp(-density * depthStep * (9.1f / (0.74f + radius * 0.22f)))) * fade;
         float contribution = (1.0f - accumulated.a) * opacity;
         accumulated += vec4(fireColour(temperature) * contribution, contribution);

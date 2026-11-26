@@ -14,7 +14,7 @@
 - Move sketches around the Motion Assets preview by dragging or using the arrow keys.
 - Use Space to play and pause the Motion Assets preview.
 - Edit Volumetric Fireball’s name, canvas size, and duration, preview the live 3D flame, and export an editable project or a transparent MOV.
-- Add a Soft Fade variant of Volumetric Fireball that holds the flame in place as it fades to transparency.
+- Add a Soft Fade variant of Volumetric Fireball with moving flame detail that burns away in place.
 - Add Rolling Fireball to Special Effects with rolling flame, cooling smoke, and transparent MOV export.
 - Preview and download the original Explosion and Glass sound effect in Sound Effects.
 - Play and download audio in Sound Effects and video in Motion Assets from the Files library.
