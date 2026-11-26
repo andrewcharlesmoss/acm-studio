@@ -472,6 +472,33 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
                 requireFolder(command.folderId);
                 if (command.files.some(file => assets.some(asset => asset.id === file.id))) throw new MediaCommandError("A file ID already exists.", "conflict");
                 command.files.forEach(file => assetStore.put({ id: file.id, name: file.name, folderId: command.folderId, type: file.type, size: file.blob.size, createdAt: command.createdAt, updatedAt: command.createdAt, altText: "", caption: "", blob: file.blob } satisfies MediaAsset));
+              } else if (command.kind === "rename-video-with-preview") {
+                const original = assets.find(item => item.id === command.id);
+                if (!original) throw new MediaCommandError("The video was removed in another tab.", "conflict");
+                for (const property of ["name", "folderId", "type"] as const) expect(original[property], command.before[property]);
+                const previewFolders = new Set(folders.filter(folder => folder.parentId === original.folderId && folder.name === "Previews").map(folder => folder.id));
+                const existingPreviews = assets.filter(item => item.folderId && previewFolders.has(item.folderId)
+                  && item.blob.type === "video/mp4" && item.name.toLowerCase() === original.name.toLowerCase().replace(/\.mov$/, ".mp4"));
+                if (existingPreviews.length !== (command.preview ? 1 : 0)
+                  || command.preview && existingPreviews[0]?.id !== command.preview.id) {
+                  throw new MediaCommandError("The matching preview changed. Review the current files before renaming.", "conflict");
+                }
+                const preview = existingPreviews[0];
+                if (preview && command.preview) {
+                  for (const property of ["name", "folderId", "type"] as const) expect(preview[property], command.preview[property]);
+                }
+                const previewName = command.name.replace(/\.mov$/i, ".mp4");
+                if (assets.some(item => item.id !== original.id && item.folderId === original.folderId
+                  && (item.name.toLowerCase() === original.name.toLowerCase() || item.name.toLowerCase() === command.name.toLowerCase()))) {
+                  throw new MediaCommandError("A video with that name already exists. Review the files before renaming.", "conflict");
+                }
+                if (assets.some(item => item.id !== preview?.id && item.folderId && previewFolders.has(item.folderId)
+                  && item.name.toLowerCase() === previewName.toLowerCase())) {
+                  throw new MediaCommandError("A preview with that name already exists. Choose a different name.", "conflict");
+                }
+                const updatedAt = new Date().toISOString();
+                assetStore.put({ ...original, name: command.name, updatedAt });
+                if (preview) assetStore.put({ ...preview, name: previewName, updatedAt });
               } else if (command.kind === "update-asset" || command.kind === "delete-asset") {
                 const asset = assets.find(item => item.id === command.id);
                 if (!asset) throw new MediaCommandError("The selected file was removed in another tab.", "conflict");

@@ -13,6 +13,7 @@ export type MediaCommand =
   | { kind: "upload"; folderId: string | null; createdAt: string; files: Array<{ id: string; name: string; type: string; blob: Blob }> }
   | { kind: "generate-image-renditions"; id: string; sourceDigest: string }
   | { kind: "create-folder"; folder: MediaFolder }
+  | { kind: "rename-video-with-preview"; id: string; before: { name: string; folderId: string; type: string }; name: string; preview: { id: string; name: string; folderId: string; type: string } | null }
   | { kind: "update-asset"; id: string; update: MediaAssetPatch; before: MediaAssetPatch }
   | { kind: "rename-folder"; id: string; name: string; before: string }
   | { kind: "colour-folder"; id: string; colour: string | null; before: string | null }
@@ -51,6 +52,18 @@ export function validateMediaCommand(value: unknown): value is MediaCommand {
       });
     }
     case "create-folder": return mediaKeys(value, ["kind", "folder"]) && mediaRecord(value.folder) && mediaKeys(value.folder, ["id", "name", "parentId", "createdAt"]) && mediaId(value.folder.id) && name(value.folder.name) && folderId(value.folder.parentId) && date(value.folder.createdAt);
+    case "rename-video-with-preview": {
+      const before = value.before, preview = value.preview;
+      return mediaKeys(value, ["kind", "id", "before", "name", "preview"]) && mediaId(value.id)
+        && name(value.name) && /\.mov$/i.test(value.name as string)
+        && mediaRecord(before) && mediaKeys(before, ["name", "folderId", "type"])
+        && name(before.name) && /\.mov$/i.test(before.name as string) && mediaId(before.folderId)
+        && typeof before.type === "string" && before.type.startsWith("video/")
+        && (preview === null || mediaRecord(preview) && mediaKeys(preview, ["id", "name", "folderId", "type"])
+          && mediaId(preview.id) && preview.id !== value.id && name(preview.name) && /\.mp4$/i.test(preview.name as string)
+          && mediaId(preview.folderId) && typeof preview.type === "string" && preview.type.startsWith("video/")
+          && (before.name as string).toLowerCase().replace(/\.mov$/, ".mp4") === (preview.name as string).toLowerCase());
+    }
     case "update-asset": return mediaKeys(value, ["kind", "id", "update", "before"]) && mediaId(value.id) && patch(value.update) && patch(value.before) && Object.keys(value.update as object).sort().join() === Object.keys(value.before as object).sort().join();
     case "rename-folder": return mediaKeys(value, ["kind", "id", "name", "before"]) && mediaId(value.id) && name(value.name) && name(value.before);
     case "colour-folder": return mediaKeys(value, ["kind", "id", "colour", "before"]) && mediaId(value.id) && colour(value.colour) && colour(value.before);

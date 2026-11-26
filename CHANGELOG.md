@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Rename and delete motion assets from the catalogue context menu, with restoration for built-in assets.
 
 - View local package versions, verified latest releases, and unresolved dependencies by project in the Packages dashboard, with project names kept visible when scrolling.
 - Choose a published package version for local ACM Studio, ACM Account, or Project Ports, review the dependency file changes, and apply them from the Packages dashboard.

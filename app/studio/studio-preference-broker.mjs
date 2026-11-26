@@ -9,6 +9,15 @@ import { studioNavigationVisibilityChangedEvent, studioNavigationVisibilityItems
 
 import { builtInSoundPreferenceChanged, builtInSoundPreferenceKey, validBuiltInSoundPreference } from "./sound-effects/built-in-sound-preference.mjs";
 
+import { motionCatalogueKey, motionCatalogueChanged, validMotionCatalogue, readMotionCatalogue } from "./motion-assets/catalogue-preferences.mjs";
+
+const validMotionCatalogueChange = value => {
+  try {
+    const data = JSON.parse(value);
+    return data && validMotionCatalogue(data.before) && validMotionCatalogue(data.after);
+  } catch { return false; }
+};
+
 const channelName = "acm-studio-sites-disclosure-commands-v1";
 const preferences = {
   dashboardSites: { key: dashboardOrderKeys.sites, ids: dashboardSiteIds, validate: value => validDashboardOrder(value, dashboardSiteIds), event: "acm-studio-dashboard-sites-order-saved" },
@@ -16,6 +25,7 @@ const preferences = {
   toolbarSpacing: { key: "acm-studio-toolbar-spacing-v1", validate: value => value === "on" || value === "off", event: "acm-studio-toolbar-spacing-saved" },
   blockSelectionOutline: { key: "acm-studio-block-selection-outline-v1", validate: value => ["toolbar-hover", "always", "off"].includes(value), event: "acm-studio-block-selection-outline-saved" },
   localNotice: { key: "acm-studio-local-website-notice-dismissed-v1", validate: value => value === "true", event: "acm-studio-local-website-notice-saved" },
+  motionCatalogue: { key: motionCatalogueKey, validate: validMotionCatalogueChange, event: motionCatalogueChanged },
   builtInSound: { key: builtInSoundPreferenceKey, validate: validBuiltInSoundPreference, event: builtInSoundPreferenceChanged },
   sites: { key: sitesDisclosureKey, validate: validSitesDisclosure, event: sitesDisclosureChangedEvent },
   header: { key: templatePartViewKeys.header, validate: validTemplatePartCanvasView, event: templatePartViewChangedEvent },
@@ -81,6 +91,11 @@ export function startStudioPreferenceHost({ ownership = studioWriteOwnership, st
             const current = readSiteOrder(targetStorage, contract.ids, contract.key);
             if (JSON.stringify(current) !== JSON.stringify(incoming.baseline)) return { saved: false };
             nextMode = JSON.stringify(incoming.order);
+          }
+          if (preference === "motionCatalogue") {
+            const incoming = JSON.parse(message.mode);
+            if (readMotionCatalogue(targetStorage) !== incoming.before) return { saved: false };
+            nextMode = incoming.after;
           }
           if (preference === "pages") {
             const incoming = JSON.parse(message.mode);

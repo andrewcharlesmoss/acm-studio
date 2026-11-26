@@ -115,7 +115,7 @@ export function submitMediaCommand(command: MediaCommand, expectedGeneration?: s
 }
 
 /** Browse-only routes can hold the same writer lock for the duration of a confirmed Files action. */
-export async function deleteLibraryFile(command: Extract<MediaCommand, { kind: "delete-asset" }>, expectedGeneration: string | null) {
+export async function changeLibraryFile(command: Extract<MediaCommand, { kind: "delete-asset" | "update-asset" | "rename-video-with-preview" }>, expectedGeneration: string | null) {
   if (typeof BroadcastChannel !== "function") throw new MediaCommandError("This browser cannot coordinate Files saving.", "unavailable");
   const acquire = () => studioWriteOwnership.acquire(token => {
     void listMediaLibrary().then(() => studioWriteOwnership.loaded(token, true), () => studioWriteOwnership.loaded(token, false));
@@ -209,3 +209,5 @@ export function createMediaHost(hostGeneration: string, adapter?: MediaHostAdapt
     closed = true; window.clearInterval(timer); window.removeEventListener(MEDIA_STORE_CHANGED, broadcast); host.close();
   };
 }
+
+export const deleteLibraryFile = changeLibraryFile;

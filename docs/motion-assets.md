@@ -4,7 +4,7 @@ Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Use 
 
 With **Autoplay on selection** on by default, each sketch plays from the start when you choose it. Use the switch to turn autoplay off. Valid settings update the preview as you edit, including while dragging in the colour spectrum. A built-in sketch’s thumbnail shows its current name, proportions, colour and stroke thickness. You can also preview with **Play** or the position slider.
 
-Each built-in sketch keeps its edits while you browse the catalogue. **Reset Preview** restores the selected sketch’s defaults or the original settings of an opened file. Studio asks before leaving an opened file with unsaved changes.
+Right-click a motion asset to rename or delete it. Deleted built-in assets can be restored from the catalogue. Deleting an imported video permanently removes it from Files in this browser. Renaming a MOV with a matching MP4 preview renames both files together. Each built-in sketch keeps its edits while you browse the catalogue. **Reset Preview** restores the selected sketch’s defaults or the original settings of an opened file. Studio asks before leaving an opened file with unsaved changes.
 
 Press Space to play or pause the preview. Fields and other focused controls keep their usual Space behaviour.
 

@@ -7,7 +7,13 @@ import { SearchInput, TextInput } from "../controls/native-fields";
 import { NumberStepper } from "../controls/number-stepper";
 import { RangeControl } from "../controls/range-control";
 import { ToggleSetting } from "../controls/toggle-setting";
-import { useLibraryPreviewFiles } from "../media-library-preview";
+import { assetBefore } from "../media-command";
+import { changeLibraryFile } from "../media-sync";
+import { StudioListContextMenu } from "../studio-list-context-menu";
+import { createStudioPreferenceRepository } from "../studio-preference-repository.mjs";
+import { saveStudioPreferenceThroughOwner } from "../studio-preference-broker.mjs";
+import { motionCatalogueKey, motionCatalogueChanged, readMotionCatalogue, validMotionCatalogue } from "./catalogue-preferences.mjs";
+import { useLibraryPreviewFiles, type LibraryPreviewFile } from "../media-library-preview";
 import { MediaFileDetailsButton } from "../media-file-details";
 import { StudioDialog, StudioDialogActions } from "../overlays/dialog";
 import { Pane, PaneTabPanel, PaneTabs } from "../panes/pane-components";
@@ -123,25 +129,31 @@ const MotionThumbnail = memo(function MotionThumbnail({ asset }: { asset: Motion
   </svg>;
 });
 
-function MotionCatalogueCard({ name, label, pressed, onClick, children }: {
-  name: string; label: string; pressed: boolean; onClick: MouseEventHandler<HTMLButtonElement>; children: ReactNode;
+function MotionCatalogueCard({ name, label, pressed, onClick, onContextMenu, children }: {
+  name: string; label: string; pressed: boolean; onClick: MouseEventHandler<HTMLButtonElement>; onContextMenu: MouseEventHandler<HTMLButtonElement>; children: ReactNode;
 }) {
-  return <button type="button" className="motion-catalogue-card" aria-label={label} aria-pressed={pressed} onClick={onClick}>
+  return <button type="button" className="motion-catalogue-card" aria-label={label} aria-pressed={pressed} onClick={onClick} onContextMenu={onContextMenu} onKeyDown={event => {
+    if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+    event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: bounds.left, clientY: bounds.bottom }));
+  }}>
     {children}
     <strong>{name}</strong>
   </button>;
 }
 
-function AnimationCatalogueCards({ entries, selectedPreset, onSelect, children }: {
+function AnimationCatalogueCards({ entries, selectedPreset, onSelect, onContextMenu, children }: {
   entries: { preset: MotionClip; clip: MotionClip }[];
   selectedPreset?: string;
   onSelect: (preset: MotionClip, focusPreview: boolean) => void;
+  onContextMenu: (event: React.MouseEvent<HTMLButtonElement>, preset: MotionClip, clip: MotionClip) => void;
   children?: ReactNode;
 }) {
   return <div className="motion-catalogue-grid">
     {entries.map(({ preset, clip }) => <MotionCatalogueCard key={preset.name} name={clip.name}
       label={`Use ${clip.name}`} pressed={selectedPreset === preset.name}
-      onClick={event => onSelect(preset, event.detail > 0)}>
+      onClick={event => onSelect(preset, event.detail > 0)} onContextMenu={event => onContextMenu(event, preset, clip)}>
       <MotionThumbnail asset={clip} />
     </MotionCatalogueCard>)}
     {children}
@@ -167,6 +179,12 @@ export function MotionPlayground() {
   const [replacement, setReplacement] = useState<{ draft: MotionDraft; play: boolean; focusPreview: boolean }>();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [catalogue, setCatalogue] = useState<Record<string, { name?: string; hidden?: boolean }>>({});
+  const [menu, setMenu] = useState<{ label: string; x: number; y: number; opener: HTMLButtonElement; preset?: MotionClip; file?: LibraryPreviewFile; generation?: string | null; presetBefore?: string }>();
+  const [action, setAction] = useState<{ mode: "rename" | "delete"; target: NonNullable<typeof menu> }>();
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [catalogueError, setCatalogueError] = useState("");
   const [movSupport, setMovSupport] = useState<MovSupport>();
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = useRef<HTMLElement>(null);
@@ -183,7 +201,7 @@ export function MotionPlayground() {
   const videoSearch = searches["special-effects"];
   const sketchSearch = searches.sketches;
   const videoQuery = videoSearch.trim().toLowerCase();
-  const { files, unavailable: filesUnavailable } = useLibraryPreviewFiles("video");
+  const { files, generation, unavailable: filesUnavailable } = useLibraryPreviewFiles("video");
   const videoFiles = files.filter(({ asset }) => asset.name.toLowerCase().includes(videoQuery));
   const selectedVideo = assetTab === "special-effects" ? videoFiles.find(file => file.asset.id === videoSelection?.id) : undefined;
   const animationActive = active && !selectedVideo;
@@ -204,13 +222,15 @@ export function MotionPlayground() {
     const matching = (presets: readonly MotionClip[], search: string) => {
       const query = search.trim().toLowerCase();
       return presets.flatMap(preset => {
-        const clip = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
+        if (catalogue[preset.name]?.hidden) return [];
+        const stored = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
+        const clip = { ...stored, name: catalogue[preset.name]?.name ?? stored.name };
         return [preset.name, clip.name, "effect" in clip ? motionEffectKeywords(clip) : ""]
           .some(name => name.toLowerCase().includes(query)) ? [{ preset, clip }] : [];
       });
     };
     return { effects: matching(motionEffectCatalogue, videoSearch), sketches: matching(motionCatalogue, sketchSearch) };
-  }, [draft.preset, parked, previewAsset, videoSearch, sketchSearch]);
+  }, [catalogue, draft.preset, parked, previewAsset, videoSearch, sketchSearch]);
   const duration = "effect" in asset ? asset.durationFrames : asset.drawFrames + asset.holdFrames;
   const volumetric = "effect" in asset && isVolumetricEffect(asset.effect);
   const durationLimit = "effect" in asset ? motionEffectFrameLimit(asset.effect) : 0;
@@ -411,9 +431,136 @@ export function MotionPlayground() {
     }
   }
 
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const value = readMotionCatalogue(window.localStorage);
+        if (!validMotionCatalogue(value)) throw new Error("Motion asset settings are invalid and have been preserved.");
+        const names = JSON.parse(value) as Record<string, { name?: string; hidden?: boolean }>;
+        setCatalogue(names);
+        setWorkspace(current => {
+          const update = (item: MotionDraft) => {
+            const name = item.preset && names[item.preset]?.name;
+            if (!name || name === item.asset.name) return item;
+            const clean = projectKey(item.asset) === item.baseline;
+            const renamed = { ...item.asset, name };
+            return { ...item, asset: renamed, original: { ...item.original, name },
+              baseline: clean ? projectKey(renamed) : item.baseline };
+          };
+          const parked = new Map(current.parked);
+          for (const [id, item] of parked) parked.set(id, update(item));
+          return { ...current, draft: update(current.draft), parked };
+        });
+      } catch { setCatalogueError("Motion asset settings could not be loaded. Existing settings have been preserved."); }
+    };
+    refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener(motionCatalogueChanged, refresh);
+    return () => { window.removeEventListener("storage", refresh); window.removeEventListener(motionCatalogueChanged, refresh); };
+  }, [setWorkspace]);
+
+  function openCatalogueMenu(event: React.MouseEvent<HTMLButtonElement>, target: { label: string; preset?: MotionClip; file?: LibraryPreviewFile; generation?: string | null }) {
+    event.preventDefault();
+    const box = event.currentTarget.getBoundingClientRect();
+    let presetBefore: string | undefined;
+    if (target.preset) {
+      try {
+        const value = readMotionCatalogue(window.localStorage);
+        if (!validMotionCatalogue(value)) throw new Error();
+        presetBefore = JSON.stringify(JSON.parse(value)[target.preset.name] ?? {});
+      } catch {
+        setCatalogueError("Motion asset settings could not be loaded. Existing settings have been preserved.");
+        return;
+      }
+    }
+    setMenu({ ...target, presetBefore, x: event.clientX || box.left, y: event.clientY || box.bottom, opener: event.currentTarget });
+  }
+
+  async function saveCatalogueChange(before: string, after: string) {
+    if (!validMotionCatalogue(before)) throw new Error("Motion asset settings are invalid and have been preserved.");
+    const repository = createStudioPreferenceRepository({ storage: window.localStorage, key: motionCatalogueKey,
+      read: readMotionCatalogue, validate: validMotionCatalogue });
+    let result = await repository.update((current: string) => {
+      if (current !== before) throw new Error("Motion assets changed in another tab. Please try again.");
+      return after;
+    });
+    if (!result.saved && result.reason === "blocked") {
+      result = await saveStudioPreferenceThroughOwner("motionCatalogue", JSON.stringify({ before, after }));
+    }
+    if (!result.saved) throw new Error("The motion catalogue could not be saved. Please try again.");
+    window.dispatchEvent(new Event(motionCatalogueChanged));
+  }
+
+  async function renameSelectedPreset(name: string) {
+    if (!draft.preset) { changeAsset({ name }); return; }
+    try {
+      const before = readMotionCatalogue(window.localStorage);
+      if (!validMotionCatalogue(before)) throw new Error("Motion asset settings are invalid and have been preserved.");
+      const next = JSON.parse(before);
+      next[draft.preset] = { ...next[draft.preset], name };
+      await saveCatalogueChange(before, JSON.stringify(next));
+    } catch (error) {
+      setCatalogueError(error instanceof Error ? error.message : "The name could not be saved.");
+    }
+  }
+
+  async function commitCatalogueAction() {
+    if (!action || saving) return;
+    const name = newName.trim();
+    if (action.mode === "rename" && (!name || name.length > 100)) {
+      setCatalogueError("Enter a name from 1 to 100 characters."); return;
+    }
+    setSaving(true); setCatalogueError("");
+    try {
+      const target = action.target;
+      if (target.file) {
+        const file = target.file;
+        if (action.mode === "rename" && /\.mov$/i.test(file.asset.name) && !/\.mov$/i.test(name)) {
+          throw new Error("Keep the .mov extension so the matching preview stays connected.");
+        }
+        const command = action.mode === "delete"
+          ? { kind: "delete-asset" as const, id: file.asset.id, before: assetBefore(file.asset) }
+          : /\.mov$/i.test(file.asset.name)
+            ? { kind: "rename-video-with-preview" as const, id: file.asset.id, name,
+              before: { name: file.asset.name, folderId: file.asset.folderId!, type: file.asset.type },
+              preview: file.preview ? { id: file.preview.id, name: file.preview.name, folderId: file.preview.folderId!, type: file.preview.type } : null }
+            : { kind: "update-asset" as const, id: file.asset.id, before: { name: file.asset.name }, update: { name } };
+        await changeLibraryFile(command, target.generation ?? null);
+        if (action.mode === "delete" && videoSelection?.id === file.asset.id) setVideoSelection(undefined);
+      } else if (target.preset) {
+        const before = readMotionCatalogue(window.localStorage);
+        if (!validMotionCatalogue(before)) throw new Error("Motion asset settings are invalid and have been preserved.");
+        const next = JSON.parse(before);
+        if (JSON.stringify(next[target.preset.name] ?? {}) !== target.presetBefore) {
+          throw new Error("This motion asset changed in another tab. Close this dialog and review the current asset.");
+        }
+        next[target.preset.name] = { ...next[target.preset.name], ...(action.mode === "delete" ? { hidden: true } : { name }) };
+        await saveCatalogueChange(before, JSON.stringify(next));
+        if (action.mode === "rename") {
+          const presetName = target.preset.name;
+          setWorkspace(current => {
+            const renameDraft = (item: MotionDraft) => {
+              const wasClean = projectKey(item.asset) === item.baseline;
+              const renamed = { ...item.asset, name };
+              return { ...item, asset: renamed, original: { ...item.original, name },
+                baseline: wasClean ? projectKey(renamed) : item.baseline };
+            };
+            const parked = new Map(current.parked);
+            const saved = parked.get(presetName);
+            if (saved) parked.set(presetName, renameDraft(saved));
+            return { ...current, parked,
+              draft: current.draft.preset === presetName ? renameDraft(current.draft) : current.draft };
+          });
+        }
+      }
+      setAction(undefined);
+    } catch (error) { setCatalogueError(error instanceof Error ? error.message : "The change could not be saved."); }
+    finally { setSaving(false); }
+  }
+
   function selectCataloguePreset(preset: MotionClip, focusPreview: boolean) {
     const play = autoplay && (!("effect" in preset) || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    requestReplacement(makeDraft(preset, { preset: preset.name }), play, focusPreview);
+    requestReplacement(makeDraft({ ...preset, name: catalogue[preset.name]?.name ?? preset.name }, { preset: preset.name }), play, focusPreview);
   }
 
   function selectAssetTab(id: string) {
@@ -446,11 +593,20 @@ export function MotionPlayground() {
           }} placeholder="Search this tab…" /></label>
         <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
       </div>}>
+    {Object.values(catalogue).some(item => item.hidden) && <button type="button" className="button-secondary" onClick={() => {
+      const before = readMotionCatalogue(window.localStorage);
+      const restored = JSON.parse(before);
+      for (const value of Object.values(restored) as Array<{ hidden?: boolean }>) delete value.hidden;
+      void saveCatalogueChange(before, JSON.stringify(restored)).catch(error => setCatalogueError(error.message));
+    }}>Restore built-in assets</button>}
+    {catalogueError && !action && <p role="alert">{catalogueError}</p>}
       <PaneTabPanel id={assetTabsId} tab="special-effects" active={assetTab}>
         {effects.length || videoFiles.length ? <AnimationCatalogueCards entries={effects}
-          selectedPreset={selectedVideo ? undefined : draft.preset} onSelect={selectCataloguePreset}>
-          {videoFiles.map(({ asset, preview }) => <MotionCatalogueCard key={asset.id} name={asset.name}
+          selectedPreset={selectedVideo ? undefined : draft.preset} onSelect={selectCataloguePreset}
+          onContextMenu={(event, preset, clip) => openCatalogueMenu(event, { label: clip.name, preset })}>
+          {videoFiles.map(file => { const { asset, preview } = file; return <MotionCatalogueCard key={asset.id} name={asset.name}
             label={`Preview ${asset.name}`} pressed={videoSelection?.id === asset.id}
+            onContextMenu={event => openCatalogueMenu(event, { label: asset.name, file, generation })}
             onClick={event => {
               videoTile.current = event.currentTarget;
               setPlayback(null);
@@ -465,16 +621,32 @@ export function MotionPlayground() {
             }}>
             <VideoCatalogueThumbnail id={asset.id} source={preview?.blob ?? asset.blob} onPoster={rememberVideoPoster}
               active={active && assetTab === "special-effects"} />
-          </MotionCatalogueCard>)}
+          </MotionCatalogueCard>; })}
         </AnimationCatalogueCards> : null}
         {filesUnavailable ? <p role="status">The files from your Motion Assets folder couldn’t be loaded.</p> : null}
         {!effects.length && !videoFiles.length ? <p>No matching motion assets.</p> : null}
       </PaneTabPanel>
       <PaneTabPanel id={assetTabsId} tab="sketches" active={assetTab}>
-        {sketches.length ? <AnimationCatalogueCards entries={sketches} selectedPreset={draft.preset} onSelect={selectCataloguePreset} />
+        {sketches.length ? <AnimationCatalogueCards entries={sketches} selectedPreset={draft.preset} onSelect={selectCataloguePreset} onContextMenu={(event, preset, clip) => openCatalogueMenu(event, { label: clip.name, preset })} />
           : <p>No matching motion assets.</p>}
       </PaneTabPanel>
     </Pane>
+    {menu && <StudioListContextMenu target={menu} restoreFocus={() => menu.opener.focus()} onClose={() => setMenu(undefined)}
+      actions={[
+        { label: "Rename", icon: "pencil", onClick: () => { setNewName(menu.label); setCatalogueError(""); setAction({ mode: "rename", target: menu }); } },
+        { label: "Delete", icon: "trash", destructive: true, onClick: () => { setCatalogueError(""); setAction({ mode: "delete", target: menu }); } },
+      ]} />}
+    {action && <StudioDialog title={action.mode === "rename" ? "Rename motion asset" : "Delete motion asset?"}
+      returnFocus={action.target.opener} closeDisabled={saving} onClose={() => setAction(undefined)}>
+      {action.mode === "rename" ? <label className="motion-field">Name<TextInput value={newName} maxLength={100}
+        onChange={event => setNewName(event.target.value)} /></label>
+        : <p>{action.target.file ? `Permanently delete “${action.target.label}” from Files in this browser?`
+          : `Remove “${action.target.label}” from the catalogue? You can restore built-in assets.`}</p>}
+      {action.mode === "rename" && action.target.file?.preview && <p>The matching MP4 preview will be renamed to match.</p>}
+      {catalogueError && <p role="alert">{catalogueError}</p>}
+      <StudioDialogActions><button type="button" className="button-secondary" disabled={saving} onClick={() => setAction(undefined)}>Cancel</button>
+        <button type="button" className="button-primary" disabled={saving} onClick={() => void commitCatalogueAction()}>{saving ? "Saving…" : action.mode === "rename" ? "Rename" : "Delete"}</button></StudioDialogActions>
+    </StudioDialog>}
     {selectedVideo ? <MotionVideoWorkspace file={selectedVideo} active={active} poster={selectedVideoPoster} onPreviewReady={revealVideoPreview}
       onClose={() => { setVideoSelection(undefined); videoTile.current?.focus(); }}
       exportFeedback={movExport ? <div className="motion-actions">
@@ -519,7 +691,7 @@ export function MotionPlayground() {
             {exportStatus}
           </div> : null}
           <div className="motion-setting-group" role="group" aria-label="Asset">
-            <NameSetting key={previewRevision} name={asset.name} onChange={name => changeAsset({ name })} />
+            <NameSetting key={previewRevision} name={asset.name} onChange={name => void renameSelectedPreset(name)} />
             <div className="motion-field-grid">
               <NumberSetting label="Width (px)" min={128} max={motionDimensionLimit(asset.height)} value={previewAsset.width} readOnly={resizeDraft !== null} onCommit={width => changeAsset({ width })} />
               <NumberSetting label="Height (px)" min={128} max={motionDimensionLimit(asset.width)} value={previewAsset.height} readOnly={resizeDraft !== null} onCommit={height => changeAsset({ height })} />
