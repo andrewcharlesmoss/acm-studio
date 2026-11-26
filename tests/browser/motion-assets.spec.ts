@@ -979,7 +979,7 @@ test("Soft Fade matches the original preview before the ending and reopens as it
   await setNumber(page, "Duration (s)", "1.8");
   await expect(slider("Fade out")).toHaveAttribute("aria-valuetext", "100% · 1.80 s");
   const project = await save(page, "Download Project");
-  await motion.getByRole("button", { name: "Reset Preview", exact: true }).click();
+  await motion.getByRole("button", { name: "Reset Settings", exact: true }).click();
   await expect(slider("Canvas coverage")).toHaveValue("100");
   await expect(slider("Fade out")).toHaveValue("48");
   expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.8.0",

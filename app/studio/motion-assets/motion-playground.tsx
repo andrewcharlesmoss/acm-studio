@@ -675,6 +675,11 @@ export function MotionPlayground() {
       <Pane label="Motion settings" side="right" width={312} collapsed={false} onCollapsedChange={() => {}} collapseIcon={null} collapsible={false} inspectorPopoverOwner
         trackClassName="motion-inspector" header={<h2>Settings</h2>}>
         <div className="motion-settings">
+          <div className="motion-setting-group">
+            <button type="button" className="button-secondary motion-reset-button" onClick={resetPreview}>
+              <AcmIcon name="action.reset" scale="Regular-S" size={18} />Reset Settings
+            </button>
+          </div>
           {!sketch ? <div className="motion-setting-group" role="group" aria-label="Video export">
             <div className="media-preview-actions">
               {movAction}
