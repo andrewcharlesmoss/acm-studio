@@ -903,7 +903,13 @@ test("Soft Fade matches the original preview before the ending and reopens as it
     await timeline.press("End");
     for (let step = 0; step < 5; step++) await timeline.press("ArrowLeft");
     await expect(timeline).toHaveValue("25");
-    return { opening, ending: await pixel() };
+    const ending = await pixel();
+    await timeline.press("ArrowLeft");
+    await timeline.press("ArrowLeft");
+    await expect(timeline).toHaveValue("23");
+    const earlier = await pixel();
+    await timeline.press("End");
+    return { opening, earlier, ending, final: await pixel() };
   }
 
   const original = await sample("Volumetric Fireball");
@@ -911,9 +917,12 @@ test("Soft Fade matches the original preview before the ending and reopens as it
   const soft = await sample(softName);
   expect(original.opening[3]).toBeGreaterThan(0);
   expect(soft.opening).toEqual(original.opening);
-  expect(soft.ending.slice(0, 3)).toEqual(original.ending.slice(0, 3));
+  // The same flame detail stays in place while its opacity drops.
+  expect(soft.ending.slice(0, 3)).toEqual(soft.earlier.slice(0, 3));
+  expect(soft.ending[3]).toBeLessThan(soft.earlier[3]);
+  expect(soft.final[3]).toBe(0);
   expect(soft.ending[3]).toBeGreaterThan(0);
-  expect(soft.ending[3]).toBeLessThan(original.ending[3]);
+
   const project = await save(page, "Download Project");
   expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.7.0",
     asset: { effect: "volumetric-fireball-soft-fade", durationFrames: 30 } });
