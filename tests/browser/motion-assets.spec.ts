@@ -1825,7 +1825,17 @@ test("motion catalogue offers rename, delete and restore from its context menu",
   await expect(renamed).toBeVisible();
   await page.keyboard.press(mac ? "Meta+Shift+z" : "Control+y");
   await expect(renamed).toHaveCount(0);
-  await page.getByRole("button", { name: "Restore built-in assets" }).click();
+  await page.reload();
+  await expect(motion.locator('[data-motion-ready="true"]')).toBeVisible();
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  await expect(renamed).toHaveCount(0);
+  await expect(motion.getByRole("button", { name: "Restore built-in assets", exact: true })).toHaveCount(0);
+  await motion.getByText("Motion Assets Bin (1)", { exact: true }).click();
+  await motion.getByRole("button", { name: "Restore My Fireball", exact: true }).click();
+  await expect(renamed).toBeVisible();
+  await history.getByRole("button", { name: "Undo Restore", exact: true }).click();
+  await expect(renamed).toHaveCount(0);
+  await history.getByRole("button", { name: "Redo Restore", exact: true }).click();
   await expect(renamed).toBeVisible();
   await renamed.click();
   const nameField = motion.getByRole("textbox", { name: "Name", exact: true });
