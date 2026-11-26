@@ -6,7 +6,7 @@ import { readStudioNavigationHiddenTools, studioNavigationVisibilityKey } from "
 import { motionPreset, motionGeometry, motionLottie, motionProject, motionSvg, readMotionProject } from "../app/studio/motion-assets/motion-asset.ts";
 import { fireBurst } from "../app/studio/motion-assets/fire-burst.ts";
 import { fireShockwave } from "../app/studio/motion-assets/fire-shockwave.ts";
-import { volumetricFireball } from "../app/studio/motion-assets/motion-effects.ts";
+import { rollingFireball, volumetricFireball } from "../app/studio/motion-assets/motion-effects.ts";
 import { motionCatalogue } from "../app/studio/motion-assets/motion-catalogue.ts";
 import { resizeMotion } from "../app/studio/motion-assets/motion-resize.ts";
 
@@ -117,6 +117,16 @@ test("Volumetric Fireball round-trips its authored size and longer duration inde
   assert.throws(() => readMotionProject({ ...project, version: "0.4.0" }), /v0\.5\.0/);
   assert.throws(() => motionProject({ ...asset, durationFrames: 453 }), /15 s/);
   assert.throws(() => motionProject({ ...fireBurst, durationFrames: 93 }), /3 s/);
+});
+
+test("Rolling Fireball reopens as its own preset with the full volumetric duration range", () => {
+  const asset = { ...rollingFireball, name: "Opening flame", durationFrames: 450 };
+  const project = motionProject(asset);
+  assert.equal(project.version, "0.6.0");
+  assert.equal(asset.effect, "rolling-fireball");
+  assert.deepEqual(readMotionProject(JSON.parse(JSON.stringify(project))), asset);
+  assert.throws(() => readMotionProject({ ...project, version: "0.5.0" }), /v0\.6\.0/);
+  assert.throws(() => motionProject({ ...asset, durationFrames: 453 }), /15 s/);
 });
 
 test("unsafe or unusable projects are rejected before render", () => {

@@ -18,11 +18,11 @@ import { MotionPreviewStage } from "./motion-preview-stage";
 import { formatPlaybackTime, MotionPlaybackTransport, MotionPreviewPane, useMotionPlaybackShortcut } from "./motion-preview-controls";
 import { MotionVideoWorkspace } from "./motion-video-workspace";
 import { VideoCatalogueThumbnail } from "./video-catalogue-thumbnail";
-import { VolumetricFireballCanvas, volumetricFireballPoster } from "./volumetric-fireball-canvas";
+import { VolumetricFireballCanvas, fireballPoster } from "./volumetric-fireball-canvas";
 import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMotionPreviewWorkspace, type MotionDraft } from "./motion-preview-workspace";
 import type { MotionSize } from "./motion-resize";
 import {
-  motionDimensionLimit, motionEffectDuration, motionEffectFrameLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionProject,
+  isVolumetricEffect, motionDimensionLimit, motionEffectDuration, motionEffectFrameLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionProject,
   motionSvg, readMotionProject, volumetricExportRequirement, type MotionAsset, type MotionClip, type MotionEffect,
 } from "./motion-asset";
 import "./motion-assets.css";
@@ -112,9 +112,9 @@ function SketchArtwork({ asset, path }: { asset: MotionAsset; path: string }) {
 }
 
 const MotionThumbnail = memo(function MotionThumbnail({ asset }: { asset: MotionClip }) {
-  if ("effect" in asset && asset.effect === "volumetric-fireball") {
+  if ("effect" in asset && isVolumetricEffect(asset.effect)) {
     // eslint-disable-next-line @next/next/no-img-element -- The renderer's bundled poster is already sized for the catalogue.
-    return <img src={volumetricFireballPoster} width={320} height={180} alt="" />;
+    return <img src={fireballPoster(asset.effect)} width={320} height={180} alt="" />;
   }
   return <svg viewBox={`0 0 ${asset.width} ${asset.height}`} aria-hidden="true">
     {"effect" in asset ? <MotionEffectArtwork asset={asset} frame={motionEffectPoster(asset)} />
@@ -209,7 +209,7 @@ export function MotionPlayground() {
     return { effects: matching(motionEffectCatalogue, videoSearch), sketches: matching(motionCatalogue, sketchSearch) };
   }, [draft.preset, parked, previewAsset, videoSearch, sketchSearch]);
   const duration = "effect" in asset ? asset.durationFrames : asset.drawFrames + asset.holdFrames;
-  const volumetric = "effect" in asset && asset.effect === "volumetric-fireball";
+  const volumetric = "effect" in asset && isVolumetricEffect(asset.effect);
   const durationLimit = "effect" in asset ? motionEffectFrameLimit(asset.effect) : 0;
   const canExportMov = movSupport?.available && (!volumetric || movSupport.volumetricAvailable);
   const exportExplanation = !movSupport ? "Checking local MOV export…"
@@ -490,7 +490,7 @@ export function MotionPlayground() {
         <input hidden ref={fileInput} type="file" accept=".svg,.json" onChange={openFile} />
       </>}>
         <MotionPreviewStage key={`${active}-${previewRevision}`} asset={previewAsset} geometry={previewModel?.preview ?? motionEffectPreview} onResize={changeAsset} onResizeDraft={setResizeDraft}
-          renderedFrame={animationActive && "effect" in previewAsset && previewAsset.effect === "volumetric-fireball"
+          renderedFrame={animationActive && "effect" in previewAsset && isVolumetricEffect(previewAsset.effect)
             ? <VolumetricFireballCanvas asset={previewAsset} frame={frame} playing={playback !== null} /> : undefined}
           artwork={"effect" in previewAsset ? <MotionEffectArtwork asset={previewAsset} frame={frame} />
             : <SketchArtwork asset={previewAsset} path={previewModel?.pathAt(frame) ?? ""} />} />

@@ -9,6 +9,10 @@ export const volumetricFireball: MotionEffect = {
   effect: "volumetric-fireball", name: "Volumetric Fireball", width: 1920, height: 1080, durationFrames: motionFps,
 };
 
+export const rollingFireball: MotionEffect = {
+  ...volumetricFireball, effect: "rolling-fireball", name: "Rolling Fireball",
+};
+
 const effects = {
   "fire-burst": {
     Artwork: FireBurstArtwork, poster: fireBurstPoster,
@@ -18,13 +22,17 @@ const effects = {
     Artwork: FireShockwaveArtwork, poster: (asset: MotionEffect) => Math.round(asset.durationFrames * 0.18),
     keywords: "fire explosion shockwave flame ring full frame embers",
   },
+  "rolling-fireball": {
+    Artwork: null, poster: (asset: MotionEffect) => Math.round((asset.durationFrames - 1) * 0.28),
+    keywords: "volumetric fireball explosion rolling flame billows smoke",
+  },
   "volumetric-fireball": {
     Artwork: null, poster: (asset: MotionEffect) => Math.round(asset.durationFrames * 0.14),
     keywords: "fireball flame explosion volumetric original acm",
   },
 };
 
-export const motionEffectCatalogue = [volumetricFireball];
+export const motionEffectCatalogue = [volumetricFireball, rollingFireball];
 export const motionEffectPoster = (asset: MotionEffect) => effects[asset.effect].poster(asset);
 export const motionEffectKeywords = (asset: MotionEffect) => effects[asset.effect].keywords;
 

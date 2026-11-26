@@ -3,9 +3,14 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { MotionEffect } from "./motion-asset";
 import fireballSource from "./volumetric-fireball.glsl?raw";
+import noiseSource from "./fireball-noise.glsl?raw";
+import rollingSource from "./rolling-fireball.glsl?raw";
+import rollingPoster from "./rolling-fireball-poster.png?url";
 import poster from "./volumetric-fireball-poster.png?url";
 
-export { poster as volumetricFireballPoster };
+export function fireballPoster(effect: MotionEffect["effect"]) {
+  return effect === "rolling-fireball" ? rollingPoster : poster;
+}
 
 const vertexSource = `#version 300 es
 void main() {
@@ -14,14 +19,14 @@ void main() {
 }`;
 
 // Metal uses the same shader functions with native vector type aliases.
-const fragmentSource = `#version 300 es
+const fragmentSource = (source: string) => `#version 300 es
 precision highp float;
 precision highp int;
 uniform vec2 resolution;
 uniform float aspect;
 uniform float phase;
 out vec4 colour;
-${fireballSource.replace(/(\d)f\b/g, "$1")}
+${(noiseSource + "\n" + source).replace(/(\d)f\b/g, "$1")}
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution;
   colour = fireballAt(vec2(uv.x, 1.0 - uv.y), aspect, phase);
@@ -37,11 +42,11 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   return null;
 }
 
-function createRenderer(canvas: HTMLCanvasElement) {
+function createRenderer(canvas: HTMLCanvasElement, effect: MotionEffect["effect"]) {
   const gl = canvas.getContext("webgl2", { alpha: true, premultipliedAlpha: false, antialias: false, depth: false });
   if (!gl) return null;
   const vertex = compile(gl, gl.VERTEX_SHADER, vertexSource);
-  const fragment = compile(gl, gl.FRAGMENT_SHADER, fragmentSource);
+  const fragment = compile(gl, gl.FRAGMENT_SHADER, fragmentSource(effect === "rolling-fireball" ? rollingSource : fireballSource));
   const program = gl.createProgram();
   if (program && vertex && fragment) {
     gl.attachShader(program, vertex);
@@ -81,8 +86,8 @@ export function VolumetricFireballCanvas({ asset, frame, playing }: { asset: Mot
   useLayoutEffect(() => {
     const surface = canvas.current;
     if (!surface) return;
-    try { renderer.current = createRenderer(surface); } catch { renderer.current = null; }
-    if (!renderer.current) setUnavailable(true);
+    try { renderer.current = createRenderer(surface, asset.effect); } catch { renderer.current = null; }
+    setUnavailable(!renderer.current);
     const handleLoss = () => setUnavailable(true);
     surface.addEventListener("webglcontextlost", handleLoss);
     return () => {
@@ -90,7 +95,7 @@ export function VolumetricFireballCanvas({ asset, frame, playing }: { asset: Mot
       renderer.current?.dispose();
       renderer.current = null;
     };
-  }, []);
+  }, [asset.effect]);
 
   const { width, height, durationFrames } = asset;
   useLayoutEffect(() => {
@@ -98,14 +103,14 @@ export function VolumetricFireballCanvas({ asset, frame, playing }: { asset: Mot
     const scale = Math.min(1, (playing ? 420 : 680) / Math.max(width, height));
     renderer.current?.draw(Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)),
       width / height, Math.min(1, frame / (durationFrames - 1)));
-  }, [durationFrames, frame, height, playing, width]);
+  }, [asset.effect, durationFrames, frame, height, playing, width]);
 
   return <div className="motion-fireball-render">
     <div className="motion-fireball-artwork" role="img" aria-label={`${asset.name} animation preview`}
       data-preview-width={width} data-preview-height={height} data-live-render={!unavailable}>
       <canvas ref={canvas} aria-hidden="true" hidden={unavailable} />
       {/* eslint-disable-next-line @next/next/no-img-element -- This bundled poster also works without WebGL. */}
-      {unavailable ? <img src={poster} alt="" width={320} height={180} /> : null}
+      {unavailable ? <img src={fireballPoster(asset.effect)} alt="" width={320} height={180} /> : null}
     </div>
     {unavailable ? <span role="status">Live preview requires WebGL 2.</span> : null}
   </div>;

@@ -309,7 +309,7 @@ test("Special Effects lists Volumetric Fireball and omits retired effects and th
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
   await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
   const effects = motion.getByRole("tabpanel", { name: "Special Effects", exact: true });
-  await expect(effects.getByRole("button")).toHaveText(["Volumetric Fireball"]);
+  await expect(effects.getByRole("button")).toHaveText(["Volumetric Fireball", "Rolling Fireball"]);
   const search = motion.getByRole("searchbox", { name: "Search motion assets" });
   for (const name of ["Fire Burst", "Shockwave", "Shutterstock"]) {
     await search.fill(name);
@@ -873,6 +873,27 @@ test("Volumetric Fireball renders live and saves editable name, size, and durati
   await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
   await expect(motion.getByRole("img", { name: "My fireball animation preview" })).toHaveAttribute("data-preview-height", "640");
   await expect(duration).toHaveValue("2.5");
+});
+
+test("Rolling Fireball opens its own live preview and editable project", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(route, { waitUntil: "commit" });
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  await motion.getByRole("button", { name: "Use Rolling Fireball", exact: true }).press("Enter");
+  const artwork = motion.getByRole("img", { name: "Rolling Fireball animation preview" });
+  await expect(artwork).toHaveAttribute("data-live-render", "true");
+  await expect(artwork.locator("canvas")).toBeVisible();
+  await expect(motion.getByRole("spinbutton", { name: "Duration (s)" })).toHaveValue("1");
+  await setNumber(page, "Duration (s)", "1.5");
+  const project = await save(page, "Download Project");
+  expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.6.0",
+    asset: { effect: "rolling-fireball", durationFrames: 45 } });
+  await motion.getByRole("button", { name: "Use Volumetric Fireball", exact: true }).click();
+  await expect(motion.getByRole("spinbutton", { name: "Duration (s)" })).toHaveValue("1");
+  await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
+  await expect(artwork).toHaveAttribute("data-live-render", "true");
+  await expect(motion.getByRole("spinbutton", { name: "Duration (s)" })).toHaveValue("1.5");
 });
 
 test("Volumetric Fireball accepts cancellation and exports edited dimensions and duration with alpha", async ({ page }) => {

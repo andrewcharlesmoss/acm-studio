@@ -10,7 +10,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isLocalStudioRequest } from "./codex-history-bridge.mjs";
 import { MotionEffectArtwork } from "../app/studio/motion-assets/motion-effects.ts";
-import { motionFileLimit, motionFps, readMotionProject, motionGeometry, motionSvg, volumetricExportRequirement } from "../app/studio/motion-assets/motion-asset.ts";
+import { isVolumetricEffect, motionFileLimit, motionFps, readMotionProject, motionGeometry, motionSvg, volumetricExportRequirement } from "../app/studio/motion-assets/motion-asset.ts";
 
 const endpoint = "/__studio/motion-export";
 const require = createRequire(import.meta.url);
@@ -114,7 +114,7 @@ async function renderMov(asset, output, signal) {
 async function renderVolumetricMov(asset, output, signal, root) {
   const directory = dirname(output);
   const renderer = join(directory, "render-fireball");
-  const shader = join(root, "app/studio/motion-assets/volumetric-fireball.glsl");
+  const shader = join(root, "app/studio/motion-assets", asset.effect + ".glsl");
   await runFile("swiftc", ["-O", "-module-cache-path", join(directory, "module-cache"),
     join(root, "scripts/volumetric-fireball/render.swift"), "-o", renderer], { signal, timeout: 30_000 });
   signal.throwIfAborted();
@@ -203,7 +203,7 @@ export function motionExportBridge({ encode = renderMov, probe = probeEncoder, t
       try { asset = readMotionProject(body); }
       catch (error) { respond(response, 400, { error: error.message }); return; }
       if (busy) { respond(response, 409, { error: "Another MOV export is running. Try again when it finishes." }); return; }
-      const volumetric = asset.effect === "volumetric-fireball";
+      const volumetric = isVolumetricEffect(asset.effect);
       busy = true;
       let directory;
       const cancellation = new AbortController();
@@ -227,7 +227,7 @@ export function motionExportBridge({ encode = renderMov, probe = probeEncoder, t
         if (!response.headersSent) {
           respond(response, cancellation.signal.aborted ? 504 : 500, {
             error: cancellation.signal.aborted ? "The MOV export timed out. Try a shorter or smaller animation."
-              : volumetric ? "Volumetric Fireball couldn’t render. Check that Metal, Swift, and FFmpeg are available, then try again."
+              : volumetric ? "The fireball couldn’t render. Check that Metal, Swift, and FFmpeg are available, then try again."
                 : "The MOV export failed. Check FFmpeg and available disk space, then try again.",
           });
         } else if (!response.destroyed) response.destroy();

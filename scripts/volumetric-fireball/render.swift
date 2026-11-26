@@ -29,7 +29,10 @@ let byteCount = width * height * 4
 guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue(),
       let buffer = device.makeBuffer(length: byteCount, options: .storageModeShared)
 else { throw RenderError.metalUnavailable }
-let shader = try String(contentsOfFile: args[1], encoding: .utf8)
+let sourceURL = URL(fileURLWithPath: args[1])
+let commonURL = sourceURL.deletingLastPathComponent().appendingPathComponent("fireball-noise.glsl")
+let common = try String(contentsOf: commonURL, encoding: .utf8)
+let shader = try String(contentsOf: sourceURL, encoding: .utf8)
 let metalSource = """
 #include <metal_stdlib>
 using namespace metal;
@@ -39,6 +42,7 @@ using namespace metal;
 #define ivec2 int2
 #define ivec3 int3
 
+\(common)
 \(shader)
 
 struct FrameParameters { uint width; uint height; float time; };

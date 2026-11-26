@@ -24,6 +24,8 @@ The initial wave uses the SVG geometry from the November 2026 cross-editor exper
 
 **Volumetric Fireball** is an independently generated 3D flame effect. Its shell, turbulent folds, sparks, and fade are defined in the [shared shader](../app/studio/motion-assets/volumetric-fireball.glsl). Change its name, width, height, and duration from 0.6 to 15 seconds. Defaults are 1920 × 1080 px and 1 second at 30 fps. Use **Download Project** to save an editable project in format v0.5.0, or **Download MOV** to render a ProRes 4444 file with alpha. **File Details** shows the settings for that MOV.
 
+**Rolling Fireball** starts with a bright central flash. Uneven billows expand, rise, and break into cooling wisps. It has the same settings and transparent MOV export as Volumetric Fireball, and saves as a v0.6.0 project.
+
 Studio previews the live shader on the transparency grid through WebGL 2. It shows a rendered still if live preview is unavailable. Local MOV export renders the same shader in Metal at the chosen size and duration. It requires a Mac with Metal, the Swift toolchain, and FFmpeg.
 
 Use **Open File** to edit or export existing **Fire Burst** (v0.3.0) or **Fire Shockwave** (v0.4.0) projects. Fire Shockwave’s artwork took visual inspiration from [JoyRea Effects’ green-screen Short](https://www.youtube.com/shorts/w6MCj9em7J8). If your system requests reduced motion, use **Play** to start an effect manually.
