@@ -8,7 +8,16 @@ const effectProjectVersions = {
   "rolling-fireball": "0.6.0",
   "volumetric-fireball-soft-fade": "0.7.0",
 } as const;
-const effectVersions: readonly string[] = Object.values(effectProjectVersions);
+const adjustableFireballVersion = "0.8.0";
+const effectVersions: readonly string[] = [...Object.values(effectProjectVersions), adjustableFireballVersion];
+export const softFadeDefaults = { fadeOut: 48, fadeIn: 0, flameMotion: 12, coverage: 100 };
+export type SoftFadeSettings = typeof softFadeDefaults;
+export const softFadeControls = [
+  { key: "fadeOut", label: "Fade out", min: 0, max: 100 },
+  { key: "fadeIn", label: "Fade in", min: 0, max: 100 },
+  { key: "flameMotion", label: "Flame motion during fade", min: 0, max: 100 },
+  { key: "coverage", label: "Canvas coverage", min: 20, max: 180 },
+] as const;
 export const motionFileLimit = 24 * 1024;
 
 export type MotionAsset = {
@@ -26,6 +35,7 @@ export type MotionAsset = {
 export type MotionEffect = Pick<MotionAsset, "name" | "width" | "height"> & {
   effect: keyof typeof effectProjectVersions;
   durationFrames: number;
+  softFade?: SoftFadeSettings;
 };
 
 export type MotionClip = MotionAsset | MotionEffect;
@@ -178,13 +188,27 @@ function readMotionEffect(input: unknown): MotionEffect {
   if (!integerIn(durationFrames, motionEffectDuration.min, limit) || durationFrames % 3) {
     throw new Error(`Set a duration from 0.6 to ${limit / motionFps} s in steps of 0.1 s.`);
   }
-  return { name: name.trim(), width, height, effect, durationFrames };
+  const asset = { name: name.trim(), width, height, effect, durationFrames };
+  if (!("softFade" in input)) return asset;
+  const settings = input.softFade;
+  if (effect !== "volumetric-fireball-soft-fade" || !settings || typeof settings !== "object") {
+    throw new Error("Choose valid settings for Volumetric Fireball (Soft Fade).");
+  }
+  const validated = { ...softFadeDefaults };
+  for (const { key, label, min, max } of softFadeControls) {
+    const value = (settings as Partial<SoftFadeSettings>)[key];
+    if (!integerIn(value, min, max)) throw new Error(`Set ${label} from ${min}% to ${max}%.`);
+    validated[key] = value;
+  }
+  // Keep projects using the original appearance readable by v0.7.0 readers.
+  if (softFadeControls.every(({ key }) => validated[key] === softFadeDefaults[key])) return asset;
+  return { ...asset, softFade: validated };
 }
 
 export function motionProject(asset: MotionClip) {
   if ("effect" in asset) {
     const validated = readMotionEffect(asset);
-    const version = effectProjectVersions[validated.effect];
+    const version = validated.softFade ? adjustableFireballVersion : effectProjectVersions[validated.effect];
     return { format: "acm-motion", version, asset: validated };
   }
   const validated = readMotionAsset(asset);
@@ -200,6 +224,9 @@ export function readMotionProject(value: unknown) {
   const effectVersion = effectVersions.indexOf(file.version);
   if (effectVersion !== -1) {
     const asset = readMotionEffect(file.asset);
+    if (file.version !== adjustableFireballVersion && "softFade" in file.asset) {
+      throw new Error(`Use ACM Motion project v${adjustableFireballVersion} for adjustable fireball settings.`);
+    }
     const requiredVersion = effectProjectVersions[asset.effect];
     if (effectVersion < effectVersions.indexOf(requiredVersion)) {
       throw new Error(`Use ACM Motion project v${requiredVersion} for this special effect.`);

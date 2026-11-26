@@ -17,7 +17,7 @@ float sparksAt(vec2 point, float time) {
     return brightest * smoothstep(0.03f, 0.14f, time) * (1.0f - smoothstep(0.25f, 0.8f, time));
 }
 
-vec4 fireballAt(vec2 uv, float aspect, float time, float /* centreTime */) {
+vec4 fireballAt(vec2 uv, float aspect, float time, float /* centreTime */, float /* residualSpeed */) {
     if (time <= 0.0f || time >= 1.0f) return vec4(0.0f);
     float radius = 0.045f + 1.52f * (1.0f - exp(-4.25f * time));
     vec2 screen = (uv - 0.5f) * vec2(2.0f * aspect, -2.0f);

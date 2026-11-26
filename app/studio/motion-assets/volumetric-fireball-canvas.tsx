@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import type { MotionEffect } from "./motion-asset";
+import { softFadeDefaults, type MotionEffect, type SoftFadeSettings } from "./motion-asset";
 import fireballSource from "./volumetric-fireball.glsl?raw";
 import fadeSource from "./fireball-fade.glsl?raw";
 import noiseSource from "./fireball-noise.glsl?raw";
@@ -27,11 +27,12 @@ uniform vec2 resolution;
 uniform float aspect;
 uniform float phase;
 uniform bool softFade;
+uniform vec4 settings;
 out vec4 colour;
 ${([noiseSource, source, fadeSource].join("\n")).replace(/(\d)f\b/g, "$1")}
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution;
-  colour = fireballWithFade(vec2(uv.x, 1.0 - uv.y), aspect, phase, softFade);
+  colour = fireballWithFade(vec2(uv.x, 1.0 - uv.y), aspect, phase, softFade, settings);
 }`;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -66,10 +67,11 @@ function createRenderer(canvas: HTMLCanvasElement, effect: MotionEffect["effect"
   const resolution = gl.getUniformLocation(program, "resolution");
   const aspect = gl.getUniformLocation(program, "aspect");
   const phase = gl.getUniformLocation(program, "phase");
+  const settings = gl.getUniformLocation(program, "settings");
   gl.useProgram(program);
   gl.uniform1i(gl.getUniformLocation(program, "softFade"), Number(effect === "volumetric-fireball-soft-fade"));
   return {
-    draw(width: number, height: number, assetAspect: number, assetPhase: number) {
+    draw(width: number, height: number, assetAspect: number, assetPhase: number, controls: SoftFadeSettings) {
       if (canvas.width !== width) canvas.width = width;
       if (canvas.height !== height) canvas.height = height;
       gl.viewport(0, 0, width, height);
@@ -77,6 +79,7 @@ function createRenderer(canvas: HTMLCanvasElement, effect: MotionEffect["effect"
       gl.uniform2f(resolution, width, height);
       gl.uniform1f(aspect, assetAspect);
       gl.uniform1f(phase, assetPhase);
+      gl.uniform4f(settings, controls.fadeIn / 100, controls.fadeOut / 100, controls.flameMotion / 100, controls.coverage / 100);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
     dispose() { gl.deleteProgram(program); },
@@ -107,8 +110,8 @@ export function VolumetricFireballCanvas({ asset, frame, playing }: { asset: Mot
     // Playback stays responsive while still using the full volumetric shading model.
     const scale = Math.min(1, (playing ? 420 : 680) / Math.max(width, height));
     renderer.current?.draw(Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)),
-      width / height, Math.min(1, frame / (durationFrames - 1)));
-  }, [asset.effect, durationFrames, frame, height, playing, width]);
+      width / height, Math.min(1, frame / (durationFrames - 1)), asset.softFade ?? softFadeDefaults);
+  }, [asset.effect, asset.softFade, durationFrames, frame, height, playing, width]);
 
   return <div className="motion-fireball-render">
     <div className="motion-fireball-artwork" role="img" aria-label={`${asset.name} animation preview`}

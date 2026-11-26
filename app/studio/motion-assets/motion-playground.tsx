@@ -5,6 +5,7 @@ import { memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMe
 import { ColourPicker } from "../controls/colour-picker";
 import { SearchInput, TextInput } from "../controls/native-fields";
 import { NumberStepper } from "../controls/number-stepper";
+import { RangeControl } from "../controls/range-control";
 import { ToggleSetting } from "../controls/toggle-setting";
 import { useLibraryPreviewFiles } from "../media-library-preview";
 import { MediaFileDetailsButton } from "../media-file-details";
@@ -23,7 +24,7 @@ import { focusedMotionField, hasPendingFieldEdit, makeDraft, projectKey, useMoti
 import type { MotionSize } from "./motion-resize";
 import {
   isVolumetricEffect, motionDimensionLimit, motionEffectDuration, motionEffectFrameLimit, motionFileLimit, motionFps, motionGeometry, motionLottie, motionProject,
-  motionSvg, readMotionProject, volumetricExportRequirement, type MotionAsset, type MotionClip, type MotionEffect,
+  motionSvg, readMotionProject, softFadeControls, softFadeDefaults, volumetricExportRequirement, type MotionAsset, type MotionClip, type MotionEffect,
 } from "./motion-asset";
 import "./motion-assets.css";
 
@@ -153,6 +154,8 @@ export function MotionPlayground() {
   const { workspace: { draft, parked }, setWorkspace, autoplay, setAutoplay, movExport, setMovExport } = useMotionPreviewWorkspace();
   const { asset } = draft;
   const sketch = "effect" in asset ? null : asset;
+  const fireballSettings = "effect" in asset && asset.effect === "volumetric-fireball-soft-fade"
+    ? asset.softFade ?? softFadeDefaults : null;
   const [assetTab, setAssetTab] = useState<MotionAssetTab>("sketches");
   const [videoSelection, setVideoSelection] = useState<VideoSelection>();
   const [searches, setSearches] = useState<Record<MotionAssetTab, string>>({ "special-effects": "", sketches: "" });
@@ -327,7 +330,7 @@ export function MotionPlayground() {
     clearFeedback();
   }
 
-  function changeAsset(changes: Partial<Omit<MotionAsset, "path" | "viewBox"> & Pick<MotionEffect, "durationFrames">>) {
+  function changeAsset(changes: Partial<Omit<MotionAsset, "path" | "viewBox"> & Pick<MotionEffect, "durationFrames" | "softFade">>) {
     clearFeedback();
     setWorkspace(current => {
       const asset = current.draft.asset;
@@ -535,6 +538,19 @@ export function MotionPlayground() {
           </div></> : <div className="motion-setting-group" role="group" aria-label="Timing">
             <NumberSetting label="Duration (s)" value={duration / motionFps} min={motionEffectDuration.min / motionFps} max={durationLimit / motionFps} step={0.1}
               onCommit={value => changeEffectDuration(Math.round(value * motionFps))} />
+          </div>}
+          {fireballSettings && <div className="motion-setting-group" role="group" aria-label="Fireball">
+            {softFadeControls.map(({ key, label, min, max }) => {
+              const value = fireballSettings[key];
+              const readout = key === "fadeIn" || key === "fadeOut"
+                ? `${value}% · ${formatPlaybackTime(duration / motionFps * value / 100)}` : `${value}%`;
+              return <label key={key} className="motion-field">
+                <span className="motion-range-label">{label}<span aria-hidden="true">{readout}</span></span>
+                <RangeControl aria-label={label} min={min} max={max} step={1} value={value} data-committed-value={value}
+                  aria-valuetext={readout} tooltipText={readout}
+                  onChange={event => changeAsset({ softFade: { ...fireballSettings, [key]: event.target.valueAsNumber } })} />
+              </label>;
+            })}
           </div>}
           {sketch ? <div className="motion-setting-group">
             <h3>Export</h3>

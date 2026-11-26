@@ -954,12 +954,41 @@ test("Soft Fade matches the original preview before the ending and reopens as it
   expect(soft.ending.opacity).toBeLessThan(soft.earlier.opacity);
   expect(soft.final.opacity).toBe(0);
 
+  const defaultFile = await save(page, "Download Project");
+  expect(JSON.parse(defaultFile.data.toString()).version).toBe("0.7.0");
+  const slider = (name: string) => motion.getByRole("slider", { name, exact: true });
+  const canvas = motion.getByRole("img", { name: `${softName} animation preview` }).locator("canvas");
+  const snapshot = () => canvas.evaluate((element: HTMLCanvasElement) =>
+    JSON.parse(element.dataset.sample!) as { colours: number[]; opacity: number });
+  await expect(slider("Fade out")).toHaveAttribute("aria-valuetext", "48% · 0.48 s");
+  await timeline.press("Home");
+  for (let i = 0; i < 6; i++) await timeline.press("ArrowRight");
+  const ignition = await snapshot();
+  await slider("Fade in").press("End");
+  expect((await snapshot()).opacity).toBeLessThan(ignition.opacity);
+  await slider("Canvas coverage").press("Home");
+  expect((await snapshot()).opacity).toBeLessThan(ignition.opacity * 0.1);
+  await timeline.press("End");
+  for (let i = 0; i < 6; i++) await timeline.press("ArrowLeft");
+  const still = await snapshot();
+  await slider("Flame motion during fade").press("End");
+  expect((await snapshot()).colours).not.toEqual(still.colours);
+  const glowing = await snapshot();
+  await slider("Fade out").press("End");
+  expect((await snapshot()).opacity).toBeLessThan(glowing.opacity);
+  await setNumber(page, "Duration (s)", "1.8");
+  await expect(slider("Fade out")).toHaveAttribute("aria-valuetext", "100% · 1.80 s");
   const project = await save(page, "Download Project");
-  expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.7.0",
-    asset: { effect: "volumetric-fireball-soft-fade", durationFrames: 30 } });
+  await motion.getByRole("button", { name: "Reset Preview", exact: true }).click();
+  await expect(slider("Canvas coverage")).toHaveValue("100");
+  await expect(slider("Fade out")).toHaveValue("48");
+  expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.8.0",
+    asset: { effect: "volumetric-fireball-soft-fade", durationFrames: 54, softFade: { fadeOut: 100, fadeIn: 100, flameMotion: 100, coverage: 20 } } });
   await motion.getByRole("button", { name: "Use Rolling Fireball", exact: true }).click();
   await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
   await expect(motion.getByRole("img", { name: `${softName} animation preview`, exact: true })).toBeVisible();
+  await expect(slider("Canvas coverage")).toHaveValue("20");
+  await expect(slider("Fade out")).toHaveAttribute("aria-valuetext", "100% · 1.80 s");
 });
 
 test("Rolling Fireball opens its own live preview and editable project", async ({ page }) => {

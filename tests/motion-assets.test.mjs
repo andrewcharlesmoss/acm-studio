@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { orderedSiteIds } from "../app/studio/site-order-repository.mjs";
 import { dashboardToolIds } from "../app/studio/dashboard-order-contract.mjs";
 import { readStudioNavigationHiddenTools, studioNavigationVisibilityKey } from "../app/studio/studio-navigation-visibility-contract.mjs";
-import { motionPreset, motionGeometry, motionLottie, motionProject, motionSvg, readMotionProject } from "../app/studio/motion-assets/motion-asset.ts";
+import { softFadeDefaults, motionPreset, motionGeometry, motionLottie, motionProject, motionSvg, readMotionProject } from "../app/studio/motion-assets/motion-asset.ts";
 import { fireBurst } from "../app/studio/motion-assets/fire-burst.ts";
 import { fireShockwave } from "../app/studio/motion-assets/fire-shockwave.ts";
-import { rollingFireball, volumetricFireball } from "../app/studio/motion-assets/motion-effects.ts";
+import { softFadeFireball, rollingFireball, volumetricFireball } from "../app/studio/motion-assets/motion-effects.ts";
 import { motionCatalogue } from "../app/studio/motion-assets/motion-catalogue.ts";
 import { resizeMotion } from "../app/studio/motion-assets/motion-resize.ts";
 
@@ -162,4 +162,21 @@ test("normalisation cannot produce a project that fails its own path limit", () 
   const segment = "1.1234567891234 2.1234567891234 3.1234567891234 4.1234567891234 5.1234567891234 6.1234567891234";
   const path = "M0 0C" + Array(124).fill(segment).join(" ");
   assert.throws(() => readMotionProject({ ...project, asset: { ...project.asset, path } }), /shorter SVG path/);
+});
+
+test("Soft Fade settings round-trip with a version gate and bounded whole percentages", () => {
+  const legacy = motionProject(softFadeFireball);
+  assert.equal(legacy.version, "0.7.0");
+  assert.deepEqual(readMotionProject(legacy), softFadeFireball);
+  assert.deepEqual(motionProject({ ...softFadeFireball, softFade: softFadeDefaults }), legacy);
+
+  const asset = { ...softFadeFireball, softFade: { fadeOut: 70, fadeIn: 15, flameMotion: 20, coverage: 120 } };
+  const saved = motionProject(asset);
+  assert.equal(saved.version, "0.8.0");
+  assert.deepEqual(readMotionProject(saved), asset);
+  assert.throws(() => readMotionProject({ ...saved, version: legacy.version }), /v0.8.0/);
+  for (const setting of [{ fadeIn: -1 }, { fadeOut: 101 }, { flameMotion: 0.5 }, { coverage: 0 }, { coverage: 181 }, { fadeIn: "20" }]) {
+    assert.throws(() => motionProject({ ...asset, softFade: { ...asset.softFade, ...setting } }));
+  }
+  assert.throws(() => motionProject({ ...volumetricFireball, softFade: asset.softFade }));
 });

@@ -1,4 +1,4 @@
-vec4 fireballAt(vec2 uv, float aspect, float time, float centreTime) {
+vec4 fireballAt(vec2 uv, float aspect, float time, float centreTime, float residualSpeed) {
     if (time <= 0.016f || time >= 0.994f) { return vec4(0.0f); }
 
     // Ease bulk texture travel and shell expansion together. Fine detail keeps
@@ -7,7 +7,6 @@ vec4 fireballAt(vec2 uv, float aspect, float time, float centreTime) {
     float fieldTime = time;
     if (fadeAge > 0.0f) {
         const float settlingTime = 0.025f;
-        const float residualSpeed = 0.12f;
         float easedTravel = settlingTime * (1.0f - exp(-fadeAge / settlingTime));
         fieldTime = centreTime + mix(easedTravel, fadeAge, residualSpeed);
     }

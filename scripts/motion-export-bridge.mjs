@@ -10,7 +10,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isLocalStudioRequest } from "./codex-history-bridge.mjs";
 import { MotionEffectArtwork } from "../app/studio/motion-assets/motion-effects.ts";
-import { isVolumetricEffect, motionFileLimit, motionFps, readMotionProject, motionGeometry, motionSvg, volumetricExportRequirement } from "../app/studio/motion-assets/motion-asset.ts";
+import { isVolumetricEffect, motionFileLimit, motionFps, softFadeDefaults, readMotionProject, motionGeometry, motionSvg, volumetricExportRequirement } from "../app/studio/motion-assets/motion-asset.ts";
 
 const endpoint = "/__studio/motion-export";
 const require = createRequire(import.meta.url);
@@ -123,7 +123,10 @@ async function renderVolumetricMov(asset, output, signal, root) {
   const encoded = stopped(encoder);
   try {
     const args = [shader, String(asset.width), String(asset.height), String(asset.durationFrames)];
-    if (softFade) args.push("--soft-fade");
+    if (softFade) {
+      const { fadeIn, fadeOut, flameMotion, coverage } = asset.softFade ?? softFadeDefaults;
+      args.push("--soft-fade", ...[fadeIn, fadeOut, flameMotion, coverage].map(String));
+    }
     const source = spawn(renderer, args,
       { ...processOptions(signal), stdio: ["ignore", "pipe", "ignore"] });
     const rendered = stopped(source);

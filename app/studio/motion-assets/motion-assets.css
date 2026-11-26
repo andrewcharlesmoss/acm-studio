@@ -111,6 +111,8 @@
 .motion-setting-group:last-child { border-bottom: 0; }
 .motion-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .motion-field { display: grid; gap: 4px; min-width: 0; }
+.motion-range-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 8px; }
+.motion-range-label > span { font-variant-numeric: tabular-nums; }
 .motion-field input { width: 100%; min-width: 0; }
 .motion-colour { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .motion-feedback, .motion-explanation { margin: 0; }
