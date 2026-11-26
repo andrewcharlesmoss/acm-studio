@@ -473,6 +473,61 @@ test.describe("Touch dismissal", () => {
   });
 });
 
+test("keeps the workspace in place when switching between editable and imported effects", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await page.goto("/studio?mode=files");
+  const files = page.getByRole("region", { name: "File manager", exact: true });
+  const upload = files.locator('input[type="file"]');
+  await expect(upload).toBeEnabled({ timeout: 30_000 });
+  await files.getByRole("button", { name: "Folder", exact: true }).click();
+  const folderName = files.getByRole("textbox", { name: "Name", exact: true });
+  await folderName.fill("Motion Assets");
+  await folderName.press("Enter");
+  await files.getByRole("button", { name: "Motion Assets", exact: true }).press("Enter");
+  await expect(files.getByRole("navigation", { name: "Folder path" }).getByRole("button", { name: "Motion Assets" })).toBeVisible();
+  await upload.setInputFiles("tests/browser/fixtures/timed-captions.webm");
+  await expect(files.getByText("timed-captions.webm", { exact: true })).toBeVisible();
+
+  const libraryPage = await context.newPage();
+  await libraryPage.emulateMedia({ reducedMotion: "reduce" });
+  await libraryPage.goto(route);
+  await libraryPage.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  const motionPreview = libraryPage.getByRole("region", { name: "Motion preview", exact: true });
+  const generatedTile = libraryPage.getByRole("button", { name: "Use Volumetric Fireball", exact: true });
+  const playableTile = libraryPage.getByRole("button", { name: "Preview timed-captions.webm", exact: true });
+
+  async function previewLayout() {
+    return motionPreview.evaluate(preview => {
+      const box = (element: Element) => {
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return [x, y, width, height];
+      };
+      return {
+        toolbar: box(preview.querySelector(".motion-toolbar")!),
+        heading: box(preview.querySelector("h2")!),
+        stage: box(preview.querySelector(".motion-stage")!),
+        transport: box(preview.querySelector(".motion-transport")!),
+        timeline: box(preview.querySelector('input[type="range"]')!),
+        inspector: box(preview.parentElement!.querySelector(".motion-inspector")!),
+        scroll: window.scrollY,
+      };
+    });
+  }
+  for (const width of [1280, 820, 320]) {
+    await libraryPage.setViewportSize({ width, height: 1100 });
+    await generatedTile.click();
+    await expect(generatedTile).toHaveAttribute("aria-pressed", "true");
+    await playableTile.scrollIntoViewIfNeeded();
+    const before = await previewLayout();
+    await playableTile.click();
+    await expect(libraryPage.getByRole("slider", { name: "Volume", exact: true })).toBeVisible();
+    expect(await previewLayout(), `video at ${width}px`).toEqual(before);
+    await generatedTile.press("Enter");
+    await expect(generatedTile).toHaveAttribute("aria-pressed", "true");
+    expect(await previewLayout(), `fireball at ${width}px`).toEqual(before);
+  }
+});
+
 test("routes Files audio and video to their own tabs and downloads the original MOV", async ({ page, context }) => {
   test.setTimeout(60_000);
   await page.goto("/studio?mode=files");

@@ -990,6 +990,8 @@
 
 ### Fixed
 
+- Keep the Motion Assets preview, timeline, and settings pane in place when switching between editable effects and videos.
+
 - Keep browser-local publications and draft status consistent after interrupted saves, and recover pending publication records before editing or restoring a backup.
 - Preserve explicit local publication decisions through Undo/Redo when documents move through the Bin or their creation is restored.
 

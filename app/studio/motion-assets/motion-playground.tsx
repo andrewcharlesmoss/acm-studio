@@ -39,6 +39,14 @@ const motionAssetTabs = [
 type MotionAssetTab = (typeof motionAssetTabs)[number]["id"];
 type VideoSelection = { id: string; poster?: { source: Blob; image: string } };
 
+function revealPreview(element: HTMLElement, preserveVisiblePosition = false) {
+  if (preserveVisiblePosition) {
+    const { top, bottom } = element.getBoundingClientRect();
+    if (top < window.innerHeight && bottom > 0) return;
+  }
+  element.scrollIntoView({ block: "start", behavior: "instant" });
+}
+
 function download(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -160,7 +168,7 @@ export function MotionPlayground() {
   const fileInput = useRef<HTMLInputElement>(null);
   const preview = useRef<HTMLElement>(null);
   const videoTile = useRef<HTMLButtonElement | null>(null);
-  const videoReveal = useRef<{ id: string; focus: boolean } | null>(null);
+  const videoReveal = useRef<{ id: string; focus: boolean; preserveVisiblePosition: boolean } | null>(null);
   const videoPosters = useRef(new WeakMap<Blob, string>());
   const exportRequest = useRef<AbortController | null>(null);
   const inputSequence = useRef(0);
@@ -186,7 +194,7 @@ export function MotionPlayground() {
     const reveal = videoReveal.current;
     if (reveal?.id !== id) return;
     videoReveal.current = null;
-    element.scrollIntoView({ block: "start", behavior: "instant" });
+    revealPreview(element, reveal.preserveVisiblePosition);
     if (reveal.focus) element.focus({ preventScroll: true });
   }, []);
   const { effects, sketches } = useMemo(() => {
@@ -288,8 +296,8 @@ export function MotionPlayground() {
     setReplacement(undefined);
     clearFeedback();
     if (selectedVideo) {
-      requestAnimationFrame(() => preview.current?.scrollIntoView({ block: "start", behavior: "instant" }));
-    } else preview.current?.scrollIntoView({ block: "start", behavior: "instant" });
+      requestAnimationFrame(() => { if (preview.current) revealPreview(preview.current, true); });
+    } else if (preview.current) revealPreview(preview.current);
   }
 
   function requestReplacement(next: MotionDraft, play = false, focusPreview = false) {
@@ -421,7 +429,7 @@ export function MotionPlayground() {
     {feedbackError ? <p role="alert" className="motion-feedback">{feedbackError}</p> : null}
   </>;
 
-  return <>
+  return <div className="motion-playground">
     <section className="media-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
       <div className="media-catalogue-heading motion-catalogue-heading">
         <h1 id="motion-catalogue-title">Motion Assets</h1>
@@ -451,7 +459,9 @@ export function MotionPlayground() {
               const image = videoPosters.current.get(source);
               const selection = { id: asset.id, poster: image ? { source, image } : undefined };
               const closing = videoSelection?.id === asset.id;
-              videoReveal.current = closing ? null : { id: asset.id, focus: event.detail > 0 };
+              videoReveal.current = closing ? null : {
+                id: asset.id, focus: event.detail > 0, preserveVisiblePosition: Boolean(selectedVideo) || !sketch,
+              };
               setVideoSelection(closing ? undefined : selection);
             }}>
             <VideoCatalogueThumbnail id={asset.id} source={preview?.blob ?? asset.blob} onPoster={rememberVideoPoster}
@@ -473,7 +483,8 @@ export function MotionPlayground() {
           : <p role="alert" className="motion-feedback">{movExport.error}</p>}
         {cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button> : null}
       </div> : undefined} /> : null}
-    <div className="motion-workspace" data-motion-ready={ready} inert={!ready} hidden={Boolean(selectedVideo)}>
+    <div className="motion-workspace" data-motion-ready={ready} inert={!ready || Boolean(selectedVideo)} aria-hidden={selectedVideo ? true : undefined}
+      data-inactive={selectedVideo ? true : undefined}>
       <MotionPreviewPane id="motion-preview" previewRef={preview} active={animationActive} actions={<>
         <button type="button" className="button-secondary motion-reset-button" onClick={resetPreview}>
           <AcmIcon name="action.reset" scale="Regular-S" size={18} />Reset Preview
@@ -552,5 +563,5 @@ export function MotionPlayground() {
         }}>Replace Project</button>
       </StudioDialogActions>
     </StudioDialog> : null}
-  </>;
+  </div>;
 }
