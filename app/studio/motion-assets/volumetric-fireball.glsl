@@ -1,7 +1,17 @@
 vec4 fireballAt(vec2 uv, float aspect, float time, float centreTime) {
     if (time <= 0.016f || time >= 0.994f) { return vec4(0.0f); }
 
-    float growth = max(time - 0.022f, 0.0f);
+    // Ease bulk texture travel and shell expansion together. Fine detail keeps
+    // moving as the overall opacity falls, without sweeping across the frame.
+    float fadeAge = time - centreTime;
+    float fieldTime = time;
+    if (fadeAge > 0.0f) {
+        const float settlingTime = 0.025f;
+        const float residualSpeed = 0.12f;
+        float easedTravel = settlingTime * (1.0f - exp(-fadeAge / settlingTime));
+        fieldTime = centreTime + mix(easedTravel, fadeAge, residualSpeed);
+    }
+    float growth = max(fieldTime - 0.022f, 0.0f);
     float radius = 0.065f + 2.48f * pow(unitRange(growth / 0.66f), 0.78f);
     float ignition = smoothstep(0.026f, 0.105f, time);
     float cooling = smoothstep(0.28f, 0.86f, time);
@@ -20,12 +30,12 @@ vec4 fireballAt(vec2 uv, float aspect, float time, float centreTime) {
     float bound = sqrt(distanceSquared);
     float depthStep = (2.0f * bound) / 88.0f;
     float depth = bound - depthStep * 0.5f;
-    float colourScale = 4.9f * (1.0f - 0.38f * smoothstep(0.26f, 0.76f, time)) / (0.63f + min(radius, 1.5f) * 0.64f);
-    vec3 travel = vec3(-time * 1.7f, -time * 2.5f, time * 1.3f);
+    float colourScale = 4.9f * (1.0f - 0.38f * smoothstep(0.26f, 0.76f, fieldTime)) / (0.63f + min(radius, 1.5f) * 0.64f);
+    vec3 travel = vec3(-1.7f, -2.5f, 1.3f) * fieldTime;
     float fromCentre = length(ray) / radius;
     float limb = mix(0.77f, 1.0f, smoothstep(0.18f, 0.94f, fromCentre));
     float heatFalloff = mix(limb, 1.0f, smoothstep(0.18f, 0.46f, time));
-    float burnout = smoothstep(0.0f, 0.34f, time - centreTime);
+    float burnout = smoothstep(0.0f, 0.34f, fadeAge);
     vec4 accumulated = vec4(0.0f);
     for (uint rayStep = 0u; rayStep < 88u && accumulated.a < 0.994f; ++rayStep, depth -= depthStep) {
         vec3 point = vec3(ray, depth);
@@ -51,12 +61,12 @@ vec4 fireballAt(vec2 uv, float aspect, float time, float centreTime) {
         float rim = smoothstep(-0.72f, 0.42f, surface / thickness);
         float incandescent = 0.22f + coarseFold * 0.34f + fineFold * 0.15f + rim * 0.36f + (pattern - 0.5f) * 0.32f;
         float temperature = unitRange(incandescent * (1.17f - 0.66f * cooling) * heatFalloff);
-        // Thin, cooler folds empty first. Dense hot filaments remain visible
-        // between the gaps as the turbulence carries them through the fade.
+        // Keep a continuous shell as neighbouring folds cool at different rates.
+        // The whole-volume fade takes the last traces to transparency together.
         if (burnout > 0.0f) {
             float fuel = 0.62f * pockets + 0.38f * coarseFold;
-            density *= 1.0f - smoothstep(fuel * 0.50f, 0.32f + fuel * 0.72f, burnout);
-            temperature *= 1.0f - 0.23f * burnout;
+            density *= 1.0f - 0.38f * smoothstep(fuel * 0.50f, 0.32f + fuel * 0.72f, burnout);
+            temperature *= 1.0f - burnout * (0.38f - 0.15f * fuel);
         }
         float opacity = (1.0f - exp(-density * depthStep * (9.1f / (0.74f + radius * 0.22f)))) * fade;
         float contribution = (1.0f - accumulated.a) * opacity;

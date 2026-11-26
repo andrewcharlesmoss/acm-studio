@@ -885,17 +885,21 @@ test("Soft Fade matches the original preview before the ending and reopens as it
       const width = this.drawingBufferWidth, height = this.drawingBufferHeight;
       const pixels = new Uint8Array(width * height * 4);
       this.readPixels(0, 0, width, height, this.RGBA, this.UNSIGNED_BYTE, pixels);
-      let opacity = 0, weightedY = 0;
+      let opacity = 0, light = 0, weightedX = 0, weightedY = 0;
       const colours: number[] = [];
       for (let y = 4; y < height; y += 12) {
         for (let x = 4; x < width; x += 12) {
           const index = 4 * (y * width + x);
           opacity += pixels[index + 3];
-          weightedY += pixels[index + 3] * (y / height);
+          const luminance = 0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2];
+          const visibleLight = pixels[index + 3] * luminance;
+          light += visibleLight;
+          weightedX += visibleLight * (x / width);
+          weightedY += visibleLight * (y / height);
           colours.push(pixels[index]);
         }
       }
-      this.canvas.dataset.sample = JSON.stringify({ colours, opacity: opacity / colours.length, centreY: weightedY / (opacity || 1) });
+      this.canvas.dataset.sample = JSON.stringify({ colours, opacity: opacity / colours.length, centreX: weightedX / (light || 1), centreY: weightedY / (light || 1) });
     };
   });
   await page.goto(route, { waitUntil: "commit" });
@@ -909,19 +913,19 @@ test("Soft Fade matches the original preview before the ending and reopens as it
     await expect(preview).toHaveAttribute("data-live-render", "true");
     const canvas = preview.locator("canvas");
     // Both presets start on the same representative frame with reduced motion.
-    const pixel = () => canvas.evaluate((element: HTMLCanvasElement) =>
-      JSON.parse(element.dataset.sample!) as { colours: number[]; opacity: number; centreY: number });
-    const opening = await pixel();
+    const sampleFrame = () => canvas.evaluate((element: HTMLCanvasElement) =>
+      JSON.parse(element.dataset.sample!) as { colours: number[]; opacity: number; centreX: number; centreY: number });
+    const opening = await sampleFrame();
     await timeline.press("End");
-    for (let step = 0; step < 5; step++) await timeline.press("ArrowLeft");
-    await expect(timeline).toHaveValue("25");
-    const ending = await pixel();
-    await timeline.press("ArrowLeft");
-    await timeline.press("ArrowLeft");
-    await expect(timeline).toHaveValue("23");
-    const earlier = await pixel();
-    await timeline.press("End");
-    return { opening, earlier, ending, final: await pixel() };
+    const final = await sampleFrame();
+    const tail = [];
+    // Walk back to the start of the fade so even the last visible wisps are sampled.
+    for (let frame = 29; frame >= 19; frame--) {
+      await timeline.press("ArrowLeft");
+      await expect(timeline).toHaveValue(String(frame));
+      tail.unshift(await sampleFrame());
+    }
+    return { opening, earlier: tail[4], ending: tail[6], tail, final };
   }
 
   const original = await sample("Volumetric Fireball");
@@ -932,7 +936,11 @@ test("Soft Fade matches the original preview before the ending and reopens as it
   // Internal detail evolves while the whole volume stays centred and fades.
   const changed = soft.ending.colours.filter((red, i) => Math.abs(red - soft.earlier.colours[i]) > 3);
   expect(changed.length).toBeGreaterThan(soft.ending.colours.length * 0.15);
-  expect(Math.abs(soft.ending.centreY - soft.earlier.centreY)).toBeLessThan(0.03);
+  const anchor = soft.tail[0];
+  for (const frame of soft.tail.filter(frame => frame.opacity >= 1)) {
+    expect(Math.abs(frame.centreX - anchor.centreX)).toBeLessThan(0.01);
+    expect(Math.abs(frame.centreY - anchor.centreY)).toBeLessThan(0.01);
+  }
   expect(soft.ending.opacity).toBeGreaterThan(0);
   expect(soft.ending.opacity).toBeLessThan(soft.earlier.opacity);
   expect(soft.final.opacity).toBe(0);
