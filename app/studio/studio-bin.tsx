@@ -39,8 +39,7 @@ const binTypes = [
   { id: "motion-assets", label: "Motion Assets" },
 ] as const;
 type BinType = typeof binTypes[number]["id"];
-const binContexts = [{ id: null, name: "Studio Drafts" }, ...localFixtureSites];
-const locations = [...binContexts.map(context => context.name), "Global templates", "Motion Assets"].sort();
+const locations = ["Studio Drafts", ...localFixtureSites.map(site => site.name), "Global templates", "Motion Assets"].sort();
 export type BinSource = {
   id: LocalFixtureSiteId | null;
   documents?: readonly StudioBinnedDocument[];
@@ -376,11 +375,6 @@ export function StudioBin({ globals, workspace, templates, currentSource, otherS
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Scope platform history shortcuts to focused controls in the Bin.
   return <section className="studio-bin" aria-labelledby="studio-bin-title" onKeyDown={handleHistoryShortcut}>
     <header><h1 id="studio-bin-title">Bin</h1><span>{visible.length} {visible.length === 1 ? "item" : "items"}</span></header>
-    <nav className="studio-bin-contexts" aria-label="Recovery context">
-      <span>Recovery context</span>
-      {binContexts.map(context => <a key={context.name} data-studio-departure-link href={binHref(context.id, type, location)}
-        aria-current={currentSite === context.id ? "page" : undefined}>{context.name}</a>)}
-    </nav>
     <div className="studio-bin-filters">
       <div><label htmlFor="studio-bin-type">Type</label><SelectControl id="studio-bin-type" value={type} onChange={event => setType(event.target.value as BinType)}>
         {binTypes.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}

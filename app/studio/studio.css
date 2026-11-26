@@ -1910,8 +1910,7 @@ html[data-studio-focus-mode] .image-resize-handle.is-height { cursor: row-resize
 .studio-bin > header { align-items: end; border-bottom: 1px solid #d2d0c8; display: flex; gap: 24px; justify-content: space-between; margin: 0 auto 24px; max-width: 980px; padding-bottom: 20px; }
 .studio-bin h1 { font-size: clamp(26px, 3vw, 38px); letter-spacing: -.04em; margin: 0; }
 .studio-bin > header > span { color: var(--muted); white-space: nowrap; }
-.studio-bin-contexts, .studio-bin-filters { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 0 auto 24px; max-width: 980px; }
-.studio-bin-contexts a[aria-current="page"] { font-weight: 700; }
+.studio-bin-filters { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 0 auto 24px; max-width: 980px; }
 .studio-bin-filters > div:not(.studio-bin-history) { display: grid; gap: 4px; flex: 0 1 208px; min-width: 0; }
 .studio-bin-history { display: flex; align-self: end; gap: 8px; }
 .studio-bin-list { list-style: none; margin: 0 auto; max-width: 980px; padding: 0; }

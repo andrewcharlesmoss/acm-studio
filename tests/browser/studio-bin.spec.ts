@@ -60,6 +60,7 @@ test("All items shows each Bin source and changing recovery context preserves th
   const type = bin.getByRole("combobox", { name: "Type", exact: true });
   const location = bin.getByRole("combobox", { name: "Original Location", exact: true });
   const rows = bin.getByRole("listitem");
+  await expect(bin.getByRole("navigation", { name: "Recovery context" })).toHaveCount(0);
   await expect(type).toHaveValue("all");
   await expect(location).toHaveValue("");
   await expect(rows).toHaveCount(3);
@@ -72,8 +73,7 @@ test("All items shows each Bin source and changing recovery context preserves th
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("Page · Test2");
   await rows.first().getByRole("link", { name: "Open Test2 to restore", exact: true }).click();
-  await expect(bin.getByRole("navigation", { name: "Recovery context" }).getByRole("link", { name: "Test2", exact: true }))
-    .toHaveAttribute("aria-current", "page");
+  await expect(page).toHaveURL(/site=test2/);
   await expect(type).toHaveValue("pages");
   await expect(location).toHaveValue("Test2");
   await expect(rows).toHaveCount(1);
@@ -93,8 +93,7 @@ test("an offline source leaves loaded Bin items visible with a source-specific w
   await expect(bin.getByRole("alert")).toContainText("Test2 items may be incomplete. The local fixture is offline.");
   await expect(bin.getByRole("listitem")).toHaveCount(2);
   await bin.getByRole("link", { name: "Open Studio Drafts to restore", exact: true }).click();
-  await expect(bin.getByRole("navigation", { name: "Recovery context" }).getByRole("link", { name: "Studio Drafts", exact: true }))
-    .toHaveAttribute("aria-current", "page");
+  await expect(bin.getByRole("button", { name: "Restore", exact: true })).toBeVisible();
   await bin.getByRole("combobox", { name: "Original Location", exact: true }).selectOption("Test2");
   await expect(bin.getByText("No deleted items could be shown for these filters.", { exact: true })).toBeVisible();
 });
