@@ -313,7 +313,7 @@ test("Special Effects lists Volumetric Fireball and omits retired effects and th
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
   await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
   const effects = motion.getByRole("tabpanel", { name: "Special Effects", exact: true });
-  await expect(effects.getByRole("button")).toHaveText(["Volumetric Fireball", "Volumetric Fireball (Soft Fade)", "Rolling Fireball"]);
+  await expect(effects.locator(".motion-catalogue-card")).toHaveText(["Volumetric Fireball", "Volumetric Fireball (Soft Fade)", "Rolling Fireball"]);
   const search = motion.getByRole("searchbox", { name: "Search motion assets" });
   for (const name of ["Fire Burst", "Shockwave", "Shutterstock"]) {
     await search.fill(name);
@@ -1823,6 +1823,7 @@ test("motion catalogue offers rename, delete and restore from its context menu",
   await page.reload();
   await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
   const renamed = motion.getByRole("button", { name: "Use My Fireball", exact: true });
+  await motion.getByRole("button", { name: "Add My Fireball to favourites", exact: true }).click();
   await renamed.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
   await page.getByRole("dialog", { name: "Delete motion asset?" }).getByRole("button", { name: "Delete", exact: true }).click();
@@ -1868,6 +1869,9 @@ test("motion catalogue offers rename, delete and restore from its context menu",
   await expect(deleted).toHaveCount(0);
   await expect(renamed).toBeVisible();
   await expect(rows.filter({ hasText: "Rolling Fireball" })).toBeVisible();
+  await motion.getByRole("tab", { name: "Favourites", exact: true }).click();
+  await expect(renamed).toBeVisible();
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await bin.close();
   await renamed.click();
   const nameField = motion.getByRole("textbox", { name: "Name", exact: true });
@@ -1895,6 +1899,7 @@ test("motion catalogue undo and redo restore imported videos through Files and t
   await library.getByRole("tab", { name: "Special Effects", exact: true }).click();
   const tile = library.getByRole("button", { name: "Preview timed-captions.webm", exact: true });
   await expect(tile).toBeVisible();
+  await library.getByRole("button", { name: "Add timed-captions.webm to favourites", exact: true }).click();
   await tile.click({ button: "right" });
   await library.getByRole("menuitem", { name: "Rename", exact: true }).click();
   const rename = library.getByRole("dialog", { name: "Rename motion asset" });
@@ -1902,6 +1907,7 @@ test("motion catalogue undo and redo restore imported videos through Files and t
   await rename.getByRole("button", { name: "Rename", exact: true }).click();
   const renamed = library.getByRole("button", { name: "Preview clip.webm", exact: true });
   await expect(renamed).toBeVisible();
+  await expect(library.getByRole("button", { name: "Remove clip.webm from favourites", exact: true })).toBeVisible();
   await expect(files.getByText("clip.webm", { exact: true })).toBeVisible();
   await renamed.click({ button: "right" });
   await library.getByRole("menuitem", { name: "Delete", exact: true }).click();
@@ -1910,6 +1916,7 @@ test("motion catalogue undo and redo restore imported videos through Files and t
   await expect(files.getByText("clip.webm", { exact: true })).toHaveCount(0);
   await library.getByRole("button", { name: "Undo Delete", exact: true }).click();
   await expect(renamed).toBeVisible();
+  await expect(library.getByRole("button", { name: "Remove clip.webm from favourites", exact: true })).toBeVisible();
   await expect(files.getByText("clip.webm", { exact: true })).toBeVisible();
   await library.getByRole("button", { name: "Undo Rename", exact: true }).click();
   await expect(tile).toBeVisible();
@@ -1929,6 +1936,11 @@ test("motion catalogue undo and redo restore imported videos through Files and t
   await library.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await expect(renamed).toBeVisible();
   await expect(files.getByText("clip.webm", { exact: true })).toBeVisible();
+  await library.getByRole("tab", { name: "Favourites", exact: true }).click();
+  await expect(renamed).toBeVisible();
+  await renamed.click();
+  await expect(library.getByRole("region", { name: "Motion preview" }).locator('video[aria-label="clip.webm preview"]')).toBeVisible();
+  await library.getByRole("tab", { name: "Special Effects", exact: true }).click();
   await bin.getByRole("button", { name: "Undo Restore", exact: true }).click();
   await expect(deleted).toBeVisible();
   await expect(renamed).toHaveCount(0);
@@ -2050,4 +2062,34 @@ test("a newly added video preview blocks an old rename confirmation", async ({ p
   await dialog.getByRole("button", { name: "Rename", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("matching preview changed");
   await expect(tile).toBeVisible();
+});
+
+test("motion favourites persist, filter, and support undo and redo", async ({ page }) => {
+  await page.goto(route);
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await expect(motion.locator('[data-motion-ready="true"]')).toHaveAttribute("data-motion-ready", "true");
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  const star = motion.getByRole("button", { name: "Add Volumetric Fireball to favourites", exact: true });
+  await star.click();
+  await expect(motion.getByRole("button", { name: "Remove Volumetric Fireball from favourites", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await motion.getByRole("tab", { name: "Sketches", exact: true }).click();
+  await motion.getByRole("button", { name: "Add Wave to favourites", exact: true }).click();
+  await motion.getByRole("tab", { name: "Favourites", exact: true }).click();
+  const favourites = motion.getByRole("tabpanel", { name: "Favourites", exact: true });
+  await expect(favourites.getByRole("button", { name: "Use Volumetric Fireball", exact: true })).toBeVisible();
+  await expect(favourites.getByRole("button", { name: "Use Wave", exact: true })).toBeVisible();
+  await motion.getByRole("searchbox", { name: "Search motion assets" }).fill("wave");
+  await expect(favourites.getByRole("button", { name: "Use Volumetric Fireball", exact: true })).toHaveCount(0);
+  await motion.getByRole("searchbox", { name: "Search motion assets" }).fill("");
+  await page.reload();
+  await motion.getByRole("tab", { name: "Favourites", exact: true }).click();
+  await expect(favourites.getByRole("button", { name: "Use Wave", exact: true })).toBeVisible();
+  await favourites.getByRole("button", { name: "Remove Wave from favourites", exact: true }).click();
+  await expect(favourites.getByRole("button", { name: "Use Wave", exact: true })).toHaveCount(0);
+  await motion.getByRole("button", { name: "Undo Remove favourite" }).click();
+  await expect(favourites.getByRole("button", { name: "Use Wave", exact: true })).toBeVisible();
+  await motion.getByRole("button", { name: "Redo Remove favourite" }).click();
+  await expect(favourites.getByRole("button", { name: "Use Wave", exact: true })).toHaveCount(0);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("acm-studio-motion-catalogue-v1") ?? "{}"));
+  expect(saved.Wave).toBeUndefined();
 });

@@ -340,7 +340,7 @@ export function StudioBin({ globals, workspace, templates, currentSource, otherS
       const preset = presets[key];
       if (!preset?.hidden) return [];
       const label = preset.name ?? key;
-      const restored = preset.name === undefined ? {} : { name: preset.name };
+      const { hidden: _hidden, deletedAt: _deletedAt, ...restored } = preset;
       return [{
         key: `motion-preset/${key}`, label, description: "Built-in preset",
         mark: "M", type: "motion-assets", location: "Motion Assets", deletedAt: preset.deletedAt,

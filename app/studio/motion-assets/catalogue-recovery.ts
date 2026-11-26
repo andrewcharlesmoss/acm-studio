@@ -5,7 +5,7 @@ import { createStudioPreferenceRepository } from "../studio-preference-repositor
 import { saveStudioPreferenceThroughOwner } from "../studio-preference-broker.mjs";
 import { motionCatalogueKey, motionCatalogueChanged, readMotionCatalogue, validMotionCatalogue } from "./catalogue-preferences.mjs";
 
-export type PresetPreferences = Record<string, { name?: string; hidden?: boolean; deletedAt?: string }>;
+export type PresetPreferences = Record<string, { name?: string; hidden?: boolean; deletedAt?: string; favourite?: boolean }>;
 
 export function readCatalogue(source = readMotionCatalogue(window.localStorage)) {
   if (!validMotionCatalogue(source)) throw new Error("Motion asset settings are invalid and have been preserved.");
@@ -34,7 +34,7 @@ export function useMotionCatalogueSource() {
 export async function changePreset(key: string, expected: PresetPreferences[string], next: PresetPreferences[string]) {
   const { source, values } = readCatalogue();
   const actual = values[key] ?? {};
-  if (actual.name !== expected.name || actual.hidden !== expected.hidden || actual.deletedAt !== expected.deletedAt) {
+  if (actual.name !== expected.name || actual.hidden !== expected.hidden || actual.deletedAt !== expected.deletedAt || actual.favourite !== expected.favourite) {
     throw new Error("This motion asset changed in another tab. Review the current asset before trying again.");
   }
   if (Object.keys(next).length) values[key] = next;

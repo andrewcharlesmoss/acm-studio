@@ -40,12 +40,13 @@ const exportHeaders = { "Content-Type": "application/json", "X-Studio-Client": "
 type MovSupport = { available: boolean; volumetricAvailable?: boolean; error?: string };
 const subscribeToHydration = () => () => {};
 const motionAssetTabs = [
+  { id: "favourites", label: "Favourites" },
   { id: "special-effects", label: "Special Effects" },
   { id: "sketches", label: "Sketches" },
 ] as const;
 type MotionAssetTab = (typeof motionAssetTabs)[number]["id"];
 type CatalogueStep = {
-  label: "Rename" | "Delete" | "Restore";
+  label: "Rename" | "Delete" | "Restore" | "Favourite" | "Remove favourite";
   fileGeneration?: string;
   undo: () => Promise<void>;
   redo: () => Promise<void>;
@@ -137,10 +138,11 @@ const MotionThumbnail = memo(function MotionThumbnail({ asset }: { asset: Motion
   </svg>;
 });
 
-function MotionCatalogueCard({ name, label, pressed, onClick, onContextMenu, children }: {
-  name: string; label: string; pressed: boolean; onClick: MouseEventHandler<HTMLButtonElement>; onContextMenu: MouseEventHandler<HTMLButtonElement>; children: ReactNode;
+function MotionCatalogueCard({ name, label, pressed, favourite, favouriteDisabled = false, onFavourite, onClick, onContextMenu, children }: {
+  name: string; label: string; pressed: boolean; favourite: boolean; favouriteDisabled?: boolean; onFavourite: () => void;
+  onClick: MouseEventHandler<HTMLButtonElement>; onContextMenu: MouseEventHandler<HTMLButtonElement>; children: ReactNode;
 }) {
-  return <button type="button" className="motion-catalogue-card" aria-label={label} aria-pressed={pressed} onClick={onClick} onContextMenu={onContextMenu} onKeyDown={event => {
+  return <div className="motion-catalogue-card-wrap"><button type="button" className="motion-catalogue-card" aria-label={label} aria-pressed={pressed} onClick={onClick} onContextMenu={onContextMenu} onKeyDown={event => {
     if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
     event.preventDefault();
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -148,19 +150,24 @@ function MotionCatalogueCard({ name, label, pressed, onClick, onContextMenu, chi
   }}>
     {children}
     <strong>{name}</strong>
-  </button>;
+  </button><button type="button" className="motion-favourite" aria-label={`${favourite ? "Remove" : "Add"} ${name} ${favourite ? "from" : "to"} favourites`}
+    aria-pressed={favourite} disabled={favouriteDisabled} title={favourite ? "Remove from favourites" : "Add to favourites"} onClick={onFavourite}>
+    <AcmIcon name={favourite ? "rating.star-filled" : "rating.star-empty"} scale="Regular-S" size={18} />
+  </button></div>;
 }
 
-function AnimationCatalogueCards({ entries, selectedPreset, onSelect, onContextMenu, children }: {
+function AnimationCatalogueCards({ entries, selectedPreset, onSelect, onContextMenu, catalogue, onFavourite, children }: {
   entries: { preset: MotionClip; clip: MotionClip }[];
   selectedPreset?: string;
   onSelect: (preset: MotionClip, focusPreview: boolean) => void;
   onContextMenu: (event: React.MouseEvent<HTMLButtonElement>, preset: MotionClip, clip: MotionClip) => void;
+  catalogue: PresetPreferences; onFavourite: (key: string) => void;
   children?: ReactNode;
 }) {
   return <div className="motion-catalogue-grid">
     {entries.map(({ preset, clip }) => <MotionCatalogueCard key={preset.name} name={clip.name}
       label={`Use ${clip.name}`} pressed={selectedPreset === preset.name}
+      favourite={Boolean(catalogue[preset.name]?.favourite)} onFavourite={() => onFavourite(preset.name)}
       onClick={event => onSelect(preset, event.detail > 0)} onContextMenu={event => onContextMenu(event, preset, clip)}>
       <MotionThumbnail asset={clip} />
     </MotionCatalogueCard>)}
@@ -178,7 +185,7 @@ export function MotionPlayground() {
     ? asset.softFade ?? softFadeDefaults : null;
   const [assetTab, setAssetTab] = useState<MotionAssetTab>("sketches");
   const [videoSelection, setVideoSelection] = useState<VideoSelection>();
-  const [searches, setSearches] = useState<Record<MotionAssetTab, string>>({ "special-effects": "", sketches: "" });
+  const [searches, setSearches] = useState<Record<MotionAssetTab, string>>({ "special-effects": "", sketches: "", favourites: "" });
   const assetTabsId = useId();
   const [playback, setPlayback] = useState<{ startFrame: number } | null>(null);
   const [position, setPosition] = useState<number | null>(null);
@@ -219,7 +226,28 @@ export function MotionPlayground() {
     setHistory({ generation, past: history.past.filter(matchesLibrary), future: history.future.filter(matchesLibrary) });
   }
   const videoFiles = files.filter(({ asset }) => asset.name.toLowerCase().includes(videoQuery));
-  const selectedVideo = assetTab === "special-effects" ? videoFiles.find(file => file.asset.id === videoSelection?.id) : undefined;
+  const [fileFavouriteKeys, setFileFavouriteKeys] = useState<{ generation: string | null; keys: Map<string, string> }>({ generation: null, keys: new Map() });
+  useEffect(() => {
+    let cancelled = false;
+    if (!generation) return;
+    void Promise.all(files.map(async file => {
+      const bytes = new TextEncoder().encode(JSON.stringify([generation, file.asset.id]));
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      return [file.asset.id, `video:${Array.from(digest, value => value.toString(16).padStart(2, "0")).join("")}`] as const;
+    })).then(entries => {
+      if (!cancelled) setFileFavouriteKeys({ generation, keys: new Map(entries) });
+    }).catch(() => { if (!cancelled) setCatalogueError("Video favourites could not be loaded."); });
+    return () => { cancelled = true; };
+  }, [files, generation]);
+  const fileFavouriteKey = (id: string) => fileFavouriteKeys.generation === generation ? fileFavouriteKeys.keys.get(id) : undefined;
+  const favouriteQuery = searches.favourites.trim().toLowerCase();
+  const favouriteFiles = files.filter(file => {
+    const key = fileFavouriteKey(file.asset.id);
+    return key && catalogue[key]?.favourite
+    && file.asset.name.toLowerCase().includes(favouriteQuery);
+  });
+  const visibleVideoFiles = assetTab === "favourites" ? favouriteFiles : assetTab === "special-effects" ? videoFiles : [];
+  const selectedVideo = visibleVideoFiles.find(file => file.asset.id === videoSelection?.id);
   const animationActive = active && !selectedVideo;
   const poster = videoSelection?.poster;
   const selectedVideoPoster = selectedVideo && poster?.source === (selectedVideo.preview?.blob ?? selectedVideo.asset.blob) ? poster.image : undefined;
@@ -247,6 +275,16 @@ export function MotionPlayground() {
     };
     return { effects: matching(motionEffectCatalogue, videoSearch), sketches: matching(motionCatalogue, sketchSearch) };
   }, [catalogue, draft.preset, parked, previewAsset, videoSearch, sketchSearch]);
+  const favouriteEntries = (() => {
+    const matches = (preset: MotionClip) => {
+      if (!catalogue[preset.name]?.favourite || catalogue[preset.name]?.hidden) return [];
+      const stored = draft.preset === preset.name ? previewAsset : parked.get(preset.name)?.asset ?? preset;
+      const clip = { ...stored, name: catalogue[preset.name]?.name ?? stored.name };
+      return [preset.name, clip.name, "effect" in clip ? motionEffectKeywords(clip) : ""]
+        .some(name => name.toLowerCase().includes(favouriteQuery)) ? [{ preset, clip }] : [];
+    };
+    return [...motionEffectCatalogue.flatMap(matches), ...motionCatalogue.flatMap(matches)];
+  })();
   const duration = "effect" in asset ? asset.durationFrames : asset.drawFrames + asset.holdFrames;
   const volumetric = "effect" in asset && isVolumetricEffect(asset.effect);
   const durationLimit = "effect" in asset ? motionEffectFrameLimit(asset.effect) : 0;
@@ -647,6 +685,18 @@ export function MotionPlayground() {
     });
   }
 
+  function toggleFavourite(key: string, fileGeneration?: string | null) {
+    const before = catalogue[key] ?? {};
+    void runCatalogueAction(async () => {
+      const after = { ...before };
+      if (before.favourite) delete after.favourite;
+      else after.favourite = true;
+      const step = presetStep(after.favourite ? "Favourite" : "Remove favourite", key, before, after);
+      if (fileGeneration) step.fileGeneration = fileGeneration;
+      await applyCatalogueStep(step);
+    });
+  }
+
   function selectCataloguePreset(preset: MotionClip, focusPreview: boolean) {
     const play = autoplay && (!("effect" in preset) || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     requestReplacement(makeDraft({ ...preset, name: catalogue[preset.name]?.name ?? preset.name }, { preset: preset.name }), play, focusPreview);
@@ -656,6 +706,30 @@ export function MotionPlayground() {
     const tab = motionAssetTabs.find(tab => tab.id === id);
     if (!tab) return;
     setAssetTab(tab.id);
+  }
+
+  function renderVideoCard(file: LibraryPreviewFile) {
+    const { asset: video, preview: videoPreview } = file;
+    const favouriteKey = fileFavouriteKey(video.id);
+    return <MotionCatalogueCard key={video.id} name={video.name} label={`Preview ${video.name}`}
+      pressed={videoSelection?.id === video.id} favourite={Boolean(favouriteKey && catalogue[favouriteKey]?.favourite)}
+      favouriteDisabled={!favouriteKey} onFavourite={() => { if (generation && favouriteKey) toggleFavourite(favouriteKey, generation); }}
+      onContextMenu={event => openCatalogueMenu(event, { label: video.name, file, generation })}
+      onClick={event => {
+        videoTile.current = event.currentTarget;
+        setPlayback(null);
+        const source = videoPreview?.blob ?? video.blob;
+        const image = videoPosters.current.get(source);
+        const selection = { id: video.id, poster: image ? { source, image } : undefined };
+        const closing = videoSelection?.id === video.id;
+        videoReveal.current = closing ? null : {
+          id: video.id, focus: event.detail > 0, preserveVisiblePosition: Boolean(selectedVideo) || !sketch,
+        };
+        setVideoSelection(closing ? undefined : selection);
+      }}>
+      <VideoCatalogueThumbnail id={video.id} source={videoPreview?.blob ?? video.blob} onPoster={rememberVideoPoster}
+        active={active && (assetTab === "special-effects" || assetTab === "favourites")} />
+    </MotionCatalogueCard>;
   }
 
   const movAction = cancelExport ? <button type="button" className="button-secondary" onClick={cancelExport}>Cancel Export</button>
@@ -690,34 +764,25 @@ export function MotionPlayground() {
         </div>
       </div>}>
     {catalogueError && !action && <p role="alert">{catalogueError}</p>}
+      <PaneTabPanel id={assetTabsId} tab="favourites" active={assetTab}>
+        {favouriteEntries.length || favouriteFiles.length ? <AnimationCatalogueCards entries={favouriteEntries}
+          catalogue={catalogue} onFavourite={toggleFavourite} selectedPreset={selectedVideo ? undefined : draft.preset}
+          onSelect={selectCataloguePreset} onContextMenu={(event, preset, clip) => openCatalogueMenu(event, { label: clip.name, preset })}>
+          {favouriteFiles.map(renderVideoCard)}
+        </AnimationCatalogueCards> : <p>No favourite motion assets.</p>}
+        {filesUnavailable ? <p role="status">The files from your Motion Assets folder couldn’t be loaded.</p> : null}
+      </PaneTabPanel>
       <PaneTabPanel id={assetTabsId} tab="special-effects" active={assetTab}>
         {effects.length || videoFiles.length ? <AnimationCatalogueCards entries={effects}
           selectedPreset={selectedVideo ? undefined : draft.preset} onSelect={selectCataloguePreset}
-          onContextMenu={(event, preset, clip) => openCatalogueMenu(event, { label: clip.name, preset })}>
-          {videoFiles.map(file => { const { asset, preview } = file; return <MotionCatalogueCard key={asset.id} name={asset.name}
-            label={`Preview ${asset.name}`} pressed={videoSelection?.id === asset.id}
-            onContextMenu={event => openCatalogueMenu(event, { label: asset.name, file, generation })}
-            onClick={event => {
-              videoTile.current = event.currentTarget;
-              setPlayback(null);
-              const source = preview?.blob ?? asset.blob;
-              const image = videoPosters.current.get(source);
-              const selection = { id: asset.id, poster: image ? { source, image } : undefined };
-              const closing = videoSelection?.id === asset.id;
-              videoReveal.current = closing ? null : {
-                id: asset.id, focus: event.detail > 0, preserveVisiblePosition: Boolean(selectedVideo) || !sketch,
-              };
-              setVideoSelection(closing ? undefined : selection);
-            }}>
-            <VideoCatalogueThumbnail id={asset.id} source={preview?.blob ?? asset.blob} onPoster={rememberVideoPoster}
-              active={active && assetTab === "special-effects"} />
-          </MotionCatalogueCard>; })}
+          catalogue={catalogue} onFavourite={toggleFavourite} onContextMenu={(event, preset, clip) => openCatalogueMenu(event, { label: clip.name, preset })}>
+          {videoFiles.map(renderVideoCard)}
         </AnimationCatalogueCards> : null}
         {filesUnavailable ? <p role="status">The files from your Motion Assets folder couldn’t be loaded.</p> : null}
         {!effects.length && !videoFiles.length ? <p>No matching motion assets.</p> : null}
       </PaneTabPanel>
       <PaneTabPanel id={assetTabsId} tab="sketches" active={assetTab}>
-        {sketches.length ? <AnimationCatalogueCards entries={sketches} selectedPreset={draft.preset} onSelect={selectCataloguePreset} onContextMenu={(event, preset, clip) => openCatalogueMenu(event, { label: clip.name, preset })} />
+        {sketches.length ? <AnimationCatalogueCards entries={sketches} selectedPreset={draft.preset} onSelect={selectCataloguePreset} catalogue={catalogue} onFavourite={toggleFavourite} onContextMenu={(event, preset, clip) => openCatalogueMenu(event, { label: clip.name, preset })} />
           : <p>No matching motion assets.</p>}
       </PaneTabPanel>
       <a className="motion-catalogue-bin" href="/studio?mode=bin&binType=motion-assets" target="_blank" rel="noopener"

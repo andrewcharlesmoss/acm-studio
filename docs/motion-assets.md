@@ -1,6 +1,8 @@
 # Motion Assets
 
-Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Use the left pane to browse **Special Effects** or **Sketches** while the preview stays beside it. The pane scrolls independently and sits above the preview on narrow screens. Search applies to the selected collection. **Sketches** opens by default and includes arrows, shapes, lines, and other marks. Switching Library tabs keeps your animation draft and autoplay setting.
+Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Use the left pane to browse **Favourites**, **Special Effects** or **Sketches** while the preview stays beside it. The pane scrolls independently and sits above the preview on narrow screens. Search applies to the selected collection. **Sketches** opens by default and includes arrows, shapes, lines, and other marks. Switching Library tabs keeps your animation draft and autoplay setting.
+
+Use the star on an asset to add it to **Favourites**. Select the star again to remove it. Favourites include built-in assets and imported videos, remain attached when an asset is renamed or restored from the Bin, and can be undone or redone with the catalogue history controls.
 
 With **Autoplay on selection** on by default, each sketch plays from the start when you choose it. Use the switch to turn autoplay off. Valid settings update the preview as you edit, including while dragging in the colour spectrum. A built-in sketch’s thumbnail shows its current name, proportions, colour and stroke thickness. You can also preview with **Play** or the position slider.
 

@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Star motion assets and find them in the Favourites tab.
 - Rename and delete motion assets from the catalogue context menu, with Undo and Redo and recovery for deleted presets and imported videos in the Studio Bin.
 - See deleted items across Studio Drafts, local sites, global templates, and Motion Assets in one Bin. Filter by type or original location, and open the item’s recovery context to restore it.
 
