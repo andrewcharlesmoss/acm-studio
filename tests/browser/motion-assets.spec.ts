@@ -115,6 +115,51 @@ test("finds Motion Assets and Sound Effects in the Library Catalogue", async ({ 
   await expect(page.getByRole("tab", { name: "Sound Effects", exact: true })).toHaveAttribute("aria-selected", "true");
 });
 
+test("keeps the scrollable Motion Assets catalogue beside the preview and stacks it on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(route);
+  await expect(page.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true");
+  const catalogue = page.getByRole("complementary", { name: "Motion Assets", exact: true });
+  const preview = page.getByRole("region", { name: "Motion preview", exact: true });
+  const settings = page.getByRole("complementary", { name: "Motion settings", exact: true });
+  const search = catalogue.getByRole("searchbox", { name: "Search motion assets" });
+  const lastSketch = catalogue.getByRole("button", { name: "Use Oval", exact: true });
+  await expect(catalogue).toBeVisible();
+  for (const width of [1280, 820, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const [assets, canvas, inspector] = await Promise.all([catalogue.boundingBox(), preview.boundingBox(), settings.boundingBox()]);
+    expect(assets).not.toBeNull();
+    expect(canvas).not.toBeNull();
+    expect(inspector).not.toBeNull();
+    if (width > 720) {
+      expect(assets!.x + assets!.width).toBeCloseTo(canvas!.x, 0);
+      expect(assets!.y).toBeCloseTo(canvas!.y, 0);
+    } else {
+      expect(assets!.x).toBeCloseTo(canvas!.x, 0);
+      expect(assets!.y + assets!.height).toBeCloseTo(canvas!.y, 0);
+    }
+    if (width >= 960) expect(canvas!.x + canvas!.width).toBeCloseTo(inspector!.x, 0);
+    else expect(canvas!.y + canvas!.height).toBeCloseTo(inspector!.y, 0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(search).toBeInViewport();
+  await expect(lastSketch).not.toBeInViewport();
+  await lastSketch.focus();
+  await expect(lastSketch).toBeInViewport();
+  await expect(search).toBeInViewport();
+  await lastSketch.press("Enter");
+  await expect(lastSketch).toHaveAttribute("aria-pressed", "true");
+  await expect(preview.getByRole("img", { name: "Oval animation preview" })).toBeVisible();
+  await search.fill("speed arrow");
+  await expect(catalogue.getByRole("button", { name: "Use Speed arrow" })).toBeVisible();
+  await catalogue.getByRole("tab", { name: "Sketches" }).press("ArrowLeft");
+  await expect(catalogue.getByRole("tab", { name: "Special Effects" })).toBeFocused();
+  await expect(search).toHaveValue("");
+  await catalogue.getByRole("tab", { name: "Special Effects" }).press("ArrowRight");
+  await expect(search).toHaveValue("speed arrow");
+});
+
 test("browsing presets preserves edits, supports reset and respects autoplay", async ({ page }) => {
   await page.goto(route);
   const autoplay = page.getByRole("checkbox", { name: "Autoplay on selection" });

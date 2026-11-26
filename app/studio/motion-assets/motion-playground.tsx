@@ -430,23 +430,19 @@ export function MotionPlayground() {
   </>;
 
   return <div className="motion-playground">
-    <section className="media-catalogue" aria-labelledby="motion-catalogue-title" inert={!ready}>
-      <div className="media-catalogue-heading motion-catalogue-heading">
-        <h1 id="motion-catalogue-title">Motion Assets</h1>
-        <p>Preview, edit, and export sketch animations and visual effects.</p>
-      </div>
-      <div className="media-catalogue-toolbar">
-        <PaneTabs id={assetTabsId} label="Motion asset categories" className="motion-category-tabs"
-          tabs={motionAssetTabs} active={assetTab} onChange={selectAssetTab} />
-        <div className="motion-catalogue-options">
-          <label className="media-catalogue-search"><span>Search motion assets</span>
-            <SearchInput value={searches[assetTab]} onChange={event => {
-              const value = event.target.value;
-              setSearches(previous => ({ ...previous, [assetTab]: value }));
-            }} placeholder="Search this tab…" /></label>
-          <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
-        </div>
-      </div>
+    <Pane label="Motion Assets" side="left" width={280} collapsed={false} onCollapsedChange={() => {}} collapseIcon={null}
+      collapsible={false} inert={!ready} trackClassName="motion-catalogue-pane" bodyClassName="motion-catalogue-body"
+      header={<h1>Motion Assets</h1>}
+      tabs={<PaneTabs id={assetTabsId} label="Motion asset categories" className="motion-category-tabs"
+        tabs={motionAssetTabs} active={assetTab} onChange={selectAssetTab} />}
+      toolbar={<div className="motion-catalogue-options">
+        <label className="motion-catalogue-search"><span>Search motion assets</span>
+          <SearchInput value={searches[assetTab]} onChange={event => {
+            const value = event.target.value;
+            setSearches(previous => ({ ...previous, [assetTab]: value }));
+          }} placeholder="Search this tab…" /></label>
+        <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
+      </div>}>
       <PaneTabPanel id={assetTabsId} tab="special-effects" active={assetTab}>
         {effects.length || videoFiles.length ? <AnimationCatalogueCards entries={effects}
           selectedPreset={selectedVideo ? undefined : draft.preset} onSelect={selectCataloguePreset}>
@@ -475,7 +471,7 @@ export function MotionPlayground() {
         {sketches.length ? <AnimationCatalogueCards entries={sketches} selectedPreset={draft.preset} onSelect={selectCataloguePreset} />
           : <p>No matching motion assets.</p>}
       </PaneTabPanel>
-    </section>
+    </Pane>
     {selectedVideo ? <MotionVideoWorkspace file={selectedVideo} active={active} poster={selectedVideoPoster} onPreviewReady={revealVideoPreview}
       onClose={() => { setVideoSelection(undefined); videoTile.current?.focus(); }}
       exportFeedback={movExport ? <div className="motion-actions">

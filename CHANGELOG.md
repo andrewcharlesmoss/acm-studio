@@ -60,6 +60,8 @@
 
 ### Changed
 
+- Browse sketches and special effects in a scrollable left pane beside the Motion Assets preview.
+
 - Delete individual imported sounds from Sound Effects and restore the built-in sound after removing it.
 
 - Close Studio dialogs by clicking their backdrop, with draft and pending-operation safeguards.
