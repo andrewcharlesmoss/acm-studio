@@ -4,7 +4,7 @@ import { mediaAssetStoreName } from "./media-database-migration";
 import { applyImageRenditionRequest } from "./image-rendition-transaction";
 import { validateImageRenditions } from "./image-rendition-validation";
 import type { ImageRenditions } from "../content/image-resolution";
-import { MediaCommandError, validateMediaRequest, MEDIA_REQUEST_LIFETIME_MS, type MediaRequest } from "./media-command";
+import { MediaCommandError, validateMediaRequest, MEDIA_REQUEST_LIFETIME_MS, motionBinName, motionBinPrefix, type MediaRequest } from "./media-command";
 import { studioWriteOwnership, type StudioWriteOwnership, type RestorePermit } from "./write-ownership";
 import { assertTemplateMediaCanBeDeleted } from "./template-store";
 import { LOCAL_WORKSPACE_KEY } from "../content/local-storage-keys";
@@ -472,6 +472,26 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
                 requireFolder(command.folderId);
                 if (command.files.some(file => assets.some(asset => asset.id === file.id))) throw new MediaCommandError("A file ID already exists.", "conflict");
                 command.files.forEach(file => assetStore.put({ id: file.id, name: file.name, folderId: command.folderId, type: file.type, size: file.blob.size, createdAt: command.createdAt, updatedAt: command.createdAt, altText: "", caption: "", blob: file.blob } satisfies MediaAsset));
+              } else if (command.kind === "move-motion-video") {
+                const source = folders.find(folder => folder.id === command.sourceFolderId);
+                const bin = folders.find(folder => folder.id === command.binFolderId);
+                if (source?.name !== "Motion Assets" || source.parentId !== null
+                  || (bin && bin.parentId !== source.id) || (!bin && !command.toBin)) {
+                  throw new MediaCommandError("The motion folder or its Bin changed. Review Files before trying again.", "conflict");
+                }
+                const from = command.toBin ? source.id : command.binFolderId;
+                const to = command.toBin ? command.binFolderId : source.id;
+                const asset = assets.find(item => item.id === command.id);
+                if (!asset || asset.folderId !== from || asset.name !== command.name
+                  || (command.updatedAt && asset.updatedAt !== command.updatedAt)
+                  || !asset.type.startsWith("video/") || !asset.blob.type.startsWith("video/")) {
+                  throw new MediaCommandError("The video changed. Review the current file before trying again.", "conflict");
+                }
+                if (!bin && folders.some(folder => folder.parentId === source.id && folder.id.startsWith(motionBinPrefix))) {
+                  throw new MediaCommandError("A Motion Assets Bin was created in another tab. Try again.", "conflict");
+                }
+                if (!bin) folderStore.put({ id: to, name: motionBinName, parentId: source.id, createdAt: new Date().toISOString() } satisfies MediaFolder);
+                assetStore.put({ ...asset, folderId: to, updatedAt: new Date().toISOString() });
               } else if (command.kind === "rename-video-with-preview") {
                 const original = assets.find(item => item.id === command.id);
                 if (!original) throw new MediaCommandError("The video was removed in another tab.", "conflict");
@@ -487,7 +507,7 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
                 if (preview && command.preview) {
                   for (const property of ["name", "folderId", "type"] as const) expect(preview[property], command.preview[property]);
                 }
-                const previewName = command.name.replace(/\.mov$/i, ".mp4");
+                const previewName = command.previewName ?? command.name.replace(/\.mov$/i, ".mp4");
                 if (assets.some(item => item.id !== original.id && item.folderId === original.folderId
                   && (item.name.toLowerCase() === original.name.toLowerCase() || item.name.toLowerCase() === command.name.toLowerCase()))) {
                   throw new MediaCommandError("A video with that name already exists. Review the files before renaming.", "conflict");

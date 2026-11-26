@@ -2,6 +2,7 @@
 
 import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { useEffect, useState, type ReactNode } from "react";
+import { motionBinPrefix } from "./media-command";
 import { MediaFileDetailsButton } from "./media-file-details";
 import { readMediaLibraryWithGeneration, type MediaAsset } from "./media-store";
 import { useMediaSession } from "./media-sync";
@@ -34,10 +35,12 @@ export function MediaPreviewActions({ name, source, active, download, format, or
   </div>;
 }
 
+type MotionBinFile = { id: string; name: string; sourceFolderId: string; binFolderId: string };
+
 export function useLibraryPreviewFiles(kind: MediaKind) {
   const { revision, ready, error } = useMediaSession();
-  const [library, setLibrary] = useState<{ files: LibraryPreviewFile[]; generation: string | null; unavailable: boolean }>({
-    files: [], generation: null, unavailable: false,
+  const [library, setLibrary] = useState<{ files: LibraryPreviewFile[]; binFiles: MotionBinFile[]; motionBins: Map<string, string>; generation: string | null; unavailable: boolean }>({
+    files: [], binFiles: [], motionBins: new Map(), generation: null, unavailable: false,
   });
 
   useEffect(() => {
@@ -60,10 +63,22 @@ export function useLibraryPreviewFiles(kind: MediaKind) {
         ) : [];
         return [{ asset, kind, preview: matches.length === 1 ? matches[0] : undefined }];
       }).sort((left, right) => left.asset.name.localeCompare(right.asset.name));
-      setLibrary({ files, generation, unavailable: false });
+      const motionBins = new Map<string, string>();
+      const binSources = new Map<string, string>();
+      if (kind === "video") for (const folder of folders) {
+        if (!folder.parentId || !sourceFolders.has(folder.parentId) || !folder.id.startsWith(motionBinPrefix)) continue;
+        motionBins.set(folder.parentId, folder.id);
+        binSources.set(folder.id, folder.parentId);
+      }
+      const binFiles = assets.flatMap(asset => {
+        const sourceFolderId = asset.folderId && binSources.get(asset.folderId);
+        return sourceFolderId && asset.type.startsWith("video/") && asset.blob.type.startsWith("video/")
+          ? [{ id: asset.id, name: asset.name, sourceFolderId, binFolderId: asset.folderId! }] : [];
+      }).sort((left, right) => left.name.localeCompare(right.name));
+      setLibrary({ files, binFiles, motionBins, generation, unavailable: false });
     }).catch(() => {
       // An empty library may still be waiting for its first Files owner.
-      if (!cancelled) setLibrary({ files: [], generation: null, unavailable: ready || Boolean(error) });
+      if (!cancelled) setLibrary({ files: [], binFiles: [], motionBins: new Map(), generation: null, unavailable: ready || Boolean(error) });
     });
     return () => { cancelled = true; };
   }, [kind, ready, error, revision]);

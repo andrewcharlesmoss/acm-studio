@@ -1818,6 +1818,13 @@ test("motion catalogue offers rename, delete and restore from its context menu",
   await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
   await page.getByRole("dialog", { name: "Delete motion asset?" }).getByRole("button", { name: "Delete", exact: true }).click();
   await expect(renamed).toHaveCount(0);
+  const history = motion.getByRole("group", { name: "Motion asset history" });
+  await expect(history).toBeFocused();
+  const mac = await page.evaluate(() => /Mac|iPhone|iPad|iPod/i.test(navigator.platform));
+  await page.keyboard.press(mac ? "Meta+z" : "Control+z");
+  await expect(renamed).toBeVisible();
+  await page.keyboard.press(mac ? "Meta+Shift+z" : "Control+y");
+  await expect(renamed).toHaveCount(0);
   await page.getByRole("button", { name: "Restore built-in assets" }).click();
   await expect(renamed).toBeVisible();
   await renamed.click();
@@ -1828,7 +1835,7 @@ test("motion catalogue offers rename, delete and restore from its context menu",
   await expect(motion.getByRole("button", { name: "Use New Name", exact: true })).toBeVisible();
 });
 
-test("motion catalogue renames and deletes an imported video through Files", async ({ page, context }) => {
+test("motion catalogue undo and redo restore imported videos through Files and the Bin survives reload", async ({ page, context }) => {
   test.setTimeout(60_000);
   await page.goto("/studio?mode=files");
   const files = page.getByRole("region", { name: "File manager", exact: true });
@@ -1859,6 +1866,21 @@ test("motion catalogue renames and deletes an imported video through Files", asy
   await library.getByRole("dialog", { name: "Delete motion asset?" }).getByRole("button", { name: "Delete", exact: true }).click();
   await expect(renamed).toHaveCount(0);
   await expect(files.getByText("clip.webm", { exact: true })).toHaveCount(0);
+  await library.getByRole("button", { name: "Undo Delete", exact: true }).click();
+  await expect(renamed).toBeVisible();
+  await expect(files.getByText("clip.webm", { exact: true })).toBeVisible();
+  await library.getByRole("button", { name: "Undo Rename", exact: true }).click();
+  await expect(tile).toBeVisible();
+  await library.getByRole("button", { name: "Redo Rename", exact: true }).click();
+  await expect(renamed).toBeVisible();
+  await library.getByRole("button", { name: "Redo Delete", exact: true }).click();
+  await expect(renamed).toHaveCount(0);
+  await library.reload();
+  await library.getByText("Motion Assets Bin (1)", { exact: true }).click();
+  await library.getByRole("button", { name: "Restore clip.webm", exact: true }).click();
+  await library.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  await expect(renamed).toBeVisible();
+  await expect(files.getByText("clip.webm", { exact: true })).toBeVisible();
 });
 
 test("motion catalogue rejects a stale confirmation from another tab", async ({ page, context }) => {
@@ -1903,10 +1925,10 @@ test("renaming an imported MOV preserves its matching MP4 preview", async ({ pag
   await expect(files.getByText("flame.mov", { exact: true })).toBeVisible();
   await openFolder("Previews");
   await upload.setInputFiles([
-    { name: "flame.mp4", mimeType: "video/mp4", buffer: Buffer.from("preview") },
+    { name: "Flame.MP4", mimeType: "video/mp4", buffer: Buffer.from("preview") },
     { name: "taken.mp4", mimeType: "video/mp4", buffer: Buffer.from("other preview") },
   ]);
-  await expect(files.getByText("flame.mp4", { exact: true })).toBeVisible();
+  await expect(files.getByText("Flame.MP4", { exact: true })).toBeVisible();
   const library = await context.newPage();
   await library.goto(route);
   await library.getByRole("tab", { name: "Special Effects", exact: true }).click();
@@ -1919,13 +1941,26 @@ test("renaming an imported MOV preserves its matching MP4 preview", async ({ pag
   await dialog.getByLabel("Name", { exact: true }).fill("taken.mov");
   await dialog.getByRole("button", { name: "Rename", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("preview with that name already exists");
-  await expect(files.getByText("flame.mp4", { exact: true })).toBeVisible();
+  await expect(files.getByText("Flame.MP4", { exact: true })).toBeVisible();
   await expect(tile).toBeVisible();
   await dialog.getByLabel("Name", { exact: true }).fill("new-flame.mov");
   await dialog.getByRole("button", { name: "Rename", exact: true }).click();
   await expect(library.getByRole("button", { name: "Preview new-flame.mov", exact: true })).toBeVisible();
   await expect(files.getByText("new-flame.mp4", { exact: true })).toBeVisible();
-  await expect(files.getByText("flame.mp4", { exact: true })).toHaveCount(0);
+  await expect(files.getByText("Flame.MP4", { exact: true })).toHaveCount(0);
+  await library.getByRole("button", { name: "Undo Rename", exact: true }).click();
+  await expect(tile).toBeVisible();
+  await expect(files.getByText("Flame.MP4", { exact: true })).toBeVisible();
+  await tile.click({ button: "right" });
+  await library.getByRole("menuitem", { name: "Delete", exact: true }).click();
+  await library.getByRole("dialog", { name: "Delete motion asset?" }).getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(tile).toHaveCount(0);
+  await expect(files.getByText("Flame.MP4", { exact: true })).toBeVisible();
+  await library.getByRole("button", { name: "Undo Delete", exact: true }).click();
+  await expect(tile).toBeVisible();
+  await tile.click({ button: "right" });
+  await library.getByRole("menuitem", { name: "Rename", exact: true }).click();
+  await expect(dialog.getByText("The matching MP4 preview will be renamed to match.")).toBeVisible();
 });
 
 test("a newly added video preview blocks an old rename confirmation", async ({ page, context }) => {

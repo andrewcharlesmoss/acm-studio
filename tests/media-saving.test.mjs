@@ -79,6 +79,40 @@ test("Files commands merge independent fields, reject overlap and protect hierar
   } finally { f.release(); }
 });
 
+test("Motion Assets Bin moves a video atomically and restores the same file", async () => {
+  const f = await fixture();
+  try {
+    const source = { ...folder("motion"), name: "Motion Assets" };
+    const sameNameFolder = { ...folder("user-created", source.id), name: "Motion Assets Bin" };
+    const video = { ...asset(), id: "clip", name: "clip.mov", folderId: source.id, type: "video/quicktime", blob: new Blob(["x"], { type: "video/quicktime" }) };
+    await f.store.replaceMediaLibrary([video], [source, sameNameFolder]);
+    const generation = await f.store.ensureMediaGeneration();
+    const move = { kind: "move-motion-video", id: video.id, name: video.name, sourceFolderId: source.id, binFolderId: "motion-bin-test", toBin: true };
+    const command = changes => ({ ...f.request({ ...move, ...changes }), generation });
+
+    await assert.rejects(f.store.applyMediaRequest(command({ updatedAt: "2000-01-01T00:00:00.000Z" })), error => error.code === "conflict");
+    await assert.rejects(f.store.applyMediaRequest(command({ binFolderId: sameNameFolder.id })), /invalid/);
+    const remove = command({ updatedAt: video.updatedAt });
+    f.db.failPut(2);
+    await assert.rejects(f.store.applyMediaRequest(remove), /Injected transaction failure/);
+    assert.equal((await f.store.getMediaAsset(video.id)).folderId, source.id);
+    assert.equal((await f.store.listMediaLibrary()).folders.length, 2);
+    assert.deepEqual(f.db.rows("commandReceipts"), []);
+    await f.store.applyMediaRequest(remove);
+    await f.store.applyMediaRequest(remove);
+    assert.equal((await f.store.getMediaAsset(video.id)).folderId, move.binFolderId);
+    assert.equal(f.db.rows("commandReceipts").length, 1);
+    await f.store.applyMediaRequest(command({ toBin: false }));
+    const restored = await f.store.getMediaAsset(video.id);
+    assert.equal(restored.id, video.id);
+    assert.equal(restored.folderId, source.id);
+    assert.equal(restored.createdAt, video.createdAt);
+    assert.equal(await restored.blob.text(), "x");
+    await f.store.applyMediaRequest(command({}));
+    assert.equal((await f.store.getMediaAsset(video.id)).folderId, move.binFolderId);
+  } finally { f.release(); }
+});
+
 test("Files replacement renews generation and blocks stale commands without changing restored content", async () => {
   const f = await fixture();
   try {

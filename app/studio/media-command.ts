@@ -9,11 +9,25 @@ export const MEDIA_BATCH_LIMIT = 512 * 1024 * 1024;
 export type MediaAssetPatch = Partial<Pick<MediaAsset, "name" | "folderId" | "altText" | "caption">>;
 export type MediaFolderBefore = { name: string; parentId: string | null; colour: string | null };
 export type MediaAssetBefore = Omit<MediaAsset, "blob">;
+export const motionBinPrefix = "motion-bin-";
+export const motionBinName = "Motion Assets Bin";
+
+export type MotionBinCommand = {
+  kind: "move-motion-video";
+  id: string;
+  name: string;
+  sourceFolderId: string;
+  binFolderId: string;
+  toBin: boolean;
+  updatedAt?: string;
+};
+
 export type MediaCommand =
+  | MotionBinCommand
   | { kind: "upload"; folderId: string | null; createdAt: string; files: Array<{ id: string; name: string; type: string; blob: Blob }> }
   | { kind: "generate-image-renditions"; id: string; sourceDigest: string }
   | { kind: "create-folder"; folder: MediaFolder }
-  | { kind: "rename-video-with-preview"; id: string; before: { name: string; folderId: string; type: string }; name: string; preview: { id: string; name: string; folderId: string; type: string } | null }
+  | { kind: "rename-video-with-preview"; id: string; before: { name: string; folderId: string; type: string }; name: string; previewName?: string; preview: { id: string; name: string; folderId: string; type: string } | null }
   | { kind: "update-asset"; id: string; update: MediaAssetPatch; before: MediaAssetPatch }
   | { kind: "rename-folder"; id: string; name: string; before: string }
   | { kind: "colour-folder"; id: string; colour: string | null; before: string | null }
@@ -54,8 +68,12 @@ export function validateMediaCommand(value: unknown): value is MediaCommand {
     case "create-folder": return mediaKeys(value, ["kind", "folder"]) && mediaRecord(value.folder) && mediaKeys(value.folder, ["id", "name", "parentId", "createdAt"]) && mediaId(value.folder.id) && name(value.folder.name) && folderId(value.folder.parentId) && date(value.folder.createdAt);
     case "rename-video-with-preview": {
       const before = value.before, preview = value.preview;
-      return mediaKeys(value, ["kind", "id", "before", "name", "preview"]) && mediaId(value.id)
+      const keys = ["kind", "id", "before", "name", "preview"];
+      if (value.previewName !== undefined) keys.push("previewName");
+      return mediaKeys(value, keys) && mediaId(value.id)
         && name(value.name) && /\.mov$/i.test(value.name as string)
+        && (value.previewName === undefined || mediaRecord(preview) && name(value.previewName)
+          && (value.previewName as string).toLowerCase() === (value.name as string).toLowerCase().replace(/\.mov$/, ".mp4"))
         && mediaRecord(before) && mediaKeys(before, ["name", "folderId", "type"])
         && name(before.name) && /\.mov$/i.test(before.name as string) && mediaId(before.folderId)
         && typeof before.type === "string" && before.type.startsWith("video/")
@@ -63,6 +81,14 @@ export function validateMediaCommand(value: unknown): value is MediaCommand {
           && mediaId(preview.id) && preview.id !== value.id && name(preview.name) && /\.mp4$/i.test(preview.name as string)
           && mediaId(preview.folderId) && typeof preview.type === "string" && preview.type.startsWith("video/")
           && (before.name as string).toLowerCase().replace(/\.mov$/, ".mp4") === (preview.name as string).toLowerCase());
+    }
+    case "move-motion-video": {
+      const keys = ["kind", "id", "name", "sourceFolderId", "binFolderId", "toBin"];
+      if (value.updatedAt !== undefined) keys.push("updatedAt");
+      return mediaKeys(value, keys) && (value.updatedAt === undefined || date(value.updatedAt))
+        && mediaId(value.id) && name(value.name) && mediaId(value.sourceFolderId)
+        && mediaId(value.binFolderId) && value.binFolderId.startsWith(motionBinPrefix)
+        && value.binFolderId !== value.sourceFolderId && typeof value.toBin === "boolean";
     }
     case "update-asset": return mediaKeys(value, ["kind", "id", "update", "before"]) && mediaId(value.id) && patch(value.update) && patch(value.before) && Object.keys(value.update as object).sort().join() === Object.keys(value.before as object).sort().join();
     case "rename-folder": return mediaKeys(value, ["kind", "id", "name", "before"]) && mediaId(value.id) && name(value.name) && name(value.before);

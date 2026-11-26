@@ -2,12 +2,14 @@
 
 import { AcmIcon } from "@andrewcharlesmoss/icons/react";
 import { memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type MouseEventHandler, type ReactNode } from "react";
+import { HistoryActions } from "../controls/history-actions";
+import { studioHistoryShortcut } from "../studio-history-shortcuts.mjs";
 import { ColourPicker } from "../controls/colour-picker";
 import { SearchInput, TextInput } from "../controls/native-fields";
 import { NumberStepper } from "../controls/number-stepper";
 import { RangeControl } from "../controls/range-control";
 import { ToggleSetting } from "../controls/toggle-setting";
-import { assetBefore } from "../media-command";
+import { motionBinPrefix, type MotionBinCommand } from "../media-command";
 import { changeLibraryFile } from "../media-sync";
 import { StudioListContextMenu } from "../studio-list-context-menu";
 import { createStudioPreferenceRepository } from "../studio-preference-repository.mjs";
@@ -44,6 +46,15 @@ const motionAssetTabs = [
   { id: "sketches", label: "Sketches" },
 ] as const;
 type MotionAssetTab = (typeof motionAssetTabs)[number]["id"];
+type PresetPreferences = Record<string, { name?: string; hidden?: boolean }>;
+type CatalogueStep = {
+  label: "Rename" | "Delete" | "Restore";
+  fileGeneration?: string;
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
+};
+const catalogueHistoryLimit = 50;
+
 type VideoSelection = { id: string; poster?: { source: Blob; image: string } };
 
 function revealPreview(element: HTMLElement, preserveVisiblePosition = false) {
@@ -179,14 +190,18 @@ export function MotionPlayground() {
   const [replacement, setReplacement] = useState<{ draft: MotionDraft; play: boolean; focusPreview: boolean }>();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [catalogue, setCatalogue] = useState<Record<string, { name?: string; hidden?: boolean }>>({});
+  const [catalogue, setCatalogue] = useState<PresetPreferences>({});
   const [menu, setMenu] = useState<{ label: string; x: number; y: number; opener: HTMLButtonElement; preset?: MotionClip; file?: LibraryPreviewFile; generation?: string | null; presetBefore?: string }>();
   const [action, setAction] = useState<{ mode: "rename" | "delete"; target: NonNullable<typeof menu> }>();
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
+  const catalogueBusy = useRef(false);
+  const pendingPresetNames = useRef(new Map<string, string>());
+  const [history, setHistory] = useState<{ past: CatalogueStep[]; future: CatalogueStep[]; generation: string | null }>({ past: [], future: [], generation: null });
   const [catalogueError, setCatalogueError] = useState("");
   const [movSupport, setMovSupport] = useState<MovSupport>();
   const fileInput = useRef<HTMLInputElement>(null);
+  const historyControls = useRef<HTMLDivElement>(null);
   const preview = useRef<HTMLElement>(null);
   const videoTile = useRef<HTMLButtonElement | null>(null);
   const videoReveal = useRef<{ id: string; focus: boolean; preserveVisiblePosition: boolean } | null>(null);
@@ -201,7 +216,11 @@ export function MotionPlayground() {
   const videoSearch = searches["special-effects"];
   const sketchSearch = searches.sketches;
   const videoQuery = videoSearch.trim().toLowerCase();
-  const { files, generation, unavailable: filesUnavailable } = useLibraryPreviewFiles("video");
+  const { files, binFiles, motionBins, generation, unavailable: filesUnavailable } = useLibraryPreviewFiles("video");
+  if (generation && generation !== history.generation) {
+    const matchesLibrary = (step: CatalogueStep) => !step.fileGeneration || step.fileGeneration === generation;
+    setHistory({ generation, past: history.past.filter(matchesLibrary), future: history.future.filter(matchesLibrary) });
+  }
   const videoFiles = files.filter(({ asset }) => asset.name.toLowerCase().includes(videoQuery));
   const selectedVideo = assetTab === "special-effects" ? videoFiles.find(file => file.asset.id === videoSelection?.id) : undefined;
   const animationActive = active && !selectedVideo;
@@ -436,11 +455,11 @@ export function MotionPlayground() {
       try {
         const value = readMotionCatalogue(window.localStorage);
         if (!validMotionCatalogue(value)) throw new Error("Motion asset settings are invalid and have been preserved.");
-        const names = JSON.parse(value) as Record<string, { name?: string; hidden?: boolean }>;
+        const names = JSON.parse(value) as PresetPreferences;
         setCatalogue(names);
         setWorkspace(current => {
           const update = (item: MotionDraft) => {
-            const name = item.preset && names[item.preset]?.name;
+            const name = item.preset && (names[item.preset]?.name ?? item.preset);
             if (!name || name === item.asset.name) return item;
             const clean = projectKey(item.asset) === item.baseline;
             const renamed = { ...item.asset, name };
@@ -491,71 +510,198 @@ export function MotionPlayground() {
     window.dispatchEvent(new Event(motionCatalogueChanged));
   }
 
-  async function renameSelectedPreset(name: string) {
-    if (!draft.preset) { changeAsset({ name }); return; }
+  function readCatalogue() {
+    const source = readMotionCatalogue(window.localStorage);
+    if (!validMotionCatalogue(source)) throw new Error("Motion asset settings are invalid and have been preserved.");
+    return { source, values: JSON.parse(source) as PresetPreferences };
+  }
+
+  async function runCatalogueAction(apply: () => Promise<void>) {
+    if (catalogueBusy.current) return;
+    catalogueBusy.current = true;
+    setSaving(true);
+    setCatalogueError("");
     try {
-      const before = readMotionCatalogue(window.localStorage);
-      if (!validMotionCatalogue(before)) throw new Error("Motion asset settings are invalid and have been preserved.");
-      const next = JSON.parse(before);
-      next[draft.preset] = { ...next[draft.preset], name };
-      await saveCatalogueChange(before, JSON.stringify(next));
+      await apply();
+      // The Name field keeps its latest edit while the preference save is in flight.
+      while (pendingPresetNames.current.size) {
+        const pending = [...pendingPresetNames.current];
+        pendingPresetNames.current.clear();
+        for (const [key, name] of pending) await savePresetName(key, name);
+      }
     } catch (error) {
-      setCatalogueError(error instanceof Error ? error.message : "The name could not be saved.");
+      setCatalogueError(error instanceof Error ? error.message : "The motion asset change could not be saved.");
+    } finally {
+      pendingPresetNames.current.clear();
+      catalogueBusy.current = false;
+      setSaving(false);
     }
   }
 
-  async function commitCatalogueAction() {
-    if (!action || saving) return;
+  async function applyCatalogueStep(step: CatalogueStep, initial = step.redo) {
+    await initial();
+    setHistory(current => {
+      if (step.fileGeneration && step.fileGeneration !== current.generation) return current;
+      return { ...current, past: [...current.past, step].slice(-catalogueHistoryLimit), future: [] };
+    });
+    focusHistory();
+  }
+
+  function changeHistory(direction: "undo" | "redo") {
+    const step = (direction === "undo" ? history.past : history.future).at(-1);
+    if (!step) return;
+    void runCatalogueAction(async () => {
+      await step[direction]();
+      setHistory(current => {
+        const { past, future } = current;
+        const source = direction === "undo" ? past : future;
+        if (source.at(-1) !== step) return current;
+        return direction === "undo"
+          ? { ...current, past: past.slice(0, -1), future: [...future, step] }
+          : { ...current, past: [...past, step], future: future.slice(0, -1) };
+      });
+      focusHistory();
+    });
+  }
+
+  function focusHistory() {
+    requestAnimationFrame(() => {
+      const focus = document.activeElement;
+      if (!focus || focus === document.body || !focus.isConnected) {
+        historyControls.current?.focus({ preventScroll: true });
+      }
+    });
+  }
+
+  function onHistoryShortcut(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!active || !ready || action || menu || replacement || saving
+      || !event.currentTarget.contains(event.target as Node)) return;
+    const direction = studioHistoryShortcut(event.nativeEvent, navigator.platform);
+    if (!direction || !(direction === "undo" ? history.past : history.future).length) return;
+    event.preventDefault();
+    changeHistory(direction);
+  }
+
+  function presetStep(label: CatalogueStep["label"], before: PresetPreferences, after: PresetPreferences): CatalogueStep {
+    // The action may touch several entries when restoring hidden built-ins.
+    // Merge unrelated edits from another tab, but reject changes to these entries.
+    const apply = async (expected: PresetPreferences, next: PresetPreferences) => {
+      const { source, values } = readCatalogue();
+      for (const key of Object.keys(expected)) {
+        const actual = values[key] ?? {};
+        if (actual.name !== expected[key].name || actual.hidden !== expected[key].hidden) {
+          throw new Error("This motion asset changed in another tab. Review the current asset before trying again.");
+        }
+        if (Object.keys(next[key]).length) values[key] = next[key];
+        else delete values[key];
+      }
+      await saveCatalogueChange(source, JSON.stringify(values));
+    };
+    return { label, undo: () => apply(after, before), redo: () => apply(before, after) };
+  }
+
+  function changeMotionBin(
+    command: Omit<MotionBinCommand, "kind" | "toBin">,
+    fileGeneration: string | null,
+    toBin: boolean,
+  ): Promise<void> {
+    const { updatedAt, ...location } = command;
+    const move = async (hide: boolean, initialTimestamp?: string) => {
+      await changeLibraryFile({ ...location, kind: "move-motion-video", toBin: hide,
+        ...(initialTimestamp ? { updatedAt: initialTimestamp } : {}) }, fileGeneration);
+      if (hide) setVideoSelection(current => current?.id === command.id ? undefined : current);
+    };
+    const step: CatalogueStep = {
+      label: toBin ? "Delete" : "Restore", fileGeneration: fileGeneration ?? undefined, undo: () => move(!toBin), redo: () => move(toBin),
+    };
+    return applyCatalogueStep(step, () => move(toBin, updatedAt));
+  }
+
+  async function savePresetName(key: string, name: string) {
+    const { values } = readCatalogue();
+    const before = values[key] ?? {};
+    if ((before.name ?? key) === name) return;
+    await applyCatalogueStep(presetStep("Rename", { [key]: before }, { [key]: { ...before, name } }));
+  }
+
+  function renameSelectedPreset(name: string) {
+    if (!draft.preset) { changeAsset({ name }); return; }
+    const key = draft.preset;
+    if (catalogueBusy.current) {
+      pendingPresetNames.current.set(key, name);
+      return;
+    }
+    void runCatalogueAction(() => savePresetName(key, name));
+  }
+
+  function commitCatalogueAction() {
+    if (!action) return;
     const name = newName.trim();
     if (action.mode === "rename" && (!name || name.length > 100)) {
-      setCatalogueError("Enter a name from 1 to 100 characters."); return;
+      setCatalogueError("Enter a name from 1 to 100 characters.");
+      return;
     }
-    setSaving(true); setCatalogueError("");
-    try {
-      const target = action.target;
+    void runCatalogueAction(async () => {
+      const { target, mode } = action;
+      if (mode === "rename" && name === target.label) {
+        setAction(undefined);
+        return;
+      }
       if (target.file) {
-        const file = target.file;
-        if (action.mode === "rename" && /\.mov$/i.test(file.asset.name) && !/\.mov$/i.test(name)) {
-          throw new Error("Keep the .mov extension so the matching preview stays connected.");
-        }
-        const command = action.mode === "delete"
-          ? { kind: "delete-asset" as const, id: file.asset.id, before: assetBefore(file.asset) }
-          : /\.mov$/i.test(file.asset.name)
-            ? { kind: "rename-video-with-preview" as const, id: file.asset.id, name,
-              before: { name: file.asset.name, folderId: file.asset.folderId!, type: file.asset.type },
-              preview: file.preview ? { id: file.preview.id, name: file.preview.name, folderId: file.preview.folderId!, type: file.preview.type } : null }
-            : { kind: "update-asset" as const, id: file.asset.id, before: { name: file.asset.name }, update: { name } };
-        await changeLibraryFile(command, target.generation ?? null);
-        if (action.mode === "delete" && videoSelection?.id === file.asset.id) setVideoSelection(undefined);
-      } else if (target.preset) {
-        const before = readMotionCatalogue(window.localStorage);
-        if (!validMotionCatalogue(before)) throw new Error("Motion asset settings are invalid and have been preserved.");
-        const next = JSON.parse(before);
-        if (JSON.stringify(next[target.preset.name] ?? {}) !== target.presetBefore) {
-          throw new Error("This motion asset changed in another tab. Close this dialog and review the current asset.");
-        }
-        next[target.preset.name] = { ...next[target.preset.name], ...(action.mode === "delete" ? { hidden: true } : { name }) };
-        await saveCatalogueChange(before, JSON.stringify(next));
-        if (action.mode === "rename") {
-          const presetName = target.preset.name;
-          setWorkspace(current => {
-            const renameDraft = (item: MotionDraft) => {
-              const wasClean = projectKey(item.asset) === item.baseline;
-              const renamed = { ...item.asset, name };
-              return { ...item, asset: renamed, original: { ...item.original, name },
-                baseline: wasClean ? projectKey(renamed) : item.baseline };
-            };
-            const parked = new Map(current.parked);
-            const saved = parked.get(presetName);
-            if (saved) parked.set(presetName, renameDraft(saved));
-            return { ...current, parked,
-              draft: current.draft.preset === presetName ? renameDraft(current.draft) : current.draft };
+        const { asset, preview } = target.file;
+        const fileGeneration = target.generation ?? null;
+        if (mode === "delete") {
+          const sourceFolderId = asset.folderId!;
+          await changeMotionBin({
+            id: asset.id, name: asset.name, sourceFolderId, updatedAt: asset.updatedAt,
+            binFolderId: motionBins.get(sourceFolderId) ?? motionBinPrefix + crypto.randomUUID(),
+          }, fileGeneration, true);
+        } else {
+          const { id, name: originalName, folderId, type } = asset;
+          const mov = /\.mov$/i.test(originalName);
+          if (mov && !/\.mov$/i.test(name)) throw new Error("Keep the .mov extension so the matching preview stays connected.");
+          const companion = preview ? { id: preview.id, name: preview.name, folderId: preview.folderId!, type: preview.type } : null;
+          const pairedName = name.replace(/\.mov$/i, ".mp4");
+          const rename = (from: string, to: string, fromPreview?: string, toPreview?: string) => mov
+            ? changeLibraryFile({
+              kind: "rename-video-with-preview", id, name: to,
+              before: { name: from, folderId: folderId!, type },
+              preview: companion ? { ...companion, name: fromPreview! } : null,
+              ...(toPreview ? { previewName: toPreview } : {}),
+            }, fileGeneration)
+            : changeLibraryFile({ kind: "update-asset", id, before: { name: from, folderId }, update: { name: to, folderId } }, fileGeneration);
+          await applyCatalogueStep({ label: "Rename", fileGeneration: fileGeneration ?? undefined,
+            undo: () => rename(name, originalName, pairedName, companion?.name),
+            redo: () => rename(originalName, name, companion?.name),
           });
         }
+      } else if (target.preset) {
+        const key = target.preset.name;
+        const before = JSON.parse(target.presetBefore ?? "{}");
+        const after = mode === "delete" ? { ...before, hidden: true } : { ...before, name };
+        await applyCatalogueStep(presetStep(mode === "delete" ? "Delete" : "Rename", { [key]: before }, { [key]: after }));
       }
       setAction(undefined);
-    } catch (error) { setCatalogueError(error instanceof Error ? error.message : "The change could not be saved."); }
-    finally { setSaving(false); }
+      if (mode === "delete") requestAnimationFrame(() => {
+        if (document.activeElement === target.opener || document.activeElement === document.body) {
+          historyControls.current?.focus({ preventScroll: true });
+        }
+      });
+    });
+  }
+
+  function restorePresets() {
+    void runCatalogueAction(async () => {
+      const { values } = readCatalogue();
+      const before: PresetPreferences = Object.create(null);
+      const after: PresetPreferences = Object.create(null);
+      for (const [key, { hidden, ...visible }] of Object.entries(values)) {
+        if (!hidden) continue;
+        before[key] = values[key];
+        after[key] = visible;
+      }
+      if (Object.keys(before).length) await applyCatalogueStep(presetStep("Restore", before, after));
+    });
   }
 
   function selectCataloguePreset(preset: MotionClip, focusPreview: boolean) {
@@ -579,7 +725,8 @@ export function MotionPlayground() {
     {feedbackError ? <p role="alert" className="motion-feedback">{feedbackError}</p> : null}
   </>;
 
-  return <div className="motion-playground">
+  // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- Motion Assets owns shortcuts for focused descendants.
+  return <div className="motion-playground" onKeyDown={onHistoryShortcut}>
     <Pane label="Motion Assets" side="left" width={280} collapsed={false} onCollapsedChange={() => {}} collapseIcon={null}
       collapsible={false} inert={!ready} trackClassName="motion-catalogue-pane" bodyClassName="motion-catalogue-body"
       header={<h1>Motion Assets</h1>}
@@ -592,13 +739,22 @@ export function MotionPlayground() {
             setSearches(previous => ({ ...previous, [assetTab]: value }));
           }} placeholder="Search this tab…" /></label>
         <ToggleSetting label="Autoplay on selection" checked={autoplay} onChange={setAutoplay} />
+        <div className="motion-actions" role="group" aria-label="Motion asset history" ref={historyControls} tabIndex={-1}>
+          <HistoryActions presentation="labelled" canUndo={history.past.length > 0} canRedo={history.future.length > 0}
+            disabled={saving} onUndo={() => changeHistory("undo")} onRedo={() => changeHistory("redo")}
+            undoLabel={history.past.length ? `Undo ${history.past.at(-1)!.label}` : "Undo"}
+            redoLabel={history.future.length ? `Redo ${history.future.at(-1)!.label}` : "Redo"} />
+        </div>
       </div>}>
-    {Object.values(catalogue).some(item => item.hidden) && <button type="button" className="button-secondary" onClick={() => {
-      const before = readMotionCatalogue(window.localStorage);
-      const restored = JSON.parse(before);
-      for (const value of Object.values(restored) as Array<{ hidden?: boolean }>) delete value.hidden;
-      void saveCatalogueChange(before, JSON.stringify(restored)).catch(error => setCatalogueError(error.message));
-    }}>Restore built-in assets</button>}
+    {Object.values(catalogue).some(item => item.hidden) && <button type="button" className="button-secondary" disabled={saving}
+      onClick={restorePresets}>Restore built-in assets</button>}
+    {binFiles.length > 0 && <details>
+      <summary>Motion Assets Bin ({binFiles.length})</summary>
+      <ul>{binFiles.map(file => <li key={file.id}>
+        <button type="button" className="button-secondary" disabled={saving} onClick={() => void runCatalogueAction(() =>
+          changeMotionBin(file, generation, false))}>Restore {file.name}</button>
+      </li>)}</ul>
+    </details>}
     {catalogueError && !action && <p role="alert">{catalogueError}</p>}
       <PaneTabPanel id={assetTabsId} tab="special-effects" active={assetTab}>
         {effects.length || videoFiles.length ? <AnimationCatalogueCards entries={effects}
@@ -640,7 +796,7 @@ export function MotionPlayground() {
       returnFocus={action.target.opener} closeDisabled={saving} onClose={() => setAction(undefined)}>
       {action.mode === "rename" ? <label className="motion-field">Name<TextInput value={newName} maxLength={100}
         onChange={event => setNewName(event.target.value)} /></label>
-        : <p>{action.target.file ? `Permanently delete “${action.target.label}” from Files in this browser?`
+        : <p>{action.target.file ? `Move “${action.target.label}” to the Motion Assets Bin? You can restore it from the catalogue.`
           : `Remove “${action.target.label}” from the catalogue? You can restore built-in assets.`}</p>}
       {action.mode === "rename" && action.target.file?.preview && <p>The matching MP4 preview will be renamed to match.</p>}
       {catalogueError && <p role="alert">{catalogueError}</p>}
