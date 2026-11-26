@@ -6,6 +6,7 @@ const effectProjectVersions = {
   "fire-shockwave": "0.4.0",
   "volumetric-fireball": "0.5.0",
   "rolling-fireball": "0.6.0",
+  "volumetric-fireball-soft-fade": "0.7.0",
 } as const;
 const effectVersions: readonly string[] = Object.values(effectProjectVersions);
 export const motionFileLimit = 24 * 1024;
@@ -32,7 +33,7 @@ export const motionEffectDuration = { min: 18, max: 90 };
 export const volumetricExportRequirement = "Fireball MOV export requires local Studio on a Mac with Metal and the Swift toolchain.";
 
 export function isVolumetricEffect(effect: MotionEffect["effect"] | undefined) {
-  return effect === "volumetric-fireball" || effect === "rolling-fireball";
+  return effect === "volumetric-fireball" || effect === "volumetric-fireball-soft-fade" || effect === "rolling-fireball";
 }
 
 export function motionEffectFrameLimit(effect: MotionEffect["effect"]) {

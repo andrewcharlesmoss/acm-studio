@@ -9,11 +9,21 @@ export const volumetricFireball: MotionEffect = {
   effect: "volumetric-fireball", name: "Volumetric Fireball", width: 1920, height: 1080, durationFrames: motionFps,
 };
 
+export const softFadeFireball: MotionEffect = {
+  ...volumetricFireball, effect: "volumetric-fireball-soft-fade", name: "Volumetric Fireball (Soft Fade)",
+};
+
 export const rollingFireball: MotionEffect = {
   ...volumetricFireball, effect: "rolling-fireball", name: "Rolling Fireball",
 };
 
+const volumetricPosterFrame = (asset: MotionEffect) => Math.round(asset.durationFrames * 0.14);
+
 const effects = {
+  "volumetric-fireball-soft-fade": {
+    Artwork: null, poster: volumetricPosterFrame,
+    keywords: "fireball flame explosion volumetric soft fade dissolve",
+  },
   "fire-burst": {
     Artwork: FireBurstArtwork, poster: fireBurstPoster,
     keywords: "fire explosion embers smoke",
@@ -27,12 +37,12 @@ const effects = {
     keywords: "volumetric fireball explosion rolling flame billows smoke",
   },
   "volumetric-fireball": {
-    Artwork: null, poster: (asset: MotionEffect) => Math.round(asset.durationFrames * 0.14),
+    Artwork: null, poster: volumetricPosterFrame,
     keywords: "fireball flame explosion volumetric original acm",
   },
 };
 
-export const motionEffectCatalogue = [volumetricFireball, rollingFireball];
+export const motionEffectCatalogue = [volumetricFireball, softFadeFireball, rollingFireball];
 export const motionEffectPoster = (asset: MotionEffect) => effects[asset.effect].poster(asset);
 export const motionEffectKeywords = (asset: MotionEffect) => effects[asset.effect].keywords;
 

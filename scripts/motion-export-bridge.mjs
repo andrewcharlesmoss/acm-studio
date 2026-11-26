@@ -114,14 +114,17 @@ async function renderMov(asset, output, signal) {
 async function renderVolumetricMov(asset, output, signal, root) {
   const directory = dirname(output);
   const renderer = join(directory, "render-fireball");
-  const shader = join(root, "app/studio/motion-assets", asset.effect + ".glsl");
+  const softFade = asset.effect === "volumetric-fireball-soft-fade";
+  const shader = join(root, "app/studio/motion-assets", (softFade ? "volumetric-fireball" : asset.effect) + ".glsl");
   await runFile("swiftc", ["-O", "-module-cache-path", join(directory, "module-cache"),
     join(root, "scripts/volumetric-fireball/render.swift"), "-o", renderer], { signal, timeout: 30_000 });
   signal.throwIfAborted();
   const encoder = startEncoder(rawInput(asset), output, signal, true);
   const encoded = stopped(encoder);
   try {
-    const source = spawn(renderer, [shader, String(asset.width), String(asset.height), String(asset.durationFrames)],
+    const args = [shader, String(asset.width), String(asset.height), String(asset.durationFrames)];
+    if (softFade) args.push("--soft-fade");
+    const source = spawn(renderer, args,
       { ...processOptions(signal), stdio: ["ignore", "pipe", "ignore"] });
     const rendered = stopped(source);
     try {

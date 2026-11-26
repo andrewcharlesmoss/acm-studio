@@ -309,7 +309,7 @@ test("Special Effects lists Volumetric Fireball and omits retired effects and th
   await expect(motion.locator("[data-motion-ready]")).toHaveAttribute("data-motion-ready", "true", { timeout: 30_000 });
   await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
   const effects = motion.getByRole("tabpanel", { name: "Special Effects", exact: true });
-  await expect(effects.getByRole("button")).toHaveText(["Volumetric Fireball", "Rolling Fireball"]);
+  await expect(effects.getByRole("button")).toHaveText(["Volumetric Fireball", "Volumetric Fireball (Soft Fade)", "Rolling Fireball"]);
   const search = motion.getByRole("searchbox", { name: "Search motion assets" });
   for (const name of ["Fire Burst", "Shockwave", "Shutterstock"]) {
     await search.fill(name);
@@ -873,6 +873,53 @@ test("Volumetric Fireball renders live and saves editable name, size, and durati
   await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
   await expect(motion.getByRole("img", { name: "My fireball animation preview" })).toHaveAttribute("data-preview-height", "640");
   await expect(duration).toHaveValue("2.5");
+});
+
+test("Soft Fade matches the original preview before the ending and reopens as its own project", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    const draw = WebGL2RenderingContext.prototype.drawArrays;
+    WebGL2RenderingContext.prototype.drawArrays = function(mode, first, count) {
+      draw.call(this, mode, first, count);
+      if (!(this.canvas instanceof HTMLCanvasElement) || !this.canvas.closest(".motion-fireball-artwork")) return;
+      const pixel = new Uint8Array(4);
+      this.readPixels(this.drawingBufferWidth >> 1, this.drawingBufferHeight >> 1, 1, 1, this.RGBA, this.UNSIGNED_BYTE, pixel);
+      this.canvas.dataset.rgba = Array.from(pixel).join(",");
+    };
+  });
+  await page.goto(route, { waitUntil: "commit" });
+  const motion = page.getByRole("tabpanel", { name: "Motion Assets", exact: true });
+  await motion.getByRole("tab", { name: "Special Effects", exact: true }).click();
+  const timeline = motion.getByRole("slider", { name: "Animation position" });
+
+  async function sample(name: string) {
+    await motion.getByRole("button", { name: `Use ${name}`, exact: true }).click();
+    const preview = motion.getByRole("img", { name: `${name} animation preview`, exact: true });
+    await expect(preview).toHaveAttribute("data-live-render", "true");
+    const canvas = preview.locator("canvas");
+    // Both presets start on the same representative frame with reduced motion.
+    const pixel = () => canvas.evaluate((element: HTMLCanvasElement) => element.dataset.rgba!.split(",").map(Number));
+    const opening = await pixel();
+    await timeline.press("End");
+    for (let step = 0; step < 5; step++) await timeline.press("ArrowLeft");
+    await expect(timeline).toHaveValue("25");
+    return { opening, ending: await pixel() };
+  }
+
+  const original = await sample("Volumetric Fireball");
+  const softName = "Volumetric Fireball (Soft Fade)";
+  const soft = await sample(softName);
+  expect(original.opening[3]).toBeGreaterThan(0);
+  expect(soft.opening).toEqual(original.opening);
+  expect(soft.ending.slice(0, 3)).toEqual(original.ending.slice(0, 3));
+  expect(soft.ending[3]).toBeGreaterThan(0);
+  expect(soft.ending[3]).toBeLessThan(original.ending[3]);
+  const project = await save(page, "Download Project");
+  expect(JSON.parse(project.data.toString())).toMatchObject({ version: "0.7.0",
+    asset: { effect: "volumetric-fireball-soft-fade", durationFrames: 30 } });
+  await motion.getByRole("button", { name: "Use Rolling Fireball", exact: true }).click();
+  await motion.locator('input[type="file"]').setInputFiles({ name: project.name, mimeType: "application/json", buffer: project.data });
+  await expect(motion.getByRole("img", { name: `${softName} animation preview`, exact: true })).toBeVisible();
 });
 
 test("Rolling Fireball opens its own live preview and editable project", async ({ page }) => {

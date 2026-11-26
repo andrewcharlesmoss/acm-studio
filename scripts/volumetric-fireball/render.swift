@@ -5,15 +5,18 @@ struct FrameParameters {
     let width: UInt32
     let height: UInt32
     let time: Float
+    let softFade: UInt32
 }
 
 enum RenderError: Error { case invalidArguments, metalUnavailable, renderFailed }
 
-let args = CommandLine.arguments
+var args = CommandLine.arguments
+let softFade = args.last == "--soft-fade"
+if softFade { args.removeLast() }
 guard (5...6).contains(args.count), let width = Int(args[2]), let height = Int(args[3]),
       let frames = Int(args[4]), (1...1920).contains(width), (1...1920).contains(height), (2...600).contains(frames)
 else {
-    FileHandle.standardError.write(Data("Usage: render shader.glsl width height frame-count [single-frame-index]\n".utf8))
+    FileHandle.standardError.write(Data("Usage: render shader.glsl width height frame-count [single-frame-index] [--soft-fade]\n".utf8))
     throw RenderError.invalidArguments
 }
 
@@ -33,6 +36,8 @@ let sourceURL = URL(fileURLWithPath: args[1])
 let commonURL = sourceURL.deletingLastPathComponent().appendingPathComponent("fireball-noise.glsl")
 let common = try String(contentsOf: commonURL, encoding: .utf8)
 let shader = try String(contentsOf: sourceURL, encoding: .utf8)
+let fadeURL = sourceURL.deletingLastPathComponent().appendingPathComponent("fireball-fade.glsl")
+let fade = try String(contentsOf: fadeURL, encoding: .utf8)
 let metalSource = """
 #include <metal_stdlib>
 using namespace metal;
@@ -44,15 +49,16 @@ using namespace metal;
 
 \(common)
 \(shader)
+\(fade)
 
-struct FrameParameters { uint width; uint height; float time; };
+struct FrameParameters { uint width; uint height; float time; uint softFade; };
 
 kernel void renderFireball(device uchar4 *output [[buffer(0)]],
                            constant FrameParameters &frame [[buffer(1)]],
                            uint2 pixel [[thread_position_in_grid]]) {
     if (pixel.x >= frame.width || pixel.y >= frame.height) return;
     float2 uv = (float2(pixel) + 0.5f) / float2(frame.width, frame.height);
-    float4 colour = fireballAt(uv, float(frame.width) / float(frame.height), frame.time);
+    float4 colour = fireballWithFade(uv, float(frame.width) / float(frame.height), frame.time, frame.softFade != 0u);
     output[pixel.y * frame.width + pixel.x] = uchar4(saturate(colour) * 255.0f + 0.5f);
 }
 """
@@ -65,7 +71,7 @@ let threadHeight = min(8, pipeline.maxTotalThreadsPerThreadgroup / threadWidth)
 for index in selectedFrames {
     guard let command = queue.makeCommandBuffer(), let encoder = command.makeComputeCommandEncoder()
     else { throw RenderError.renderFailed }
-    var frame = FrameParameters(width: UInt32(width), height: UInt32(height), time: Float(index) / Float(frames - 1))
+    var frame = FrameParameters(width: UInt32(width), height: UInt32(height), time: Float(index) / Float(frames - 1), softFade: softFade ? 1 : 0)
     encoder.setComputePipelineState(pipeline)
     encoder.setBuffer(buffer, offset: 0, index: 0)
     encoder.setBytes(&frame, length: MemoryLayout<FrameParameters>.stride, index: 1)
