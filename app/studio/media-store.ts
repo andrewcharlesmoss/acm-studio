@@ -34,6 +34,7 @@ export type MediaAsset = {
   caption: string;
   blob: Blob;
   sourceRevision?: string;
+  motionBinDeletedAt?: string;
   backupRecovery?: MediaBackupRecovery;
 };
 
@@ -271,6 +272,7 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
       const asset = await getMediaAsset(id);
       if (!asset) throw new Error("The selected file could not be found.");
       const next = { ...asset, ...update, updatedAt: new Date().toISOString() };
+      if (next.folderId !== asset.folderId) delete next.motionBinDeletedAt;
       await withStore(ASSET_STORE, "readwrite", (store) => store.put(next));
       return next;
     });
@@ -491,7 +493,11 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
                   throw new MediaCommandError("A Motion Assets Bin was created in another tab. Try again.", "conflict");
                 }
                 if (!bin) folderStore.put({ id: to, name: motionBinName, parentId: source.id, createdAt: new Date().toISOString() } satisfies MediaFolder);
-                assetStore.put({ ...asset, folderId: to, updatedAt: new Date().toISOString() });
+                const updatedAt = new Date().toISOString();
+                const moved = { ...asset, folderId: to, updatedAt };
+                if (command.toBin) moved.motionBinDeletedAt = updatedAt;
+                else delete moved.motionBinDeletedAt;
+                assetStore.put(moved);
               } else if (command.kind === "rename-video-with-preview") {
                 const original = assets.find(item => item.id === command.id);
                 if (!original) throw new MediaCommandError("The video was removed in another tab.", "conflict");
@@ -525,7 +531,9 @@ function createMediaStoreRuntime(options?: IsolatedV3MediaStoreOptions) {
                 if (command.kind === "update-asset") {
                   for (const property of Object.keys(command.update) as Array<keyof typeof command.update>) expect(asset[property], command.before[property], command.update[property]);
                   if (command.update.folderId !== undefined) requireFolder(command.update.folderId);
-                  assetStore.put({ ...asset, ...command.update, updatedAt: new Date().toISOString() });
+                  const updated = { ...asset, ...command.update, updatedAt: new Date().toISOString() };
+                  if (updated.folderId !== asset.folderId) delete updated.motionBinDeletedAt;
+                  assetStore.put(updated);
                 } else {
                   for (const property of Object.keys(command.before) as Array<keyof typeof command.before>) expect(asset[property], command.before[property]);
                   assertMediaAssetCanBeDeleted(asset.id);

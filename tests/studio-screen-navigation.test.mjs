@@ -93,6 +93,7 @@ test("initial template and Bin URLs select their existing screen owners", () => 
   const templates = fixture({}, "?mode=templates"); templates.flush();
   assert.deepEqual(templates.calls, [["setTemplateTarget", { setId: null, targetId: null, scope: "global" }], ["setStudioSection", "templates"], ["setLibraryKind", "templates"]]);
   const bin = fixture({}, "?mode=bin"); bin.flush(); assert.deepEqual(bin.calls, [["setTemplateTarget", { setId: null, targetId: null, scope: "global" }], ["setStudioSection", "bin"]]);
+  const deferredBin = fixture({ workspaceReady: false }, "?mode=bin"); deferredBin.flush(); assert.deepEqual(deferredBin.calls, bin.calls);
   const content = fixture(); content.flush(); assert.deepEqual(content.calls, [["setTemplateTarget", { setId: null, targetId: null, scope: "global" }], ["setLibraryKind", "post"]]);
 });
 

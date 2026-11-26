@@ -54,8 +54,6 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
     page: workspace.documents.filter(item => item.kind === "page").length,
     templates: templateCount ?? cachedSiteSnapshot?.templateCount ?? null,
   };
-  const liveBinCount = workspace.bin.length + templateSession.store.bin.length + templateLibrarySession.store.bin.length;
-  const visibleBinCount = cachedSitePreview?.binCount ?? (templateCount === null ? cachedSiteSnapshot?.binCount : undefined) ?? liveBinCount;
   const entries = templateLibraryEntries(templateLibrarySession.store);
   const libraryDocuments = orderedLibraryDocuments(workspace.documents, kind === "templates" ? "page" : kind);
   const ids = kind === "templates"
@@ -79,7 +77,7 @@ export function StudioNavigationPane({ workspace, activeDocument, templateSessio
       libraryKind, true)}
     libraryKind={libraryKind} onSelectLibraryKind={onSelectLibraryKind}
     counts={visibleCounts}
-    binCount={visibleBinCount} studioSection={studioSection}
+    studioSection={studioSection}
     writable={writable} templateWritable={templateSession.writable}
     onNewDocument={addDocument} onNewFromTemplate={addDocumentFromTemplate}
     onOpenFiles={openMediaLibrary} onOpenTemplates={onOpenTemplates} onOpenBackup={onOpenBackup} onOpenBin={onOpenBin}

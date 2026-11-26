@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function StudioPage({ searchParams }: { searchParams: Promise<{ siteEditorHome?: string | string[]; siteEditorPage?: string | string[]; preview?: string | string[]; edit?: string | string[]; documentId?: string | string[]; viewport?: string | string[]; template?: string | string[]; site?: string | string[]; library?: string | string[]; mode?: string | string[]; set?: string | string[]; target?: string | string[]; scope?: string | string[] }> }) {
+export default async function StudioPage({ searchParams }: { searchParams: Promise<{ siteEditorHome?: string | string[]; siteEditorPage?: string | string[]; preview?: string | string[]; edit?: string | string[]; documentId?: string | string[]; viewport?: string | string[]; template?: string | string[]; site?: string | string[]; library?: string | string[]; mode?: string | string[]; binType?: string | string[]; binLocation?: string | string[]; set?: string | string[]; target?: string | string[]; scope?: string | string[] }> }) {
   const query = await searchParams;
   const preview = Array.isArray(query.preview) ? query.preview[0] : query.preview;
   const edit = Array.isArray(query.edit) ? query.edit[0] : query.edit;
@@ -26,6 +26,8 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
     editImmediately: hostedPage && edit === "1",
     preview: preview === "1",
     initialTemplates: mode === "templates",
+    initialBinType: mode === "bin" && typeof query.binType === "string" ? query.binType : undefined,
+    initialBinLocation: mode === "bin" && typeof query.binLocation === "string" ? query.binLocation : undefined,
     initialTemplateTarget: initialTemplateTarget(query.mode, query.set, query.target, query.scope),
     site: isLocalFixtureSiteId(query.site) ? query.site : null,
     libraryKind: mode === "templates" || library === "templates" ? "templates" : library === "page" || library === "post" ? library : undefined,

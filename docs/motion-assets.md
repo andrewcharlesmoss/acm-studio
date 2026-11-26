@@ -4,9 +4,9 @@ Open **Studio UI Library → Motion Assets** at `/studio/ui/motion-assets`. Use 
 
 With **Autoplay on selection** on by default, each sketch plays from the start when you choose it. Use the switch to turn autoplay off. Valid settings update the preview as you edit, including while dragging in the colour spectrum. A built-in sketch’s thumbnail shows its current name, proportions, colour and stroke thickness. You can also preview with **Play** or the position slider.
 
-Right-click an asset, or press **Shift+F10** with its tile focused, to rename or delete it. Renaming a MOV also renames its matching MP4 preview in the same Files operation. Deleted presets and imported videos appear in the **Motion Assets Bin**. Imported videos move to a Bin folder in Files and keep their file ID, contents, and preview association on restore.
+Right-click an asset, or press **Shift+F10** with its tile focused, to rename or delete it. Renaming a MOV also renames its matching MP4 preview in the same Files operation. Deleted presets and imported videos appear in the **Studio Bin**. Imported videos move to a Bin folder in Files and keep their file ID, contents, and preview association on restore.
 
-Use **Undo** and **Redo** in Motion Assets to reverse catalogue renames, deletions, and restores in the current tab. Use **Download Project** to keep animation settings before resetting the preview. Use **Command+Z** and **Command+Shift+Z** on macOS, or **Ctrl+Z** and **Ctrl+Y** on Windows and Linux. After reopening Studio, open **Motion Assets Bin** below the catalogue to restore an individual asset.
+Use **Undo** and **Redo** in Motion Assets to reverse catalogue renames, deletions, and restores in the current tab. Use **Download Project** to keep animation settings before resetting the preview. Use **Command+Z** and **Command+Shift+Z** on macOS, or **Ctrl+Z** and **Ctrl+Y** on Windows and Linux. Choose **View Bin** below the catalogue to open the Studio Bin in a new tab filtered to Motion Assets. Restore an individual asset there, including after reopening Studio. Use Undo or Redo in the Bin to reverse a restore made in that tab.
 
 Press Space to play or pause the preview. Fields and other focused controls keep their usual Space behaviour.
 

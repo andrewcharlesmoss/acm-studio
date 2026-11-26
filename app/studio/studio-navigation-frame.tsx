@@ -31,7 +31,7 @@ function keepEditorsTogether(order: string[]) {
 /** Navigation structure is shared by content and template workspaces. */
 export function StudioNavigationFrame({ width, collapsed, onWidthChange, onCollapsedChange,
   selectedSite, onSelectSite, onSelectWorkspace, libraryKind, onSelectLibraryKind,
-  counts, binCount, studioSection = "content", writable, templateWritable,
+  counts, studioSection = "content", writable, templateWritable,
   onNewDocument, onNewFromTemplate, onOpenFiles, onOpenTemplates, onOpenBackup, onOpenBin,
   onExportContent, contentEditorHref, siteEditorHref, loading = false, children,
 }: {
@@ -41,7 +41,7 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
   selectedSite?: LocalFixtureSiteId | null; onSelectSite?: (id: LocalFixtureSiteId) => void;
   onSelectWorkspace?: () => void;
   libraryKind: LibraryKind; onSelectLibraryKind?: (kind: LibraryKind) => void;
-  counts: Record<LibraryKind, number | null>; binCount: number; studioSection?: string;
+  counts: Record<LibraryKind, number | null>; studioSection?: string;
   writable: boolean; templateWritable: boolean;
   onNewDocument?: (kind: StudioDocumentKind) => void; onNewFromTemplate?: () => void;
   onOpenFiles?: () => void; onOpenTemplates?: () => void; onOpenBackup?: () => void; onOpenBin?: () => void;
@@ -83,8 +83,8 @@ export function StudioNavigationFrame({ width, collapsed, onWidthChange, onColla
         const dragProps = reordering.rowProps(id);
         const active = studioSection === id;
         const hidden = !(visibility?.isVisible(id) ?? true);
-        const content = <><span className="library-tool-icon"><StudioToolIcon tool={tool.icon} /></span><span className="library-tool-copy"><strong>{tool.label}</strong><small>{tool.description}</small></span>{id === "bin" ? <span className="library-tool-count" aria-hidden="true">{binCount}</span> : null}</>;
-        const actionProps = { className: `library-tool-button${active ? " is-active" : ""}${hidden ? " is-hidden" : ""}`, "aria-current": active ? "page" as const : undefined, "aria-label": id === "bin" ? `Bin, ${binCount} deleted ${binCount === 1 ? "item" : "items"}` : undefined };
+        const content = <><span className="library-tool-icon"><StudioToolIcon tool={tool.icon} /></span><span className="library-tool-copy"><strong>{tool.label}</strong><small>{tool.description}</small></span></>;
+        const actionProps = { className: `library-tool-button${active ? " is-active" : ""}${hidden ? " is-hidden" : ""}`, "aria-current": active ? "page" as const : undefined, "aria-label": id === "bin" ? "Bin" : undefined };
         return <div key={id} className={`library-tool-row${hidden ? " is-hidden" : ""}${visibilityEditing ? " is-editing" : ""}`} data-gap-row={visibilityEditing ? dragProps["data-gap-row"] : undefined} data-gap-owner={visibilityEditing ? dragProps["data-gap-owner"] : undefined} data-library-drop-row={visibilityEditing ? true : undefined} onDragOver={visibilityEditing ? dragProps.onDragOver : undefined} onDragLeave={visibilityEditing ? dragProps.onDragLeave : undefined} onDrop={visibilityEditing ? dragProps.onDrop : undefined}>
           {visibilityEditing ? <span {...actionProps} aria-disabled={hidden || undefined}>{content}</span> : tool.href ? <a {...actionProps} href={tool.href} data-studio-departure={id === "content" ? "" : undefined} draggable={false}>{content}</a> : <button {...actionProps} type="button" onClick={() => tool.action?.()} disabled={tool.disabled}>{content}</button>}
           {visibilityEditing ? <button type="button" className="studio-navigation-visibility-toggle" aria-label={hidden ? `Show ${tool.label} in navigation` : `Hide ${tool.label} from navigation`} aria-pressed={!hidden} title={hidden ? `Show ${tool.label}` : `Hide ${tool.label}`} onClick={() => visibility?.setVisible(id, hidden)}><AcmIcon name={hidden ? "view.hide" : "view.show"} scale="Regular-S" size={18} /></button> : null}

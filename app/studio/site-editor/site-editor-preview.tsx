@@ -551,7 +551,7 @@ export function SiteEditorPreview({ initialScope = "test", initialDocumentId, in
         siteEditorHref={studioSiteEditorPath(scope, studioLibraryKind === "page" ? selectedPage?.id : undefined, studioLibraryKind, true)}
         libraryKind={studioLibraryKind} onSelectLibraryKind={setStudioLibraryKind}
         counts={{ post: studioDocuments.filter(document => document.kind === "post").length, page: studioDocuments.filter(document => document.kind === "page").length, templates: studioTemplateCount }}
-        binCount={studioBinCount} studioSection="site-editor" writable={false} templateWritable={false}
+        studioSection="site-editor" writable={false} templateWritable={false}
         onOpenFiles={() => navigateToStudioMode("files")} onOpenBackup={() => navigateToStudioMode("backup")} onOpenBin={() => navigateToStudioMode("bin")}
         onOpenTemplates={() => { if (reviewItems.length) void requestReview(); else router.push(studioContextPath(scope === "global" ? null : scope, "templates")); }}
         onExportContent={() => navigateToStudioMode("backup")}>

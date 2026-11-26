@@ -1,4 +1,4 @@
-import type { MouseEventHandler, ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { StudioIcon } from "./studio-icons";
 
 /** Recovery commands and acknowledgement remain with the owning Bin. */
@@ -10,8 +10,8 @@ export function BinItem({ mark, label, detail, children }: { mark: string; label
   return <li className="studio-bin-item"><span className="document-kind-mark" aria-hidden="true">{mark}</span><span className="studio-bin-copy"><strong>{label}</strong><small>{detail}</small></span><div className="studio-bin-actions">{children}</div></li>;
 }
 
-export function BinRestoreButton({ disabled, onClick }: { disabled: boolean; onClick: MouseEventHandler<HTMLButtonElement> }) {
-  return <button type="button" disabled={disabled} onClick={onClick}><StudioIcon name="undo" size={16} />Restore</button>;
+export function BinRestoreButton(props: Omit<ComponentPropsWithoutRef<"button">, "type" | "children">) {
+  return <button {...props} type="button"><StudioIcon name="undo" size={16} />Restore</button>;
 }
 
 export function BinFeedback({ children }: { children: ReactNode }) {

@@ -35,12 +35,14 @@ export function MediaPreviewActions({ name, source, active, download, format, or
   </div>;
 }
 
-type MotionBinFile = { id: string; name: string; sourceFolderId: string; binFolderId: string };
+export type MotionBinFile = {
+  id: string; name: string; sourceFolderId: string; binFolderId: string; updatedAt: string; deletedAt?: string;
+};
 
 export function useLibraryPreviewFiles(kind: MediaKind) {
   const { revision, ready, error } = useMediaSession();
-  const [library, setLibrary] = useState<{ files: LibraryPreviewFile[]; binFiles: MotionBinFile[]; motionBins: Map<string, string>; generation: string | null; unavailable: boolean }>({
-    files: [], binFiles: [], motionBins: new Map(), generation: null, unavailable: false,
+  const [library, setLibrary] = useState<{ files: LibraryPreviewFile[]; binFiles: MotionBinFile[]; motionBins: Map<string, string>; generation: string | null; loaded: boolean; unavailable: boolean }>({
+    files: [], binFiles: [], motionBins: new Map(), generation: null, loaded: false, unavailable: false,
   });
 
   useEffect(() => {
@@ -73,12 +75,13 @@ export function useLibraryPreviewFiles(kind: MediaKind) {
       const binFiles = assets.flatMap(asset => {
         const sourceFolderId = asset.folderId && binSources.get(asset.folderId);
         return sourceFolderId && asset.type.startsWith("video/") && asset.blob.type.startsWith("video/")
-          ? [{ id: asset.id, name: asset.name, sourceFolderId, binFolderId: asset.folderId! }] : [];
+          ? [{ id: asset.id, name: asset.name, sourceFolderId, binFolderId: asset.folderId!,
+            updatedAt: asset.updatedAt, deletedAt: asset.motionBinDeletedAt }] : [];
       }).sort((left, right) => left.name.localeCompare(right.name));
-      setLibrary({ files, binFiles, motionBins, generation, unavailable: false });
+      setLibrary({ files, binFiles, motionBins, generation, loaded: true, unavailable: false });
     }).catch(() => {
       // An empty library may still be waiting for its first Files owner.
-      if (!cancelled) setLibrary({ files: [], binFiles: [], motionBins: new Map(), generation: null, unavailable: ready || Boolean(error) });
+      if (!cancelled) setLibrary({ files: [], binFiles: [], motionBins: new Map(), generation: null, loaded: false, unavailable: ready || Boolean(error) });
     });
     return () => { cancelled = true; };
   }, [kind, ready, error, revision]);

@@ -180,9 +180,9 @@ export function useStudioScreenNavigation({ setStudioSection, setLibraryKind, se
     const navigation = readStudioNavigation(window.location.search);
     let mounted = true;
     queueMicrotask(() => {
-      if (!mounted || previewWindow || !workspaceReady || initialNavigationApplied.current) return;
-      // Initialise from loaded content once; document fallback after binning
-      // must not replace the person's chosen library tab.
+      if (!mounted || previewWindow || initialNavigationApplied.current || !workspaceReady && navigation.section !== "bin") return;
+      // Bin lists independent sources while the current workspace loads.
+      // Content uses its loaded document once to initialise the library tab.
       initialNavigationApplied.current = true;
       if (navigation.section === "files") enterFilesFromLocation();
       setTemplateTarget(navigation.target);

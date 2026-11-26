@@ -1,9 +1,17 @@
 "use client";
 import { BinFeedback, BinItem, BinList, BinRestoreButton } from "./bin-presentation";
-import { GlobalTemplateBinPanel } from "./global-template-bin-panel";
-import type { LocalFixtureSiteId } from "./test-site/sites";
+import { restoreGlobalTemplate } from "./global-template-bin";
+import { localFixtureName, localFixtureSites, type LocalFixtureSiteId } from "./test-site/sites";
+import { SelectControl } from "./controls/native-fields";
+import { HistoryActions } from "./controls/history-actions";
+import { studioHistoryShortcut } from "./studio-history-shortcuts.mjs";
+import { useLibraryPreviewFiles, type MotionBinFile } from "./media-library-preview";
+import { changeLibraryFile } from "./media-sync";
+import { changePreset, readCatalogue, useMotionCatalogueSource, type PresetPreferences } from "./motion-assets/catalogue-recovery";
+import { motionCatalogue } from "./motion-assets/motion-catalogue";
+import { motionEffectCatalogue } from "./motion-assets/motion-effects";
 
-import { useRef, useState, type MouseEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { useStudioWorkspace } from "./use-studio-workspace";
 import type { useTemplates } from "./use-templates";
 import { StudioDialog, StudioDialogActions } from "./overlays/dialog";
@@ -20,18 +28,166 @@ type TemplateSession = ReturnType<typeof useTemplates>;
 type BinTarget = { id: string; label: string; kind: "document" | "template" | "set" };
 
 function formattedDate(value: string) {
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value));
 }
 
-export function StudioBin({ globals, workspace, templates, siteId, commitContent, templateRecoveryOnly = false }: { globals?: TemplateSession; workspace: WorkspaceSession; templates: TemplateSession; siteId?: LocalFixtureSiteId; templateRecoveryOnly?: boolean; commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean }) {
+const binTypes = [
+  { id: "all", label: "All items" },
+  { id: "pages", label: "Pages" },
+  { id: "posts", label: "Posts" },
+  { id: "templates", label: "Templates" },
+  { id: "motion-assets", label: "Motion Assets" },
+] as const;
+type BinType = typeof binTypes[number]["id"];
+const binContexts = [{ id: null, name: "Studio Drafts" }, ...localFixtureSites];
+const locations = [...binContexts.map(context => context.name), "Global templates", "Motion Assets"].sort();
+export type BinSource = {
+  id: LocalFixtureSiteId | null;
+  documents?: readonly StudioBinnedDocument[];
+  templates?: readonly StudioBinnedTemplate[];
+  error?: string | null;
+};
+type BinRow = {
+  key: string;
+  label: string;
+  description: string;
+  mark: string;
+  type: Exclude<BinType, "all">;
+  location: string;
+  deletedAt?: string;
+  permanentTarget?: BinTarget;
+} & ({ restore: () => void; canRestore: boolean; recoveryHref?: never }
+  | { restore?: never; canRestore?: never; recoveryHref: string });
+type MotionRestore = {
+  label: string;
+  generation?: string;
+  undo: () => Promise<unknown>;
+  redo: () => Promise<unknown>;
+};
+
+const presetNames = [...motionEffectCatalogue, ...motionCatalogue].map(asset => asset.name);
+const templateType = (item: StudioBinnedTemplate) => item.kind === "set" ? "Template set"
+  : item.entry.kind === "page" ? "Page template" : item.entry.kind === "post" ? "Post template" : `Shared ${item.entry.kind}`;
+
+function binHref(siteId: LocalFixtureSiteId | null, type: BinType, location: string) {
+  const query = new URLSearchParams({ mode: "bin" });
+  if (siteId) query.set("site", siteId);
+  if (type !== "all") query.set("binType", type);
+  if (location) query.set("binLocation", location);
+  return `/studio?${query}`;
+}
+
+const binSourceName = ({ id }: BinSource) => id ? localFixtureName(id) : "Studio Drafts";
+
+export function StudioBin({ globals, workspace, templates, currentSource, otherSources, siteId, commitContent, templateRecoveryOnly = false, initialType, initialLocation, navigationError }: {
+  globals?: TemplateSession;
+  workspace: WorkspaceSession;
+  templates: TemplateSession;
+  currentSource: BinSource;
+  otherSources: readonly BinSource[];
+  siteId?: LocalFixtureSiteId;
+  templateRecoveryOnly?: boolean;
+  initialType?: string;
+  initialLocation?: string;
+  navigationError?: string | null;
+  commitContent?: (update: (workspace: StudioWorkspace, templates: TemplateStore) => { workspace: StudioWorkspace; templates: TemplateStore }) => boolean;
+}) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [permanentTarget, setPermanentTarget] = useState<BinTarget | null>(null);
+  const [type, setType] = useState<BinType>(() => {
+    const requestedType = typeof window === "undefined" ? initialType : new URLSearchParams(window.location.search).get("binType");
+    return binTypes.find(item => item.id === requestedType)?.id ?? "all";
+  });
+  const [location, setLocation] = useState(() => {
+    const requestedLocation = typeof window === "undefined" ? initialLocation : new URLSearchParams(window.location.search).get("binLocation");
+    return requestedLocation && locations.includes(requestedLocation) ? requestedLocation : "";
+  });
+  const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
+  const [historyOwner, setHistoryOwner] = useState<"motion" | "global">("motion");
+  const [history, setHistory] = useState<{ past: MotionRestore[]; future: MotionRestore[] }>({ past: [], future: [] });
   const openerRef = useRef<HTMLElement | null>(null);
+  const historyControls = useRef<HTMLDivElement | null>(null);
   const writable = workspace.writable && templates.writable;
-  const entries = [
-    ...workspace.workspace.bin.map(item => ({ id: item.id, label: item.document.title, detail: `${item.document.kind === "page" ? "Page" : "Post"} · deleted ${formattedDate(item.deletedAt)}`, kind: "document" as const, mark: item.document.kind === "page" ? "P" : "A", deletedAt: item.deletedAt })),
-    ...templates.store.bin.map(item => ({ id: item.id, label: item.kind === "set" ? item.set.name : item.entry.name, detail: `${item.kind === "set" ? "Template set" : item.entry.kind === "page" || item.entry.kind === "post" ? `${item.entry.kind} template` : `Shared ${item.entry.kind}`} · deleted ${formattedDate(item.deletedAt)}`, kind: item.kind, mark: item.kind === "set" ? "S" : "T", deletedAt: item.deletedAt })),
-  ].sort((left, right) => right.deletedAt.localeCompare(left.deletedAt));
+  const { binFiles, generation, loaded: mediaLoaded, unavailable } = useLibraryPreviewFiles("video");
+  const catalogueSource = useMotionCatalogueSource();
+  let presets: PresetPreferences = {};
+  let presetLoadError = "";
+  try { presets = readCatalogue(catalogueSource).values; }
+  catch (error) { presetLoadError = error instanceof Error ? error.message : "Deleted motion presets couldn’t be loaded."; }
+  const available = (step: MotionRestore) => !step.generation || step.generation === generation;
+  const undoStep = history.past.filter(available).at(-1);
+  const redoStep = history.future.filter(available).at(-1);
+  const useGlobals = historyOwner === "global" && type !== "motion-assets";
+  const canUndo = useGlobals ? Boolean(globals?.writable && globals.canUndo) : Boolean(undoStep);
+  const canRedo = useGlobals ? Boolean(globals?.writable && globals.canRedo) : Boolean(redoStep);
+
+  async function runOwned(command: () => Promise<string>) {
+    if (saving.current) return;
+    saving.current = true;
+    setBusy(true);
+    setFeedback(null);
+    try {
+      setFeedback(await command());
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "The Bin change could not be confirmed. Reload before retrying.");
+    } finally {
+      saving.current = false;
+      setBusy(false);
+      requestAnimationFrame(() => {
+        if (document.activeElement === document.body) historyControls.current?.focus({ preventScroll: true });
+      });
+    }
+  }
+
+  function restoreMotion(step: MotionRestore, restore = step.redo) {
+    void runOwned(async () => {
+      await restore();
+      setHistory(current => ({ past: [...current.past.filter(available), step].slice(-30), future: [] }));
+      setHistoryOwner("motion");
+      return `“${step.label}” restored.`;
+    });
+  }
+
+  function restoreVideo({ id, name, sourceFolderId, binFolderId, updatedAt }: MotionBinFile) {
+    const move = (toBin: boolean, timestamp?: string) => changeLibraryFile({
+      kind: "move-motion-video", id, name, sourceFolderId, binFolderId, toBin,
+      ...(timestamp ? { updatedAt: timestamp } : {}),
+    }, generation);
+    restoreMotion({ label: name, generation: generation ?? undefined, undo: () => move(true), redo: () => move(false) },
+      () => move(false, updatedAt));
+  }
+
+  function changeHistory(direction: "undo" | "redo", global = useGlobals) {
+    if (busy || permanentTarget) return;
+    if (global) {
+      if (globals?.writable && (direction === "undo" ? globals.canUndo : globals.canRedo)) globals[direction]();
+      return;
+    }
+    const step = direction === "undo" ? undoStep : redoStep;
+    if (!step) return;
+    void runOwned(async () => {
+      await step[direction]();
+      setHistory(current => direction === "undo"
+        ? { past: current.past.filter(item => available(item) && item !== step), future: [...current.future.filter(available), step] }
+        : { past: [...current.past.filter(available), step], future: current.future.filter(item => available(item) && item !== step) });
+      setHistoryOwner("motion");
+      return direction === "undo" ? `“${step.label}” moved back to the Bin.` : `“${step.label}” restored.`;
+    });
+  }
+
+  function handleHistoryShortcut(event: KeyboardEvent<HTMLElement>) {
+    if (busy || permanentTarget || !(event.target instanceof HTMLElement) || !event.currentTarget.contains(event.target)) return;
+    const direction = studioHistoryShortcut(event.nativeEvent, navigator.platform);
+    if (!direction) return;
+    const global = useGlobals && !event.target.closest("[data-motion-bin-action]");
+    const availableAction = global
+      ? globals?.writable && (direction === "undo" ? globals.canUndo : globals.canRedo)
+      : direction === "undo" ? undoStep : redoStep;
+    if (!availableAction) return;
+    event.preventDefault();
+    changeHistory(direction, global);
+  }
 
   function closePermanentDialog() { setPermanentTarget(null); }
 
@@ -136,13 +292,128 @@ export function StudioBin({ globals, workspace, templates, siteId, commitContent
     closePermanentDialog();
   }
 
-  return <section className="studio-bin" aria-labelledby="studio-bin-title">
-    <header><div><p className="studio-eyebrow">Recover deleted work</p><h1 id="studio-bin-title">Bin</h1><p>Restore pages, posts and templates, or permanently delete them when you’re sure.</p></div><span>{entries.length + (globals?.store.bin.length ?? 0)} {(entries.length + (globals?.store.bin.length ?? 0)) === 1 ? "item" : "items"}</span></header>
-    {globals ? <GlobalTemplateBinPanel session={globals} /> : null}
+  const currentSite = siteId ?? null;
+  const sources = [currentSource, ...otherSources];
+  const relevantSources = sources.filter(source => !location || location === binSourceName(source));
+  const entries: BinRow[] = [
+    ...sources.flatMap(source => {
+      const sourceLocation = binSourceName(source);
+      const owner = source.id === currentSite;
+      return [
+        ...(source.documents ?? []).map((item): BinRow => {
+          const page = item.document.kind === "page";
+          const rowType = page ? "pages" : "posts";
+          return {
+            key: `document/${source.id ?? "drafts"}/${item.id}`, label: item.document.title, description: page ? "Page" : "Post",
+            mark: page ? "P" : "A", type: rowType, location: sourceLocation, deletedAt: item.deletedAt,
+            ...(owner ? { restore: () => restoreDocument(item), canRestore: writable,
+              permanentTarget: { id: item.id, label: item.document.title, kind: "document" } }
+              : { recoveryHref: binHref(source.id, type, location || sourceLocation) }),
+          };
+        }),
+        ...(source.templates ?? []).map((item): BinRow => {
+          const label = item.kind === "set" ? item.set.name : item.entry.name;
+          return {
+            key: `local-template/${source.id ?? "drafts"}/${item.id}`, label, description: templateType(item), mark: item.kind === "set" ? "S" : "T",
+            type: "templates", location: sourceLocation, deletedAt: item.deletedAt,
+            ...(owner ? { restore: () => restoreTemplate(item), canRestore: writable,
+              permanentTarget: { id: item.id, label, kind: item.kind } }
+              : { recoveryHref: binHref(source.id, type, location || sourceLocation) }),
+          };
+        }),
+      ];
+    }),
+    ...(globals ? globals.store.bin.flatMap((item): BinRow[] => {
+      if (item.kind !== "template") return [];
+      return [{
+        key: `global-template/${item.id}`, label: item.entry.name, description: templateType(item),
+        mark: "T", type: "templates", location: "Global templates", deletedAt: item.deletedAt,
+        canRestore: globals.writable && !busy,
+        restore: () => void runOwned(async () => {
+          if (!globals.commit(store => restoreGlobalTemplate(store, item.id))) throw new Error("The template could not be restored. Its recovery copy was kept.");
+          await globals.flush?.();
+          setHistoryOwner("global");
+          return "Global template restored.";
+        }),
+      }];
+    }) : []),
+    ...presetNames.flatMap((key): BinRow[] => {
+      const preset = presets[key];
+      if (!preset?.hidden) return [];
+      const label = preset.name ?? key;
+      const restored = preset.name === undefined ? {} : { name: preset.name };
+      return [{
+        key: `motion-preset/${key}`, label, description: "Built-in preset",
+        mark: "M", type: "motion-assets", location: "Motion Assets", deletedAt: preset.deletedAt,
+        canRestore: !busy, restore: () => restoreMotion({
+          label, undo: () => changePreset(key, restored, preset), redo: () => changePreset(key, preset, restored),
+        }),
+      }];
+    }),
+    ...binFiles.map((file): BinRow => ({
+      key: `motion-video/${file.id}`, label: file.name, description: "Imported video",
+      mark: "M", type: "motion-assets", location: "Motion Assets", deletedAt: file.deletedAt,
+      canRestore: Boolean(generation) && !busy, restore: () => restoreVideo(file),
+    })),
+  ];
+  const visible = entries.filter(entry => (type === "all" || type === entry.type) && (!location || location === entry.location))
+    .sort((left, right) => (right.deletedAt ? Date.parse(right.deletedAt) : 0) - (left.deletedAt ? Date.parse(left.deletedAt) : 0)
+      || left.label.localeCompare(right.label));
+  const needsDocuments = type === "all" || type === "pages" || type === "posts";
+  const needsTemplates = type === "all" || type === "templates";
+  const showGlobals = needsTemplates && (!location || location === "Global templates");
+  const showMotion = (type === "all" || type === "motion-assets") && (!location || location === "Motion Assets");
+  const unavailableSources = relevantSources.filter(source => source.error && (needsDocuments || needsTemplates));
+  const loadingSources: string[] = relevantSources
+    .filter(source => !source.error && (needsDocuments && !source.documents || needsTemplates && !source.templates))
+    .map(binSourceName);
+  if (showGlobals && globals && !globals.ready && !globals.error) loadingSources.push("Global templates");
+  if (showMotion && !mediaLoaded && !unavailable) loadingSources.push("Motion Assets");
+  const globalError = showGlobals ? globals?.error : null;
+  const motionError = showMotion ? presetLoadError || (unavailable ? "Deleted videos couldn’t be loaded from Files." : "") : null;
+  const missingSource = unavailableSources.length > 0 || Boolean(globalError || motionError);
+
+  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Scope platform history shortcuts to focused controls in the Bin.
+  return <section className="studio-bin" aria-labelledby="studio-bin-title" onKeyDown={handleHistoryShortcut}>
+    <header><h1 id="studio-bin-title">Bin</h1><span>{visible.length} {visible.length === 1 ? "item" : "items"}</span></header>
+    <nav className="studio-bin-contexts" aria-label="Recovery context">
+      <span>Recovery context</span>
+      {binContexts.map(context => <a key={context.name} data-studio-departure-link href={binHref(context.id, type, location)}
+        aria-current={currentSite === context.id ? "page" : undefined}>{context.name}</a>)}
+    </nav>
+    <div className="studio-bin-filters">
+      <div><label htmlFor="studio-bin-type">Type</label><SelectControl id="studio-bin-type" value={type} onChange={event => setType(event.target.value as BinType)}>
+        {binTypes.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+      </SelectControl></div>
+      <div><label htmlFor="studio-bin-location">Original Location</label><SelectControl id="studio-bin-location" value={location} onChange={event => setLocation(event.target.value)}>
+        <option value="">All locations</option>
+        {locations.map(item => <option key={item} value={item}>{item}</option>)}
+      </SelectControl></div>
+      <div className="studio-bin-history" role="group" aria-label="Bin history" ref={historyControls} tabIndex={-1}>
+        <HistoryActions presentation="labelled" canUndo={canUndo} canRedo={canRedo} disabled={busy}
+          onUndo={() => changeHistory("undo")} onRedo={() => changeHistory("redo")}
+          undoLabel={useGlobals ? undefined : "Undo Restore"} redoLabel={useGlobals ? undefined : "Redo Restore"} />
+      </div>
+    </div>
     <BinFeedback>{feedback}</BinFeedback>
-    <BinList hasItems={Boolean(entries.length)} emptyMessage={globals?.store.bin.length ? "No items in this context’s Bin." : "The Bin is empty."}>{entries.map(entry => <BinItem key={`${entry.kind}/${entry.id}`} mark={entry.mark} label={entry.label} detail={entry.detail}>
-      <BinRestoreButton disabled={!writable} onClick={() => entry.kind === "document" ? restoreDocument(workspace.workspace.bin.find(item => item.id === entry.id)!) : restoreTemplate(templates.store.bin.find(item => item.id === entry.id)!)} /><button className="danger-button" type="button" disabled={!writable} onClick={event => askPermanentDelete(event, entry)}><StudioIcon name="trash" size={16} />Delete permanently</button>
-    </BinItem>)}</BinList>
+    {navigationError ? <p className="studio-bin-status" role="alert">{navigationError}</p> : null}
+    {unavailableSources.map(source => <p className="studio-bin-status" key={source.id ?? "drafts"} role="alert">
+      {binSourceName(source)} items may be incomplete. {source.error}
+    </p>)}
+    {loadingSources.length ? <p className="studio-bin-status" role="status">Loading deleted items from {new Intl.ListFormat("en-GB").format(loadingSources)}…</p> : null}
+    {globalError ? <p className="studio-bin-status" role="alert">{globalError}</p> : null}
+    {motionError ? <p className="studio-bin-status" role="alert">{motionError}</p> : null}
+    <BinList hasItems={visible.length > 0} emptyMessage={loadingSources.length ? "" : missingSource ? "No deleted items could be shown for these filters." : type !== "all" || location ? "No deleted items match these filters." : "The Bin is empty."}>
+      {visible.map(entry => <BinItem key={entry.key} mark={entry.mark} label={entry.label}
+        detail={`${entry.description} · ${entry.location}${entry.deletedAt ? ` · Deleted ${formattedDate(entry.deletedAt)}` : ""}`}>
+        {entry.recoveryHref ? <a className="button-secondary" data-studio-departure-link href={entry.recoveryHref}>
+          Open {entry.location} to restore
+        </a> : <BinRestoreButton disabled={busy || !entry.canRestore} onClick={entry.restore}
+          data-motion-bin-action={entry.type === "motion-assets" ? "" : undefined} />}
+        {entry.permanentTarget && <button className="danger-button" type="button" disabled={!writable}
+          onClick={event => askPermanentDelete(event, entry.permanentTarget!)}><StudioIcon name="trash" size={16} />Delete permanently</button>}
+      </BinItem>)}
+    </BinList>
     {permanentTarget ? <StudioDialog title="Delete permanently?" className="template-dialog" returnFocus={openerRef} onClose={closePermanentDialog}>
       <p>This will permanently delete “{permanentTarget.label}”. You won’t be able to restore it.</p>
       <StudioDialogActions><StudioButton variant="secondary" type="button" onClick={closePermanentDialog}>Cancel</StudioButton><button className="button-primary danger-button" type="button" disabled={!writable} onClick={() => permanentlyDelete(permanentTarget)}>Delete permanently</button></StudioDialogActions>

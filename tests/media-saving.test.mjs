@@ -100,16 +100,23 @@ test("Motion Assets Bin moves a video atomically and restores the same file", as
     assert.deepEqual(f.db.rows("commandReceipts"), []);
     await f.store.applyMediaRequest(remove);
     await f.store.applyMediaRequest(remove);
-    assert.equal((await f.store.getMediaAsset(video.id)).folderId, move.binFolderId);
+    const binned = await f.store.getMediaAsset(video.id);
+    assert.equal(binned.folderId, move.binFolderId);
+    assert.equal(binned.motionBinDeletedAt, binned.updatedAt);
     assert.equal(f.db.rows("commandReceipts").length, 1);
     await f.store.applyMediaRequest(command({ toBin: false }));
     const restored = await f.store.getMediaAsset(video.id);
     assert.equal(restored.id, video.id);
     assert.equal(restored.folderId, source.id);
     assert.equal(restored.createdAt, video.createdAt);
+    assert.equal(restored.motionBinDeletedAt, undefined);
     assert.equal(await restored.blob.text(), "x");
     await f.store.applyMediaRequest(command({}));
     assert.equal((await f.store.getMediaAsset(video.id)).folderId, move.binFolderId);
+    await f.store.applyMediaRequest({ ...f.request({
+      kind: "update-asset", id: video.id, before: { folderId: move.binFolderId }, update: { folderId: source.id },
+    }), generation });
+    assert.equal((await f.store.getMediaAsset(video.id)).motionBinDeletedAt, undefined);
   } finally { f.release(); }
 });
 

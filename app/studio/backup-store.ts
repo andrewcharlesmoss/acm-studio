@@ -189,6 +189,7 @@ export function validateStudioBackup(value: unknown): StudioBackup {
     if (!isRecord(asset) || typeof asset.id !== "string" || !asset.id || assetIds.has(asset.id)
       || !["name", "type", "altText", "caption"].every((field) => typeof asset[field] === "string")
       || ![asset.createdAt, asset.updatedAt].every((date) => typeof date === "string" && Number.isFinite(Date.parse(date)))
+      || (asset.motionBinDeletedAt !== undefined && (typeof asset.motionBinDeletedAt !== "string" || asset.motionBinDeletedAt.length > 40 || !Number.isFinite(Date.parse(asset.motionBinDeletedAt))))
       || (asset.folderId !== null && (typeof asset.folderId !== "string" || !folders.has(asset.folderId)))
       || typeof asset.size !== "number" || !Number.isSafeInteger(asset.size) || asset.size < 0
       || typeof asset.dataBase64 !== "string" || asset.dataBase64.length > MAX_BACKUP_BYTES

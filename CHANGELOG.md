@@ -3,7 +3,8 @@
 ## Unreleased
 
 ### Added
-- Rename and delete motion assets from the catalogue context menu, with Undo and Redo and a shared Bin for deleted presets and imported videos.
+- Rename and delete motion assets from the catalogue context menu, with Undo and Redo and recovery for deleted presets and imported videos in the Studio Bin.
+- See deleted items across Studio Drafts, local sites, global templates, and Motion Assets in one Bin. Filter by type or original location, and open the item’s recovery context to restore it.
 
 - View local package versions, verified latest releases, and unresolved dependencies by project in the Packages dashboard, with project names kept visible when scrolling.
 - Choose a published package version for local ACM Studio, ACM Account, or Project Ports, review the dependency file changes, and apply them from the Packages dashboard.
