@@ -920,12 +920,12 @@ test("Soft Fade matches the original preview before the ending and reopens as it
     const final = await sampleFrame();
     const tail = [];
     // Walk back to the start of the fade so even the last visible wisps are sampled.
-    for (let frame = 29; frame >= 19; frame--) {
+    for (let frame = 29; frame >= 15; frame--) {
       await timeline.press("ArrowLeft");
       await expect(timeline).toHaveValue(String(frame));
       tail.unshift(await sampleFrame());
     }
-    return { opening, earlier: tail[4], ending: tail[6], tail, final };
+    return { opening, earlier: tail[8], ending: tail[10], tail, final };
   }
 
   const original = await sample("Volumetric Fireball");
@@ -936,8 +936,17 @@ test("Soft Fade matches the original preview before the ending and reopens as it
   // Internal detail evolves while the whole volume stays centred and fades.
   const changed = soft.ending.colours.filter((red, i) => Math.abs(red - soft.earlier.colours[i]) > 3);
   expect(changed.length).toBeGreaterThan(soft.ending.colours.length * 0.15);
-  const anchor = soft.tail[0];
-  for (const frame of soft.tail.filter(frame => frame.opacity >= 1)) {
+  expect(soft.tail[0]).toEqual(original.tail[0]);
+  // At 30 fps the fade should span enough frames to avoid a steep drop or a visible last-frame cut.
+  for (let i = 1; i < soft.tail.length; i++) {
+    const drop = (soft.tail[i - 1].opacity - soft.tail[i].opacity) / 255;
+    expect(drop).toBeGreaterThanOrEqual(0);
+    expect(drop).toBeLessThan(0.13);
+  }
+  expect(soft.tail.at(-2)!.opacity).toBeGreaterThan(0);
+  expect(soft.tail.at(-2)!.opacity).toBeLessThan(4);
+  const anchor = soft.tail[4];
+  for (const frame of soft.tail.slice(4).filter(frame => frame.opacity >= 1)) {
     expect(Math.abs(frame.centreX - anchor.centreX)).toBeLessThan(0.01);
     expect(Math.abs(frame.centreY - anchor.centreY)).toBeLessThan(0.01);
   }

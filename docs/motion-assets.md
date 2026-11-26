@@ -24,7 +24,7 @@ The initial wave uses the SVG geometry from the November 2026 cross-editor exper
 
 **Volumetric Fireball** is an independently generated 3D flame effect. Its shell, turbulent folds, sparks, and fade are defined in the [shared shader](../app/studio/motion-assets/volumetric-fireball.glsl). Change its name, width, height, and duration from 0.6 to 15 seconds. Defaults are 1920 × 1080 px and 1 second at 30 fps. Use **Download Project** to save an editable project in format v0.5.0, or **Download MOV** to render a ProRes 4444 file with alpha. **File Details** shows the settings for that MOV.
 
-**Volumetric Fireball (Soft Fade)** has the same opening and expansion as Volumetric Fireball. In the final third, its centre stays in place while the flame continues to curl and cool. The folds slow as they cool, and the remaining glow fades across the canvas in place. It uses the same controls and transparent MOV export, and saves as a v0.7.0 project.
+**Volumetric Fireball (Soft Fade)** has the same opening and expansion as Volumetric Fireball. The glow starts to thin just after halfway, while the flame is still expanding. In the final third, the centre settles in place and the folds keep curling as the glow tapers to transparency. It uses the same controls and transparent MOV export, and saves as a v0.7.0 project.
 
 **Rolling Fireball** starts with a bright central flash. Uneven billows expand, rise, and break into cooling wisps. It has the same settings and transparent MOV export as Volumetric Fireball, and saves as a v0.6.0 project.
 

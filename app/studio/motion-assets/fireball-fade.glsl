@@ -1,7 +1,8 @@
 vec4 fireballWithFade(vec2 uv, float aspect, float time, bool softFade) {
-    const float fadeStart = 0.66f;
-    // Stop the bulk translation at the fade, but let the flame field keep evolving.
-    float centreTime = softFade ? min(time, fadeStart) : time;
+    const float fadeStart = 0.52f;
+    const float settleStart = 0.66f;
+    // Let the glow start thinning during expansion, before the flame settles in place.
+    float centreTime = softFade ? min(time, settleStart) : time;
     vec4 flame = fireballAt(uv, aspect, time, centreTime);
     if (!softFade || time <= fadeStart) return flame;
 
