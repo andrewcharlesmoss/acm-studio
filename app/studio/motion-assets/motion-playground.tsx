@@ -40,9 +40,9 @@ const exportHeaders = { "Content-Type": "application/json", "X-Studio-Client": "
 type MovSupport = { available: boolean; volumetricAvailable?: boolean; error?: string };
 const subscribeToHydration = () => () => {};
 const motionAssetTabs = [
-  { id: "favourites", label: "Favourites" },
   { id: "special-effects", label: "Special Effects" },
   { id: "sketches", label: "Sketches" },
+  { id: "favourites", label: "Favourites" },
 ] as const;
 type MotionAssetTab = (typeof motionAssetTabs)[number]["id"];
 type CatalogueStep = {
